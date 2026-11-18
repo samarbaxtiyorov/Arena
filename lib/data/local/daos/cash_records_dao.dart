@@ -13,6 +13,12 @@ class CashRecordsDao extends DatabaseAccessor<AppDatabase>
     with _$CashRecordsDaoMixin {
   CashRecordsDao(super.db);
 
+  // Barcha kassa yozuvlari
+  Stream<List<CashRecord>> watchAllRecords() =>
+      (select(cashRecords)
+        ..orderBy([(r) => OrderingTerm.desc(r.recordedAt)]))
+          .watch();
+
   // Bugungi kassa
   Stream<List<CashRecord>> watchTodayRecords() {
     final today = DateTime.now();
