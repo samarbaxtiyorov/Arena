@@ -54,8 +54,9 @@ class SyncService {
       pushed += await _pushDebts(errors);
       pushed += await _pushProducts(errors);
 
-      // 2. SUPABASE → LOCAL (pull — faqat customers va products)
+      // 2. SUPABASE → LOCAL (pull — customers, debts, products)
       pulled += await _pullCustomers(errors);
+      pulled += await _pullDebts(errors);
       pulled += await _pullProducts(errors);
 
     } finally {
@@ -165,6 +166,30 @@ class SyncService {
       return rows.length;
     } catch (e) {
       errors.add('pull customers: $e');
+      return 0;
+    }
+  }
+
+  // ── PULL: debts (Supabase → SQLite) ──────────
+  Future<int> _pullDebts(List<String> errors) async {
+    try {
+      final rows = await _remote.fetchDebts();
+      for (final row in rows) {
+        await _db.debtsDao.insertDebt(DebtsCompanion.insert(
+          id: row['id'] as String,
+          customerId: row['customer_id'] as String,
+          amount: (row['amount'] as num).toInt(),
+          type: row['type'] as String,
+          description: Value(row['description'] as String?),
+          sessionId: Value(row['session_id'] as String?),
+          isSynced: const Value(true),
+          createdAt: Value(DateTime.parse(row['created_at'] as String)),
+          updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
+        ));
+      }
+      return rows.length;
+    } catch (e) {
+      errors.add('pull debts: $e');
       return 0;
     }
   }
