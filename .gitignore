@@ -1,0 +1,69 @@
+# ============================================
+# ARENA - Flutter .gitignore
+# Samar Baxtiyorov | uz.samar.arena
+# ============================================
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (ixtiyoriy — kerak bo'lsa oching)
+.vscode/
+
+# Flutter/Dart/Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication
+app.*.symbols
+
+# Obfuscation
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+/android/.gradle/
+
+# Linux build
+/linux/flutter/ephemeral/
+
+# Drift / SQLite lokal baza fayllar (runtime)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Muhim: environment / secrets
+.env
+.env.*
+secrets.dart
+supabase_config.dart
+
+# Widget Preview
+.widget_preview/
