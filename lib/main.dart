@@ -33,8 +33,11 @@ class _ArenaAppState extends ConsumerState<ArenaApp> {
   @override
   void initState() {
     super.initState();
-    // Ilovani ochganda sinxronizatsiyani boshlash
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Ilovani ochganda sinxronizatsiyani boshlash va boshlang'ich ma'lumotlar
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final db = ref.read(appDatabaseProvider);
+      await db.seedInitialData();
+
       final syncService = ref.read(syncServiceProvider);
       syncService.startPeriodicSync();
     });
@@ -42,11 +45,13 @@ class _ArenaAppState extends ConsumerState<ArenaApp> {
 
   @override
   Widget build(BuildContext context) {
+    final router = ref.watch(appRouterProvider);
+
     return MaterialApp.router(
       title:        'Arena',
       debugShowCheckedModeBanner: false,
-      theme:        AppTheme.dark,
-      routerConfig: appRouter,
+      theme:        AppTheme.light,
+      routerConfig: router,
     );
   }
 }

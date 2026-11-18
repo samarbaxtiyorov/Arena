@@ -1,5 +1,7 @@
 // ============================================
-// Arena — Stol Kartasi (Aesthetic Dark Slate)
+// Arena — Maydon/Stol Kartasi (Skrinshot 6 bilan 1:1)
+// Stadion banneri, LED taymer, ⏱/☕ ajratilgan hisob,
+// [☕], [⚏ Bo'lish] va [✓ To'lov] tugmalari
 // ============================================
 
 import 'dart:async';
@@ -7,20 +9,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/local/app_database.dart';
 import '../providers/tables_providers.dart';
+import 'stadium_banner.dart';
 import 'session_finish_dialog.dart';
+import 'add_bar_to_session_sheet.dart';
+import 'split_session_dialog.dart';
 
 class TableCard extends ConsumerStatefulWidget {
   final ClubTable table;
   final Session? activeSession;
+  final int index;
 
   const TableCard({
     super.key,
     required this.table,
     this.activeSession,
+    this.index = 1,
   });
 
   @override
@@ -30,7 +36,9 @@ class TableCard extends ConsumerStatefulWidget {
 class _TableCardState extends ConsumerState<TableCard> {
   Timer? _ticker;
   Duration _currentElapsed = Duration.zero;
-  int _currentAmount = 0;
+  int _gameAmount = 0;
+  int _barAmount = 0;
+  int _totalAmount = 0;
 
   @override
   void initState() {
@@ -80,379 +88,426 @@ class _TableCardState extends ConsumerState<TableCard> {
     final session = widget.activeSession;
     if (session == null) {
       _currentElapsed = Duration.zero;
-      _currentAmount = 0;
+      _gameAmount = 0;
+      _barAmount = 0;
+      _totalAmount = 0;
       return;
     }
 
     final now = DateTime.now();
     _currentElapsed = now.difference(session.startedAt);
 
-    final minutes = _currentElapsed.inMinutes > 0 ? _currentElapsed.inMinutes : 1;
-    final ratePerMinute = widget.table.pricePerHour / 60.0;
-    _currentAmount = (minutes * ratePerMinute).round();
+    // O'yin summasi (daqiqa bo'yicha)
+    final seconds = _currentElapsed.inSeconds;
+    final ratePerSecond = widget.table.pricePerHour / 3600.0;
+    // Kamida 1000 so'm yoki hisoblangan
+    final calculated = (seconds * ratePerSecond).round();
+    _gameAmount = calculated > 0 ? calculated : 1000;
+
+    // Bar summasini notes dan hisoblash
+    _barAmount = 0;
+    if (session.notes != null && session.notes!.contains('Bar:')) {
+      // Notes dan bar summasini parsing qilish yoki totalAmount - gameAmount
+      if (session.totalAmount > _gameAmount) {
+        _barAmount = session.totalAmount - _gameAmount;
+      }
+    }
+
+    _totalAmount = _gameAmount + _barAmount;
   }
 
-  IconData _getTypeIcon(String type) {
-    switch (type) {
-      case 'billiard':
-        return Icons.sports_baseball_outlined;
-      case 'ps':
-        return Icons.sports_esports_outlined;
-      case 'football':
-        return Icons.sports_soccer_outlined;
-      case 'tennis':
-        return Icons.sports_tennis_outlined;
-      default:
-        return Icons.table_restaurant_outlined;
-    }
-  }
-
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'billiard':
-        return 'Bilyard';
-      case 'ps':
-        return 'PlayStation';
-      case 'football':
-        return 'Futbol';
-      case 'tennis':
-        return 'Tennis';
-      default:
-        return 'Stol';
-    }
+  String _formatTimer() {
+    final hours = _currentElapsed.inHours.toString().padLeft(2, '0');
+    final minutes = (_currentElapsed.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (_currentElapsed.inSeconds % 60).toString().padLeft(2, '0');
+    return "$hours:$minutes:$seconds";
   }
 
   @override
   Widget build(BuildContext context) {
     final session = widget.activeSession;
-    final isActive = session != null && session.status == 'active';
-    final isPaused = session != null && session.status == 'paused';
-    final isIdle = session == null;
-
+    final isBand = session != null && session.status == 'active';
     final controller = ref.read(tablesControllerProvider);
 
-    // Chegara va fon bezaklari
-    Color borderColor;
-    Color glowColor;
-    if (isActive) {
-      borderColor = AppColors.success.withOpacity(0.5);
-      glowColor = AppColors.success.withOpacity(0.08);
-    } else if (isPaused) {
-      borderColor = AppColors.warning.withOpacity(0.5);
-      glowColor = AppColors.warning.withOpacity(0.08);
-    } else {
-      borderColor = AppColors.surfaceBorder;
-      glowColor = Colors.transparent;
-    }
-
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: isActive || isPaused ? 1.5 : 1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isBand
+              ? const Color(0xFF10B981).withOpacity(0.4)
+              : const Color(0xFFE2E8F0),
+          width: isBand ? 1.5 : 1,
+        ),
         boxShadow: [
-          if (isActive)
-            BoxShadow(
-              color: AppColors.success.withOpacity(0.12),
-              blurRadius: 16,
-              spreadRadius: 1,
-            ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          color: glowColor,
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Yuqori qism: Ikonka, Nomi va Status Badge
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                    ),
-                    child: Icon(
-                      _getTypeIcon(widget.table.type),
-                      color: isActive
-                          ? AppColors.success
-                          : (isPaused ? AppColors.warning : AppColors.primary),
-                      size: 24,
-                    ),
-                  ),
-                  const Gap(12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.table.name,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const Gap(2),
-                        Text(
-                          '${_getTypeLabel(widget.table.type)} • ${Formatters.currency(widget.table.pricePerHour)}/soat',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Status badge
-                  _StatusBadge(
-                    status: isIdle ? 'idle' : (isActive ? 'active' : 'paused'),
-                  ),
-                ],
-              ),
-
-              const Gap(16),
-
-              // O'rta qism: Jonli Taymer va Summa
-              if (isActive || isPaused) ...[
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 1. Yuqori qator: Raqam nishoni va Holat ─────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Dumaloq raqam (1, 2, ...)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2563EB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${widget.index}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Holat belgisi (Band / Bo'sh)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.surfaceBorder),
+                    color: isBand
+                        ? const Color(0xFFFEE2E2)
+                        : const Color(0xFFD1FAE5),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Vaqt',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const Gap(2),
-                          Text(
-                            Formatters.timerString(_currentElapsed),
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                              color: isActive
-                                  ? AppColors.success
-                                  : AppColors.warning,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isBand
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF10B981),
+                        ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'Hisob',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const Gap(2),
-                          Text(
-                            Formatters.currency(_currentAmount),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
+                      const Gap(6),
+                      Text(
+                        isBand ? 'Band' : "Bo'sh",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isBand
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF10B981),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ] else ...[
-                // Bo'sh holat ko'rinishi
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.surfaceBorder.withOpacity(0.5)),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Stol bo\'sh va tayyor',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textDisabled,
-                      ),
-                    ),
-                  ),
-                ),
               ],
+            ),
 
-              const Gap(16),
+            const Gap(12),
 
-              // Pastki qism: Harakatlar (Amallar)
-              if (isIdle)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
+            // ── 2. Stadion / Maydon Banneri va LED taymer ───────
+            StadiumBanner(
+              isLive: isBand,
+              timerString: isBand ? _formatTimer() : "00:00:00",
+              type: widget.table.type,
+            ),
+
+            const Gap(12),
+
+            // ── 3. Agar Band bo'lsa: ⏱ va ☕ qismlari, Jami hisob ─
+            if (isBand) ...[
+              Row(
+                children: [
+                  // O'yin vaqt summasi
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                    ),
-                    icon: const Icon(Icons.play_arrow, size: 20),
-                    label: const Text(
-                      'Boshlash',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: () => controller.startSession(widget.table.id),
-                  ),
-                )
-              else
-                Row(
-                  children: [
-                    // Pauza / Davom etish
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor:
-                              isActive ? AppColors.warning : AppColors.success,
-                          side: BorderSide(
-                            color: isActive
-                                ? AppColors.warning
-                                : AppColors.success,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.timer_outlined,
+                            size: 15,
+                            color: Color(0xFF0F172A),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                        ),
-                        icon: Icon(
-                          isActive ? Icons.pause : Icons.play_arrow,
-                          size: 18,
-                        ),
-                        label: Text(
-                          isActive ? 'Pauza' : 'Davom',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        onPressed: () {
-                          if (isActive) {
-                            controller.pauseSession(session.id);
-                          } else {
-                            controller.resumeSession(session.id);
-                          }
-                        },
-                      ),
-                    ),
-                    const Gap(10),
-                    // Yakunlash
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.danger,
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                        label: const Text(
-                          'Yakunlash',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => SessionFinishDialog(
-                              table: widget.table,
-                              session: session,
+                          const Gap(6),
+                          Text(
+                            formatSum(_gameAmount),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
                             ),
-                          );
-                        },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Gap(10),
+                  // Bar summasi
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFDBEAFE)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.local_cafe_rounded,
+                            size: 15,
+                            color: Color(0xFF2563EB),
+                          ),
+                          const Gap(6),
+                          Text(
+                            "+${formatSum(_barAmount)}",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(10),
+
+              // Jami hisob qatori
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Jami hisob:",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  Text(
+                    formatSum(_totalAmount),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            const Gap(12),
+
+            // ── 4. Maydon nomi va Soatlik narxi ────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.table.name,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      "${formatSum(widget.table.pricePerHour)}/soat",
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String status; // 'idle', 'active', 'paused'
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    String label;
-    IconData icon;
-
-    switch (status) {
-      case 'active':
-        bg = AppColors.success.withOpacity(0.18);
-        fg = AppColors.success;
-        label = 'BAND';
-        icon = Icons.radio_button_checked;
-        break;
-      case 'paused':
-        bg = AppColors.warning.withOpacity(0.18);
-        fg = AppColors.warning;
-        label = 'PAUZA';
-        icon = Icons.pause_circle_outline;
-        break;
-      default:
-        bg = AppColors.surfaceAlt;
-        fg = AppColors.textSecondary;
-        label = 'BO\'SH';
-        icon = Icons.check_circle_outline;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: fg.withOpacity(0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: fg),
-          const Gap(5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: fg,
-              letterSpacing: 0.5,
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (val) {
+                    if (val == 'pause' && session != null) {
+                      controller.pauseSession(session.id);
+                    } else if (val == 'resume' && session != null) {
+                      controller.resumeSession(session.id);
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    if (isBand)
+                      const PopupMenuItem(
+                        value: 'pause',
+                        child: Text("Pauza qilish"),
+                      ),
+                    if (session != null && session.status == 'paused')
+                      const PopupMenuItem(
+                        value: 'resume',
+                        child: Text("Davom ettirish"),
+                      ),
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
+
+            const Gap(14),
+
+            // ── 5. Amallar Qatori ──────────────────────────────
+            if (isBand)
+              Row(
+                children: [
+                  // [☕] Bar buyurtmasi tugmasi
+                  InkWell(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => AddBarToSessionSheet(
+                          session: session,
+                          table: widget.table,
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 48,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.local_cafe_rounded,
+                          color: Color(0xFF2563EB),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Gap(8),
+
+                  // [⚏ Bo'lish] tugmasi
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => SplitSessionDialog(
+                            table: widget.table,
+                            totalAmount: _totalAmount,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.call_split_rounded, size: 16),
+                      label: const Text(
+                        "Bo'lish",
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFEF3C7),
+                        foregroundColor: const Color(0xFFB45309),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Gap(8),
+
+                  // [✓ To'lov] tugmasi
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => SessionFinishDialog(
+                            session: session,
+                            table: widget.table,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text(
+                        "To'lov",
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              // Bo'sh bo'lganda: [▶ O'yinni boshlash]
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    controller.startSession(widget.table.id);
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                  label: const Text(
+                    "O'yinni boshlash",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

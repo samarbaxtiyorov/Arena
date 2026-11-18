@@ -88,8 +88,12 @@ class CartState {
   int get totalCount =>
       items.values.fold(0, (sum, item) => sum + item.quantity);
 
+  int get totalQuantity => totalCount;
+
   int get totalAmount =>
       items.values.fold(0, (sum, item) => sum + item.subtotal);
+
+  int get totalSum => totalAmount;
 
   List<CartItem> get itemsList => items.values.toList();
   bool get isEmpty => items.isEmpty;
@@ -99,6 +103,8 @@ class CartState {
 class CartNotifier extends Notifier<CartState> {
   @override
   CartState build() => const CartState();
+
+  void addItem(Product product) => add(product);
 
   void add(Product product) {
     final current = Map<String, CartItem>.from(state.items);

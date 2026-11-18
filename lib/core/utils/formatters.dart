@@ -4,6 +4,8 @@
 
 import 'package:intl/intl.dart';
 
+String formatSum(int amount) => Formatters.currency(amount);
+
 class Formatters {
   Formatters._();
 

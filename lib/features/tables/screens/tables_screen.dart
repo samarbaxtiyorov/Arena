@@ -1,14 +1,12 @@
 // ============================================
-// Arena — Zallar & Stollar Asosiy Ekrani
+// Arena — Maydonlar Asosiy Ekrani (Skrinshot 6 bilan 1:1)
+// 8-ball belgisi, 1 ta band • 5 ta bo'sh, 📅/☁️/QR tugmalari
 // ============================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
@@ -23,282 +21,268 @@ class TablesScreen extends ConsumerWidget {
     final filteredTables = ref.watch(filteredTablesProvider);
     final activeSessionsAsync = ref.watch(activeSessionsStreamProvider);
     final allTablesAsync = ref.watch(tablesStreamProvider);
-    final db = ref.watch(appDatabaseProvider);
+    final selectedCategory = ref.watch(tableCategoryProvider);
 
     final activeSessions = activeSessionsAsync.value ?? [];
     final allTables = allTablesAsync.value ?? [];
 
     final activeCount = activeSessions.where((s) => s.status == 'active').length;
-    final idleCount = (allTables.length - activeSessions.length).clamp(0, 999);
+    final idleCount = (allTables.length - activeCount).clamp(0, 999);
+
+    String sectionTitle;
+    switch (selectedCategory) {
+      case 'football':
+        sectionTitle = 'Futbol Maydonlari';
+        break;
+      case 'billiard':
+        sectionTitle = 'Bilyard Stollari';
+        break;
+      case 'ps':
+        sectionTitle = 'PlayStation Xonalari';
+        break;
+      case 'tennis':
+        sectionTitle = 'Tennis Kortlari';
+        break;
+      default:
+        sectionTitle = 'Barcha Maydonlar va Stollar';
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'ARENA',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const Gap(10),
-            const Text(
-              'Zallar & Stollar',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          // Sinxronizatsiya tugmasi
-          Consumer(
-            builder: (context, ref, _) {
-              return IconButton(
-                tooltip: 'Sinxronizatsiya qilish',
-                icon: const Icon(Icons.sync, color: AppColors.textSecondary),
-                onPressed: () async {
-                  final sync = ref.read(syncServiceProvider);
-                  final res = await sync.syncAll();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          res.isSuccess
-                              ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
-                              : (res.wasOffline ? 'Offline rejim' : 'Xatolik yuz berdi'),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // ── Sarlavha Qatori (8-ball, Maydonlar, 📅/☁️/QR) ─────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    // 8-ball yoki Arena belgisi
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8),
+                          width: 2,
                         ),
-                        backgroundColor: res.isSuccess
-                            ? AppColors.success
-                            : AppColors.warning,
-                        duration: const Duration(seconds: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF38BDF8).withOpacity(0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
                       ),
-                    );
-                  }
-                },
-              );
-            },
-          ),
-          const Gap(8),
-        ],
-      ),
-      body: CustomScrollView(
-        slivers: [
-          // 1. Statistika qatori
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Row(
-                children: [
-                  // Band stollar
-                  _StatBadge(
-                    icon: Icons.radio_button_checked,
-                    color: AppColors.success,
-                    label: 'Band',
-                    value: '$activeCount ta',
-                  ),
-                  const Gap(10),
-                  // Bo'sh stollar
-                  _StatBadge(
-                    icon: Icons.check_circle_outline,
-                    color: AppColors.textSecondary,
-                    label: 'Bo\'sh',
-                    value: '$idleCount ta',
-                  ),
-                  const Gap(10),
-                  // Bugungi kassa
-                  Expanded(
-                    child: StreamBuilder<List<CashRecord>>(
-                      stream: db.cashRecordsDao.watchTodayRecords(),
-                      builder: (context, snapshot) {
-                        final records = snapshot.data ?? [];
-                        final todayTotal = records.fold(0, (sum, r) => sum + r.amount);
-                        return _StatBadge(
-                          icon: Icons.account_balance_wallet_outlined,
-                          color: AppColors.info,
-                          label: 'Bugungi kassa',
-                          value: Formatters.currency(todayTotal),
-                          isExpanded: true,
+                      child: const Center(
+                        child: Text(
+                          '8',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Gap(12),
+
+                    // Sarlavha va band/bo'sh statusi
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Maydonlar',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const Gap(2),
+                          Text(
+                            '$activeCount ta band • $idleCount ta bo\'sh',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // O'ng tomondagi 3 ta tugma: 📅, ☁️, QR
+                    IconButton(
+                      tooltip: 'Sana',
+                      icon: const Icon(
+                        Icons.calendar_month_outlined,
+                        color: Color(0xFF2563EB),
+                        size: 22,
+                      ),
+                      onPressed: () {},
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        return IconButton(
+                          tooltip: 'Bulut sinxronizatsiyasi',
+                          icon: const Icon(
+                            Icons.cloud_done_rounded,
+                            color: Color(0xFF10B981),
+                            size: 24,
+                          ),
+                          onPressed: () async {
+                            final sync = ref.read(syncServiceProvider);
+                            final res = await sync.syncAll();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    res.isSuccess
+                                        ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                        : (res.wasOffline
+                                            ? 'Offline rejim'
+                                            : 'Xatolik yuz berdi'),
+                                  ),
+                                  backgroundColor: res.isSuccess
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFF59E0B),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
                         );
                       },
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 2. Toifalar filtri
-          const SliverToBoxAdapter(
-            child: TableCategoryChips(),
-          ),
-
-          const SliverToBoxAdapter(child: Gap(16)),
-
-          // 3. Stollar to'ri (Grid)
-          allTablesAsync.when(
-            loading: () => const SliverFillRemaining(
-              child: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            ),
-            error: (err, _) => SliverFillRemaining(
-              child: Center(
-                child: Text('Xatolik: $err',
-                    style: const TextStyle(color: AppColors.danger)),
-              ),
-            ),
-            data: (_) {
-              if (filteredTables.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.table_restaurant_outlined,
-                            size: 64, color: AppColors.textDisabled),
-                        Gap(12),
-                        Text(
-                          'Bu toifada stollar topilmadi',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverLayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.crossAxisExtent;
-                    int crossAxisCount = 1;
-                    if (width > 1200) {
-                      crossAxisCount = 4;
-                    } else if (width > 850) {
-                      crossAxisCount = 3;
-                    } else if (width > 550) {
-                      crossAxisCount = 2;
-                    }
-
-                    return SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: 14,
-                        crossAxisSpacing: 14,
-                        mainAxisExtent: 220,
+                    IconButton(
+                      tooltip: 'Shtrix-kod skaneri',
+                      icon: const Icon(
+                        Icons.qr_code_scanner_rounded,
+                        color: Color(0xFF2563EB),
+                        size: 22,
                       ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Kamera orqali QR skanerlash tayyor"),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Kategoriya Chiplari (Barchasi, Futbol, Bilyard) ──
+            const SliverToBoxAdapter(
+              child: TableCategoryChips(),
+            ),
+
+            const SliverToBoxAdapter(child: Gap(16)),
+
+            // ── Bo'lim Sarlavhasi (| Futbol Maydonlari) ─────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const Gap(8),
+                    Text(
+                      sectionTitle,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: Gap(14)),
+
+            // ── Maydonlar Ro'yxati ─────────────────────────────
+            filteredTables.isEmpty
+                ? SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.sports_soccer_outlined,
+                            size: 48,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          const Gap(12),
+                          const Text(
+                            "Maydonlar topilmadi",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const Gap(16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => const AddTableDialog(),
+                              );
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text("Yangi maydon qo'shish"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final table = filteredTables[index];
-                          // Shu stolga tegishli faol sessiya
+                          // Shu stol uchun faol sessiyani topish
                           final session = activeSessions
                               .where((s) => s.tableId == table.id)
                               .firstOrNull;
 
                           return TableCard(
-                            key: ValueKey(table.id),
                             table: table,
                             activeSession: session,
+                            index: index + 1,
                           );
                         },
                         childCount: filteredTables.length,
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
+                    ),
+                  ),
 
-          const SliverToBoxAdapter(child: Gap(80)),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Stol qo\'shish'),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AddTableDialog(),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String value;
-  final bool isExpanded;
-
-  const _StatBadge({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-    this.isExpanded = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Row(
-        mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const Gap(8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Gap(1),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
+            const SliverToBoxAdapter(child: Gap(30)),
+          ],
+        ),
       ),
     );
   }

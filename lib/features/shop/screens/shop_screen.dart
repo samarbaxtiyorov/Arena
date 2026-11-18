@@ -1,19 +1,18 @@
 // ============================================
-// Arena — Do'kon / Bar Asosiy Ekrani
+// Arena — Do'kon POS Asosiy Ekrani (Skrinshot 7 bilan 1:1)
+// Qidiruv + QR tugmasi, Kategoriya chiplari, 2-ustunli tovarlar
 // ============================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../providers/shop_providers.dart';
-import '../widgets/add_product_dialog.dart';
-import '../widgets/cart_checkout_sheet.dart';
 import '../widgets/product_card.dart';
-import '../widgets/shop_category_chips.dart';
+import '../widgets/cart_checkout_sheet.dart';
+import '../widgets/add_product_dialog.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
@@ -21,216 +20,264 @@ class ShopScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filteredProducts = ref.watch(filteredProductsProvider);
-    final productsAsync = ref.watch(productsStreamProvider);
-    final cartState = ref.watch(cartProvider);
+    final cart = ref.watch(cartProvider);
+    final selectedCategory = ref.watch(shopCategoryProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: const Row(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Stack(
           children: [
-            Icon(Icons.storefront_outlined, color: AppColors.success, size: 24),
-            Gap(10),
-            Text(
-              'Do\'kon / Bar',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          // Tovar qo'shish
-          IconButton(
-            tooltip: 'Yangi tovar qo\'shish',
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => const AddProductDialog(),
-              );
-            },
-          ),
-          // Sinxronizatsiya
-          IconButton(
-            tooltip: 'Sinxronizatsiya qilish',
-            icon: const Icon(Icons.sync, color: AppColors.textSecondary),
-            onPressed: () async {
-              final sync = ref.read(syncServiceProvider);
-              final res = await sync.syncAll();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      res.isSuccess
-                          ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
-                          : (res.wasOffline
-                              ? 'Offline rejim'
-                              : 'Xatolik yuz berdi'),
-                    ),
-                    backgroundColor: res.isSuccess
-                        ? AppColors.success
-                        : AppColors.warning,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
-          const Gap(8),
-        ],
-      ),
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // 1. Qidiruv paneli
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Tovar nomi yoki shtrix-kod...',
-                      prefixIcon: const Icon(Icons.search,
-                          color: AppColors.textSecondary),
-                      suffixIcon:
-                          ref.watch(shopSearchQueryProvider).isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () {
-                                    ref
-                                        .read(shopSearchQueryProvider.notifier)
-                                        .clear();
-                                  },
-                                )
-                              : const Icon(Icons.qr_code_scanner,
-                                  color: AppColors.textSecondary),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                    ),
-                    onChanged: (val) {
-                      ref
-                          .read(shopSearchQueryProvider.notifier)
-                          .setQuery(val);
-                    },
-                  ),
-                ),
-              ),
-
-              // 2. Toifalar filtri
-              const SliverToBoxAdapter(
-                child: ShopCategoryChips(),
-              ),
-
-              const SliverToBoxAdapter(child: Gap(16)),
-
-              // 3. Tovarlar to'ri (Grid)
-              productsAsync.when(
-                loading: () => const SliverFillRemaining(
-                  child: Center(
-                    child:
-                        CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                ),
-                error: (err, _) => SliverFillRemaining(
-                  child: Center(
-                    child: Text('Xatolik: $err',
-                        style: const TextStyle(color: AppColors.danger)),
-                  ),
-                ),
-                data: (_) {
-                  if (filteredProducts.isEmpty) {
-                    return const SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+            CustomScrollView(
+              slivers: [
+                // ── Sarlavha Qatori (Do'kon POS, QR, Sync) ─────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 48), // Balans uchun bo'sh joy
+                        const Text(
+                          "Do'kon POS",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Row(
                           children: [
-                            Icon(Icons.inventory_2_outlined,
-                                size: 64, color: AppColors.textDisabled),
-                            Gap(12),
-                            Text(
-                              'Bu toifada tovarlar topilmadi',
-                              style:
-                                  TextStyle(color: AppColors.textSecondary),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.qr_code_scanner_rounded,
+                                color: Color(0xFF2563EB),
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Shtrix-kod skaneri faollashtirildi"),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.sync_rounded,
+                                color: Color(0xFF2563EB),
+                                size: 24,
+                              ),
+                              onPressed: () async {
+                                final sync = ref.read(syncServiceProvider);
+                                final res = await sync.syncAll();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(res.isSuccess
+                                          ? "Sinxronizatsiya muvaffaqiyatli!"
+                                          : "Offline rejim"),
+                                      backgroundColor: res.isSuccess
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFF59E0B),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  }
+                      ],
+                    ),
+                  ),
+                ),
 
-                  return SliverPadding(
+                // ── Qidiruv Maydoni + QR Tugmasi ───────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverLayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.crossAxisExtent;
-                        int crossAxisCount = 2;
-                        if (width > 1200) {
-                          crossAxisCount = 5;
-                        } else if (width > 900) {
-                          crossAxisCount = 4;
-                        } else if (width > 600) {
-                          crossAxisCount = 3;
-                        }
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                                width: 1,
+                              ),
+                            ),
+                            child: TextField(
+                              onChanged: (val) => ref
+                                  .read(shopSearchQueryProvider.notifier)
+                                  .setQuery(val),
+                              style: const TextStyle(fontSize: 14),
+                              decoration: const InputDecoration(
+                                hintText: "Nomi yoki shtrix-kodi...",
+                                hintStyle: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Color(0xFF94A3B8),
+                                  size: 20,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Gap(10),
+                        // QR Skaner Ko'k tugmasi
+                        InkWell(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Shtrix-kod skanerlandi"),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDBEAFE),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: Color(0xFF2563EB),
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                        return SliverGrid(
+                const SliverToBoxAdapter(child: Gap(12)),
+
+                // ── Kategoriya Chiplari (Barchasi, Ichimlik va yegulik)
+                SliverToBoxAdapter(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _buildCategoryChip(
+                          ref: ref,
+                          label: "Barchasi",
+                          categoryKey: 'all',
+                          isSelected: selectedCategory == 'all',
+                        ),
+                        const Gap(8),
+                        _buildCategoryChip(
+                          ref: ref,
+                          label: "Ichimlik va yegulik",
+                          categoryKey: 'drink',
+                          isSelected: selectedCategory == 'drink',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: Gap(14)),
+
+                // ── 2-Ustunli Mahsulotlar To'ri (Grid) ─────────────
+                filteredProducts.isEmpty
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.storefront_outlined,
+                                size: 48,
+                                color: Color(0xFF94A3B8),
+                              ),
+                              const Gap(12),
+                              const Text(
+                                "Mahsulotlar topilmadi",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const Gap(16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => const AddProductDialog(),
+                                  );
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text("Yangi tovar qo'shish"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                        sliver: SliverGrid(
                           gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            mainAxisExtent: 185,
+                            childAspectRatio: 1.15,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
                               final product = filteredProducts[index];
-                              return ProductCard(
-                                key: ValueKey(product.id),
-                                product: product,
-                              );
+                              return ProductCard(product: product);
                             },
                             childCount: filteredProducts.length,
                           ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      ),
+              ],
+            ),
 
-              // Savat paneli uchun joy qoldirish
-              const SliverToBoxAdapter(child: Gap(90)),
-            ],
-          ),
-
-          // 4. Pastki suzuvchi Savat paneli (agar tovar qo'shilgan bo'lsa)
-          if (!cartState.isEmpty)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: InkWell(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => const CartCheckoutSheet(),
-                  );
-                },
-                borderRadius: BorderRadius.circular(16),
+            // ── Pastki Savat / Checkout Bar ────────────────────
+            if (cart.totalQuantity > 0)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: const Color(0xFF0F172A),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.success.withOpacity(0.35),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -245,50 +292,118 @@ class ShopScreen extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFF2563EB),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              '${cartState.totalCount} ta',
+                              '${cart.totalQuantity}',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 13,
                               ),
                             ),
                           ),
                           const Gap(12),
-                          Text(
-                            Formatters.currency(cartState.totalAmount),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                "Jami savat:",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                              Text(
+                                formatSum(cart.totalSum),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const Row(
-                        children: [
-                          Text(
-                            'Savat / To\'lov',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const CartCheckoutSheet(),
+                          );
+                        },
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                        label: const Text(
+                          "Sotish",
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          Gap(6),
-                          Icon(Icons.arrow_forward,
-                              color: Colors.white, size: 18),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip({
+    required WidgetRef ref,
+    required String label,
+    required String categoryKey,
+    required bool isSelected,
+  }) {
+    return InkWell(
+      onTap: () {
+        ref.read(shopCategoryProvider.notifier).select(categoryKey);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFDBEAFE) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFDBEAFE)
+                : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check, size: 16, color: Color(0xFF2563EB)),
+              const Gap(6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected
+                    ? const Color(0xFF1D4ED8)
+                    : const Color(0xFF0F172A),
+              ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

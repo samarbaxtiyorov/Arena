@@ -54,52 +54,86 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      // Boshlang'ich stollarni qo'shamiz
-      await _seedInitialData();
+      await seedInitialData();
     },
     onUpgrade: (m, from, to) async {
       // Keyingi versiyalar uchun
     },
   );
 
-  // Boshlang'ich ma'lumotlar (demo stollar)
-  Future<void> _seedInitialData() async {
+  // Boshlang'ich ma'lumotlar (Skrinshotlar bilan 1:1)
+  Future<void> seedInitialData() async {
     final now = DateTime.now();
+
+    // 1. Maydonlar va Stollar (Skrinshot 6: Maydon 1, 100 000 so'm/soat)
     final initialTables = [
       ClubTablesCompanion.insert(
-        id: '1', name: 'Bilyard 1', type: 'billiard',
-        pricePerHour: 15000, sortOrder: const Value(1),
+        id: '1', name: 'Maydon 1', type: 'football',
+        pricePerHour: 100000, sortOrder: const Value(1),
         createdAt: Value(now), updatedAt: Value(now),
       ),
       ClubTablesCompanion.insert(
-        id: '2', name: 'Bilyard 2', type: 'billiard',
-        pricePerHour: 15000, sortOrder: const Value(2),
+        id: '2', name: 'Maydon 2', type: 'football',
+        pricePerHour: 100000, sortOrder: const Value(2),
         createdAt: Value(now), updatedAt: Value(now),
       ),
       ClubTablesCompanion.insert(
-        id: '3', name: 'Futbol 1', type: 'football',
-        pricePerHour: 30000, sortOrder: const Value(3),
+        id: '3', name: 'Bilyard 1', type: 'billiard',
+        pricePerHour: 25000, sortOrder: const Value(3),
         createdAt: Value(now), updatedAt: Value(now),
       ),
       ClubTablesCompanion.insert(
-        id: '4', name: 'PlayStation 1', type: 'ps',
-        pricePerHour: 20000, sortOrder: const Value(4),
+        id: '4', name: 'Bilyard 2', type: 'billiard',
+        pricePerHour: 25000, sortOrder: const Value(4),
         createdAt: Value(now), updatedAt: Value(now),
       ),
       ClubTablesCompanion.insert(
-        id: '5', name: 'PlayStation 2', type: 'ps',
-        pricePerHour: 20000, sortOrder: const Value(5),
+        id: '5', name: 'PlayStation VIP', type: 'ps',
+        pricePerHour: 30000, sortOrder: const Value(5),
         createdAt: Value(now), updatedAt: Value(now),
       ),
       ClubTablesCompanion.insert(
-        id: '6', name: 'Tennis 1', type: 'tennis',
-        pricePerHour: 25000, sortOrder: const Value(6),
+        id: '6', name: 'Tennis Kort', type: 'tennis',
+        pricePerHour: 50000, sortOrder: const Value(6),
         createdAt: Value(now), updatedAt: Value(now),
       ),
     ];
 
     for (final table in initialTables) {
       await into(clubTables).insertOnConflictUpdate(table);
+    }
+
+    // 2. Mahsulotlar (Skrinshot 7: Cola, Fanta, Suv, Chips, Choy)
+    final initialProducts = [
+      ProductsCompanion.insert(
+        id: 'p1', name: 'Cola', category: const Value('drink'),
+        price: 10000, stock: const Value(50),
+        createdAt: Value(now), updatedAt: Value(now),
+      ),
+      ProductsCompanion.insert(
+        id: 'p2', name: 'Fanta', category: const Value('drink'),
+        price: 10000, stock: const Value(50),
+        createdAt: Value(now), updatedAt: Value(now),
+      ),
+      ProductsCompanion.insert(
+        id: 'p3', name: 'Suv', category: const Value('drink'),
+        price: 5000, stock: const Value(100),
+        createdAt: Value(now), updatedAt: Value(now),
+      ),
+      ProductsCompanion.insert(
+        id: 'p4', name: 'Chips', category: const Value('drink'),
+        price: 12000, stock: const Value(40),
+        createdAt: Value(now), updatedAt: Value(now),
+      ),
+      ProductsCompanion.insert(
+        id: 'p5', name: 'Choy', category: const Value('drink'),
+        price: 8000, stock: const Value(60),
+        createdAt: Value(now), updatedAt: Value(now),
+      ),
+    ];
+
+    for (final prod in initialProducts) {
+      await into(products).insertOnConflictUpdate(prod);
     }
   }
 }
