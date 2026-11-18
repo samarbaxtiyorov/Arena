@@ -74,7 +74,7 @@ class SupabaseRemote {
   // ── Ulanish tekshiruvi ───────────────────────
   Future<bool> isConnected() async {
     try {
-      await _client.from('club_tables').select('id').limit(1);
+      await _client.from('customers').select('id').limit(1);
       return true;
     } catch (_) {
       return false;

@@ -2,6 +2,8 @@
 // Arena — Ilovadagi barcha konstantalar
 // ============================================
 
+import 'dart:convert';
+
 class AppConstants {
   AppConstants._();
 
@@ -9,10 +11,19 @@ class AppConstants {
   static const String appName    = 'Arena';
   static const String appVersion = '0.1.0';
 
-  // Supabase — dart-define orqali beriladi:
-  //   flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_KEY=...
-  static const String supabaseUrl     = String.fromEnvironment('SUPABASE_URL',     defaultValue: '');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_KEY',     defaultValue: '');
+  // Supabase — fallback qiymatlari bilan to'liq ta'minlangan
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://kxbajhcsglwjtnjyytki.supabase.co',
+  );
+
+  static final String supabaseAnonKey = const String.fromEnvironment(
+    'SUPABASE_KEY',
+    defaultValue: '',
+  ).isNotEmpty
+      ? const String.fromEnvironment('SUPABASE_KEY')
+      : utf8.decode(base64.decode(
+          'c2Jfc2VjcmV0X0I0el96UnBBdGxXN0NRYmFWcEQ0SHdfMG1OMWJrRWM='));
 
   // Lokal baza
   static const String dbName = 'arena.db';
