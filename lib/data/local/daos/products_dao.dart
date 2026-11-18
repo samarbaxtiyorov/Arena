@@ -43,6 +43,19 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
         ));
   }
 
+  // Zaxirani oshirish (kirim / tovar qabul qilish)
+  Future<void> increaseStock(String id, int quantity) async {
+    final product = await (select(products)
+        ..where((p) => p.id.equals(id)))
+        .getSingle();
+    await (update(products)..where((p) => p.id.equals(id)))
+        .write(ProductsCompanion(
+          stock:     Value(product.stock + quantity),
+          updatedAt: Value(DateTime.now()),
+          isSynced:  const Value(false),
+        ));
+  }
+
   Future<List<Product>> getUnsynced() =>
       (select(products)..where((p) => p.isSynced.equals(false))).get();
 
