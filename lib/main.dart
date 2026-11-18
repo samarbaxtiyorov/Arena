@@ -4,13 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'data/repositories/database_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Supabase initsializatsiyasi
   await Supabase.initialize(
-    url:     AppConstants.supabaseUrl,
+    url:            AppConstants.supabaseUrl,
     publishableKey: AppConstants.supabaseAnonKey,
   );
 
@@ -21,8 +22,23 @@ Future<void> main() async {
   );
 }
 
-class ArenaApp extends StatelessWidget {
+class ArenaApp extends ConsumerStatefulWidget {
   const ArenaApp({super.key});
+
+  @override
+  ConsumerState<ArenaApp> createState() => _ArenaAppState();
+}
+
+class _ArenaAppState extends ConsumerState<ArenaApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Ilovani ochganda sinxronizatsiyani boshlash
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final syncService = ref.read(syncServiceProvider);
+      syncService.startPeriodicSync();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

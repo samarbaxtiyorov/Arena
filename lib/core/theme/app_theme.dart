@@ -30,36 +30,36 @@ class AppTheme {
       ),
 
       // ── Matn uslubi ────────────────────────
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
-        displayLarge: GoogleFonts.inter(
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 32,
           fontWeight: FontWeight.w700,
         ),
-        headlineMedium: GoogleFonts.inter(
+        headlineMedium: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
-        titleLarge: GoogleFonts.inter(
+        titleLarge: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        titleMedium: GoogleFonts.inter(
+        titleMedium: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 15,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: TextStyle(
           color: AppColors.textSecondary,
           fontSize: 13,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w600,
