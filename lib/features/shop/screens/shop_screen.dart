@@ -1,6 +1,7 @@
 // ============================================
-// Arena — Do'kon POS Asosiy Ekrani (Skrinshot 7 bilan 1:1)
-// Qidiruv + QR tugmasi, Kategoriya chiplari, 2-ustunli tovarlar
+// Arena — Do'kon POS Asosiy Ekrani (Super VIP Zamonaviy POS)
+// Tezkor qidiruv, shtrix-kod skaneri, toifalar,
+// haqiqiy tovar suratlari va suzuvchi savat (Floating Cart)
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -38,7 +39,7 @@ class ShopScreen extends ConsumerWidget {
     }
 
     if (found != null) {
-      ref.read(cartProvider.notifier).add(found);
+      ref.read(cartProvider.notifier).addItem(found);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -86,6 +87,7 @@ class ShopScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filteredProducts = ref.watch(filteredProductsProvider);
+    final allProducts = ref.watch(productsStreamProvider).value ?? [];
     final cart = ref.watch(cartProvider);
     final selectedCategory = ref.watch(shopCategoryProvider);
 
@@ -96,40 +98,110 @@ class ShopScreen extends ConsumerWidget {
           children: [
             CustomScrollView(
               slivers: [
-                // ── Sarlavha Qatori (Do'kon POS, QR, Sync) ─────────
+                // ── 1. Sarlavha Paneli (Arena POS, Yangi Tovar, Skaner, Sync) ─
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(width: 48), // Balans uchun bo'sh joy
-                        const Text(
-                          "Do'kon POS",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                            letterSpacing: -0.5,
+                        // Chapda: Logo va POS Sarlavhasi
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    const Color(0xFF0F172A).withOpacity(0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.storefront_rounded,
+                              color: Colors.white, size: 22),
+                        ),
+                        const Gap(10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Do'kon & Bar POS",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              Text(
+                                "Jami: ${allProducts.length} xil mahsulot",
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+
+                        // O'ngda: Tezkor Amallar
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.qr_code_scanner_rounded,
-                                color: Color(0xFF2563EB),
-                                size: 24,
+                            // 1. Yangi Tovar qo'shish
+                            InkWell(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => const AddProductDialog(),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xFFA7F3D0)),
+                                ),
+                                child: const Icon(
+                                  Icons.add_box_rounded,
+                                  color: Color(0xFF059669),
+                                  size: 20,
+                                ),
                               ),
-                              onPressed: () => _handleScanBarcode(context, ref),
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.sync_rounded,
-                                color: Color(0xFF2563EB),
-                                size: 24,
+                            const Gap(8),
+
+                            // 2. Skaner tugmasi
+                            InkWell(
+                              onTap: () => _handleScanBarcode(context, ref),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xFFBFDBFE)),
+                                ),
+                                child: const Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  color: Color(0xFF2563EB),
+                                  size: 20,
+                                ),
                               ),
-                              onPressed: () async {
+                            ),
+                            const Gap(8),
+
+                            // 3. Sinxronizatsiya
+                            InkWell(
+                              onTap: () async {
                                 final sync = ref.read(syncServiceProvider);
                                 final res = await sync.syncAll();
                                 if (context.mounted) {
@@ -146,6 +218,21 @@ class ShopScreen extends ConsumerWidget {
                                   );
                                 }
                               },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: const Icon(
+                                  Icons.sync_rounded,
+                                  color: Color(0xFF64748B),
+                                  size: 20,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -154,78 +241,92 @@ class ShopScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // ── Qidiruv Maydoni + QR Tugmasi ───────────────────
+                // ── 2. Qidiruv Maydoni + Skaner ───────────────────
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: const Color(0xFFE2E8F0),
-                                width: 1,
-                              ),
-                            ),
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Icon(Icons.search_rounded,
+                                color: Color(0xFF94A3B8), size: 20),
+                          ),
+                          Expanded(
                             child: TextField(
                               onChanged: (val) => ref
                                   .read(shopSearchQueryProvider.notifier)
                                   .setQuery(val),
-                              style: const TextStyle(fontSize: 14),
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w600),
                               decoration: const InputDecoration(
-                                hintText: "Nomi yoki shtrix-kodi...",
+                                hintText: "Tovar nomi yoki shtrix-kod...",
                                 hintStyle: TextStyle(
                                   color: Color(0xFF94A3B8),
-                                  fontSize: 14,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: Color(0xFF94A3B8),
-                                  size: 20,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.normal,
                                 ),
                                 border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 12),
                               ),
                             ),
                           ),
-                        ),
-                        const Gap(10),
-                        // QR Skaner Ko'k tugmasi
-                        InkWell(
-                          onTap: () => _handleScanBarcode(context, ref),
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDBEAFE),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: const Color(0xFFBFDBFE),
-                                width: 1,
+                          InkWell(
+                            onTap: () => _handleScanBarcode(context, ref),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 9, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.qr_code_scanner_rounded,
+                                      size: 16, color: Color(0xFF2563EB)),
+                                  Gap(4),
+                                  Text(
+                                    "Skaner",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF2563EB),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: const Icon(
-                              Icons.qr_code_scanner_rounded,
-                              color: Color(0xFF2563EB),
-                              size: 24,
-                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
 
                 const SliverToBoxAdapter(child: Gap(12)),
 
-                // ── Kategoriya Chiplari ───────────────────────────
+                // ── 3. Toifalar Chiplari ───────────────────────────
                 SliverToBoxAdapter(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -234,6 +335,7 @@ class ShopScreen extends ConsumerWidget {
                       children: [
                         _buildCategoryChip(
                           ref: ref,
+                          emoji: "🏷️",
                           label: "Barchasi",
                           categoryKey: 'all',
                           isSelected: selectedCategory == 'all',
@@ -241,6 +343,7 @@ class ShopScreen extends ConsumerWidget {
                         const Gap(8),
                         _buildCategoryChip(
                           ref: ref,
+                          emoji: "🥤",
                           label: "Ichimliklar",
                           categoryKey: 'drink',
                           isSelected: selectedCategory == 'drink',
@@ -248,13 +351,23 @@ class ShopScreen extends ConsumerWidget {
                         const Gap(8),
                         _buildCategoryChip(
                           ref: ref,
-                          label: "Yegulik va gazaklar",
+                          emoji: "⚡",
+                          label: "Energetiklar",
+                          categoryKey: 'energy',
+                          isSelected: selectedCategory == 'energy',
+                        ),
+                        const Gap(8),
+                        _buildCategoryChip(
+                          ref: ref,
+                          emoji: "🍫",
+                          label: "Gazaklar",
                           categoryKey: 'snack',
                           isSelected: selectedCategory == 'snack',
                         ),
                         const Gap(8),
                         _buildCategoryChip(
                           ref: ref,
+                          emoji: "☕",
                           label: "Choy va Qahva",
                           categoryKey: 'hot',
                           isSelected: selectedCategory == 'hot',
@@ -266,7 +379,7 @@ class ShopScreen extends ConsumerWidget {
 
                 const SliverToBoxAdapter(child: Gap(14)),
 
-                // ── 2-Ustunli Mahsulotlar To'ri (Grid) ─────────────
+                // ── 4. 2-Ustunli Mahsulotlar To'ri (Grid) ─────────────
                 filteredProducts.isEmpty
                     ? SliverFillRemaining(
                         hasScrollBody: false,
@@ -274,19 +387,32 @@ class ShopScreen extends ConsumerWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
-                                Icons.storefront_outlined,
-                                size: 48,
-                                color: Color(0xFF94A3B8),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.storefront_outlined,
+                                  size: 48,
+                                  color: Color(0xFF2563EB),
+                                ),
                               ),
-                              const Gap(12),
+                              const Gap(14),
                               const Text(
                                 "Mahsulotlar topilmadi",
                                 style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
                                 ),
+                              ),
+                              const Gap(4),
+                              const Text(
+                                "Qidiruvni o'zgartiring yoki yangi tovar qo'shing",
+                                style: TextStyle(
+                                    fontSize: 12, color: Color(0xFF64748B)),
                               ),
                               const Gap(16),
                               ElevatedButton.icon(
@@ -296,11 +422,14 @@ class ShopScreen extends ConsumerWidget {
                                     builder: (_) => const AddProductDialog(),
                                   );
                                 },
-                                icon: const Icon(Icons.add),
+                                icon: const Icon(Icons.add_rounded),
                                 label: const Text("Yangi tovar qo'shish"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF2563EB),
                                   foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ],
@@ -308,14 +437,14 @@ class ShopScreen extends ConsumerWidget {
                         ),
                       )
                     : SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            childAspectRatio: 0.74,
+                            childAspectRatio: 0.72,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -329,7 +458,7 @@ class ShopScreen extends ConsumerWidget {
               ],
             ),
 
-            // ── Pastki Savat / Checkout Bar ────────────────────
+            // ── 5. Pastki Floating Savat Paneli (Floating Checkout Bar) ──
             if (cart.totalQuantity > 0)
               Positioned(
                 bottom: 16,
@@ -337,63 +466,86 @@ class ShopScreen extends ConsumerWidget {
                 right: 16,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: const Color(0xFF0F172A).withOpacity(0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
+                      // Savatdagi tovarlar soni belgisi
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.shopping_cart_rounded,
+                                size: 16, color: Colors.white),
+                            const Gap(6),
+                            Text(
                               '${cart.totalQuantity}',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
                               ),
                             ),
-                          ),
-                          const Gap(12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                "Jami savat:",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                              Text(
-                                formatSum(cart.totalSum),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const Gap(12),
+
+                      // Jami summa
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "Jami to'lov:",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              formatSum(cart.totalSum),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF34D399),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Savatni tozalash tugmasi
+                      IconButton(
+                        onPressed: () {
+                          ref.read(cartProvider.notifier).clear();
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: Color(0xFF94A3B8), size: 20),
+                        tooltip: "Savatni tozalash",
+                      ),
+
+                      const Gap(4),
+
+                      // To'lov / Sotish tugmasi
                       ElevatedButton.icon(
                         onPressed: () async {
                           final receiptText =
@@ -416,16 +568,18 @@ class ShopScreen extends ConsumerWidget {
                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                         label: const Text(
                           "Sotish",
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900, fontSize: 14),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF10B981),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 10),
+                              horizontal: 16, vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
+                          elevation: 0,
                         ),
                       ),
                     ],
@@ -440,6 +594,7 @@ class ShopScreen extends ConsumerWidget {
 
   Widget _buildCategoryChip({
     required WidgetRef ref,
+    required String emoji,
     required String label,
     required String categoryKey,
     required bool isSelected,
@@ -449,33 +604,39 @@ class ShopScreen extends ConsumerWidget {
         ref.read(shopCategoryProvider.notifier).select(categoryKey);
       },
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFDBEAFE) : Colors.white,
+          color: isSelected ? const Color(0xFF0F172A) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFDBEAFE)
+                ? const Color(0xFF0F172A)
                 : const Color(0xFFE2E8F0),
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFF0F172A).withOpacity(0.15)
+                  : Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isSelected) ...[
-              const Icon(Icons.check, size: 16, color: Color(0xFF2563EB)),
-              const Gap(6),
-            ],
+            Text(emoji, style: const TextStyle(fontSize: 13)),
+            const Gap(6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected
-                    ? const Color(0xFF1D4ED8)
-                    : const Color(0xFF0F172A),
+                color: isSelected ? Colors.white : const Color(0xFF334155),
               ),
             ),
           ],

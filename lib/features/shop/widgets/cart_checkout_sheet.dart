@@ -1,5 +1,7 @@
 // ============================================
-// Arena — Savat va To'lovni Yakunlash Modali
+// Arena — Savat va To'lovni Yakunlash Modali (Super POS Dizayn)
+// Tovarlarning haqiqiy suratlari, to'lov turlari,
+// qarz/nasiya integratsiyasi va kassa cheki
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -9,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/product_asset_helper.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../providers/shop_providers.dart';
@@ -114,20 +117,20 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
+          // Tutqich
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               height: 4,
-              width: 40,
+              width: 44,
               decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
+                color: const Color(0xFFCBD5E1),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -135,30 +138,57 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
 
           // Sarlavha
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+            padding: const EdgeInsets.fromLTRB(20, 6, 16, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.shopping_cart_outlined,
-                        color: AppColors.primary, size: 24),
-                    const Gap(10),
-                    Text(
-                      'Savat (${cartState.totalCount} ta tovar)',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: const Icon(Icons.shopping_bag_rounded,
+                          color: Color(0xFF2563EB), size: 20),
+                    ),
+                    const Gap(10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Savat (${cartState.totalCount} ta tovar)',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          'Jami: ${formatSum(cartState.totalSum)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF059669),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 if (!cartState.isEmpty)
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFEF4444),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                    ),
                     icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                    label: const Text('Tozalash'),
+                    label: const Text(
+                      'Tozalash',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
                     onPressed: () {
                       ref.read(cartProvider.notifier).clear();
                       Navigator.of(context).pop();
@@ -168,7 +198,7 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
             ),
           ),
 
-          const Divider(color: AppColors.surfaceBorder, height: 1),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
           // Tovar elementlari ro'yxati
           if (items.isEmpty)
@@ -177,7 +207,7 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
               child: Center(
                 child: Text(
                   'Savat bo\'sh',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: Color(0xFF64748B)),
                 ),
               ),
             )
@@ -187,18 +217,42 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
-                separatorBuilder: (_, _) => const Gap(10),
+                separatorBuilder: (_, _) => const Gap(8),
                 itemBuilder: (context, index) {
                   final it = items[index];
+                  final imgPath =
+                      ProductAssetHelper.getImageForProduct(it.product.name);
+
                   return Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceBorder),
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       children: [
+                        // Rasm
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            color: Colors.white,
+                            child: Image.asset(
+                              imgPath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.fastfood_rounded,
+                                size: 24,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Gap(10),
+
+                        // Nomi va Narxi
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,60 +260,82 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                               Text(
                                 it.product.name,
                                 style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const Gap(2),
                               Text(
-                                '${Formatters.currency(it.product.price)} x ${it.quantity} ta',
+                                '${formatSum(it.product.price)} x ${it.quantity} dona',
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
                         ),
+
                         // Miqdor boshqaruvi
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove, size: 16),
-                              color: AppColors.danger,
-                              onPressed: () {
-                                ref
+                        Container(
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: () => ref
                                     .read(cartProvider.notifier)
-                                    .removeOne(it.product);
-                              },
-                            ),
-                            Text(
-                              it.quantity.toString(),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                    .removeOne(it.product),
+                                child: const SizedBox(
+                                  width: 28,
+                                  height: 30,
+                                  child: Icon(Icons.remove,
+                                      size: 14, color: Color(0xFFDC2626)),
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add, size: 16),
-                              color: AppColors.success,
-                              onPressed: () {
-                                ref
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  it.quantity.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () => ref
                                     .read(cartProvider.notifier)
-                                    .add(it.product);
-                              },
-                            ),
-                          ],
+                                    .addItem(it.product),
+                                child: const SizedBox(
+                                  width: 28,
+                                  height: 30,
+                                  child: Icon(Icons.add,
+                                      size: 14, color: Color(0xFF059669)),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const Gap(10),
+
+                        // Subtotal
                         Text(
-                          Formatters.currency(it.subtotal),
+                          formatSum(it.subtotal),
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.success,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
                           ),
                         ),
                       ],
@@ -269,123 +345,150 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
               ),
             ),
 
-          if (!cartState.isEmpty) ...[
-            const Divider(color: AppColors.surfaceBorder, height: 1),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Jami summa
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // To'lov turi tanlash
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'To\'lov usulini tanlang:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const Gap(8),
+                Row(
+                  children: [
+                    _buildPaymentChip(
+                      id: 'cash',
+                      label: 'Naqd pul',
+                      icon: Icons.payments_rounded,
+                      color: const Color(0xFF059669),
+                    ),
+                    const Gap(8),
+                    _buildPaymentChip(
+                      id: 'card',
+                      label: 'Plastik karta',
+                      icon: Icons.credit_card_rounded,
+                      color: const Color(0xFF2563EB),
+                    ),
+                    const Gap(8),
+                    _buildPaymentChip(
+                      id: 'debt',
+                      label: 'Nasiya / Qarz',
+                      icon: Icons.assignment_ind_rounded,
+                      color: const Color(0xFFD97706),
+                    ),
+                  ],
+                ),
+
+                // Qarz bo'lsa mijoz tanlash
+                if (_paymentType == 'debt') ...[
+                  const Gap(10),
+                  StreamBuilder<List<Customer>>(
+                    stream: db.customersDao.watchAllCustomers(),
+                    builder: (context, snapshot) {
+                      final customers = snapshot.data ?? [];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFCD34D)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            hint: const Text(
+                              'Qarzdor mijozni tanlang...',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF92400E)),
+                            ),
+                            value: _selectedCustomerId,
+                            items: customers.map((c) {
+                              return DropdownMenuItem(
+                                value: c.id,
+                                child: Text(
+                                  '${c.name} (${c.phone ?? "Tel yo'q"})',
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F172A)),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              final cust =
+                                  customers.firstWhere((c) => c.id == val);
+                              setState(() {
+                                _selectedCustomerId = val;
+                                _selectedCustomerName = cust.name;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // Pastki To'lovni tasdiqlash paneli
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
                         'Jami to\'lov:',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        Formatters.currency(cartState.totalAmount),
+                        formatSum(cartState.totalSum),
                         style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.success,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                     ],
                   ),
-
-                  const Gap(16),
-
-                  // To'lov turi
-                  Row(
-                    children: [
-                      _PaymentChip(
-                        label: '💵 Naqd',
-                        isSelected: _paymentType == 'cash',
-                        color: AppColors.success,
-                        onTap: () => setState(() => _paymentType = 'cash'),
-                      ),
-                      const Gap(8),
-                      _PaymentChip(
-                        label: '💳 Karta',
-                        isSelected: _paymentType == 'card',
-                        color: AppColors.primary,
-                        onTap: () => setState(() => _paymentType = 'card'),
-                      ),
-                      const Gap(8),
-                      _PaymentChip(
-                        label: '📒 Nasiya',
-                        isSelected: _paymentType == 'debt',
-                        color: AppColors.warning,
-                        onTap: () => setState(() => _paymentType = 'debt'),
-                      ),
-                    ],
-                  ),
-
-                  // Agar nasiya tanlansa — mijoz tanlash
-                  if (_paymentType == 'debt') ...[
-                    const Gap(14),
-                    StreamBuilder<List<Customer>>(
-                      stream: db.customersDao.watchAllCustomers(),
-                      builder: (context, snapshot) {
-                        final customers = snapshot.data ?? [];
-                        return DropdownButtonFormField<String>(
-                          value: _selectedCustomerId,
-                          decoration: InputDecoration(
-                            labelText: 'Mijozni tanlang (Nasiya)',
-                            prefixIcon: const Icon(Icons.person_outline,
-                                color: AppColors.warning),
-                            filled: true,
-                            fillColor: AppColors.surfaceAlt,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          dropdownColor: AppColors.surfaceAlt,
-                          items: customers
-                              .map((c) => DropdownMenuItem(
-                                    value: c.id,
-                                    child: Text(
-                                      '${c.name} (${Formatters.currency(c.totalDebt)})',
-                                      style: const TextStyle(
-                                          color: AppColors.textPrimary),
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (val) {
-                            setState(() {
-                              _selectedCustomerId = val;
-                              final match = customers
-                                  .where((c) => c.id == val)
-                                  .firstOrNull;
-                              _selectedCustomerName = match?.name;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ],
-
-                  const Gap(20),
-
-                  // To'lov tugmasi
-                  ElevatedButton(
+                ),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: (_isLoading || items.isEmpty)
+                        ? null
+                        : () => _onCheckout(items, cartState.totalSum),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 0,
                     ),
-                    onPressed: _isLoading
-                        ? null
-                        : () => _onCheckout(items, cartState.totalAmount),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
@@ -395,62 +498,67 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(
-                            'Sotish (${Formatters.currency(cartState.totalAmount)})',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded,
+                                  size: 18),
+                              Gap(8),
+                              Text(
+                                'To\'lovni Tasdiqlash',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
   }
-}
 
-class _PaymentChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _PaymentChip({
-    required this.label,
-    required this.isSelected,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPaymentChip({
+    required String id,
+    required String label,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isSelected = _paymentType == id;
     return Expanded(
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
+        onTap: () => setState(() => _paymentType = id),
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.18) : AppColors.surfaceAlt,
-            borderRadius: BorderRadius.circular(10),
+            color: isSelected ? color.withOpacity(0.12) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? color : AppColors.surfaceBorder,
+              color: isSelected ? color : const Color(0xFFE2E8F0),
               width: isSelected ? 1.5 : 1,
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? color : AppColors.textSecondary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: isSelected ? color : const Color(0xFF64748B), size: 18),
+              const Gap(4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? color : const Color(0xFF475569),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
