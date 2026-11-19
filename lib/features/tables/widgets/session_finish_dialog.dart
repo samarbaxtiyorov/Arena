@@ -161,6 +161,8 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
     final db = ref.watch(appDatabaseProvider);
     final barItems =
         SessionBillingHelper.getBarItemsSummary(widget.session.notes);
+    final splits =
+        SessionBillingHelper.getSplits(widget.session.notes);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -357,6 +359,69 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                               color: Color(0xFFD97706),
                             ),
                           ),
+                        ],
+                      ),
+                    ],
+
+                    // Partiyalar / O'yinchilar bo'yicha taqsimot
+                    if (splits.isNotEmpty) ...[
+                      const Gap(10),
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      const Gap(10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.call_split_rounded,
+                                  size: 14,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ),
+                              const Gap(8),
+                              const Text(
+                                "O'yinchilar bo'yicha hisob:",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Gap(6),
+                          ...splits.map((s) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "• ${s.name}",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF334155),
+                                      ),
+                                    ),
+                                    Text(
+                                      formatSum(s.amount),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF2563EB),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )),
                         ],
                       ),
                     ],

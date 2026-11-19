@@ -429,7 +429,8 @@ class _TableCardState extends ConsumerState<TableCard> {
                             context: context,
                             builder: (_) => SplitSessionDialog(
                               table: widget.table,
-                              totalAmount: _totalAmount,
+                              session: session,
+                              currentGameAmount: _gameAmount,
                             ),
                           );
                         },

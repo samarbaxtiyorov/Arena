@@ -77,5 +77,42 @@ void main() {
       expect(finalNotes.contains('Doimiy mijoz, VIP xizmat'), isTrue);
       expect(finalNotes.contains('Cola x1'), isTrue);
     });
+
+    test('addSplit, getSplits, and deleteSplit handles player game splits', () {
+      // 1. Add split for Samar (15 000 so'm)
+      final noteWithSplit1 = SessionBillingHelper.addSplit(
+        currentNotes: 'BAR_SUM:10000 | Bar: Cola x1 (10 000 so\'m)',
+        name: 'Samar',
+        amount: 15000,
+      );
+      var splits = SessionBillingHelper.getSplits(noteWithSplit1);
+      expect(splits.length, 1);
+      expect(splits[0].name, 'Samar');
+      expect(splits[0].amount, 15000);
+      expect(SessionBillingHelper.getTotalSplitAmount(noteWithSplit1), 15000);
+      expect(SessionBillingHelper.getBarTotal(noteWithSplit1), 10000);
+
+      // 2. Add split for Bobur (18 000 so'm)
+      final noteWithSplit2 = SessionBillingHelper.addSplit(
+        currentNotes: noteWithSplit1,
+        name: 'Bobur',
+        amount: 18000,
+      );
+      splits = SessionBillingHelper.getSplits(noteWithSplit2);
+      expect(splits.length, 2);
+      expect(splits[1].name, 'Bobur');
+      expect(splits[1].amount, 18000);
+      expect(SessionBillingHelper.getTotalSplitAmount(noteWithSplit2), 33000);
+
+      // 3. Delete Samar split
+      final noteDeleted = SessionBillingHelper.deleteSplit(
+        currentNotes: noteWithSplit2,
+        index: 0,
+      );
+      splits = SessionBillingHelper.getSplits(noteDeleted);
+      expect(splits.length, 1);
+      expect(splits[0].name, 'Bobur');
+      expect(SessionBillingHelper.getTotalSplitAmount(noteDeleted), 18000);
+    });
   });
 }

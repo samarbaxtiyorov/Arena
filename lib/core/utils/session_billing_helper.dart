@@ -1,7 +1,9 @@
 // ============================================
 // Arena — Sessiya va Hisob-kitob Yordamchisi
-// O'yin vaqti, Bar tovarlari, Jami summa va Izohlar
+// O'yin vaqti, Bar tovarlari, Partiyalar (Bo'lish), Jami summa
 // ============================================
+
+import 'dart:convert';
 
 class BarOrderItem {
   final String name;
@@ -27,6 +29,28 @@ class BarOrderItem {
       name: map['name'] as String? ?? '',
       qty: (map['qty'] as num?)?.toInt() ?? 1,
       price: (map['price'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class SessionSplitItem {
+  final String name; // Masalan: "Samar", "Bobur", "Teng"
+  final int amount; // So'mda
+
+  const SessionSplitItem({
+    required this.name,
+    required this.amount,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'amount': amount,
+      };
+
+  factory SessionSplitItem.fromMap(Map<String, dynamic> map) {
+    return SessionSplitItem(
+      name: map['name'] as String? ?? '',
+      amount: (map['amount'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -102,6 +126,84 @@ class SessionBillingHelper {
     return result;
   }
 
+  /// Partiyalar (bo'lingan o'yinchilar hisoblari) ro'yxatini olish
+  static List<SessionSplitItem> getSplits(String? notes) {
+    if (notes == null || notes.isEmpty) return [];
+
+    final match = RegExp(r'SPLITS:(\[.*?\])').firstMatch(notes);
+    if (match != null) {
+      try {
+        final jsonStr = match.group(1);
+        if (jsonStr != null) {
+          final rawList = jsonDecode(jsonStr) as List;
+          return rawList
+              .map((e) => SessionSplitItem.fromMap(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  /// Partiyalar bo'yicha jami summa
+  static int getTotalSplitAmount(String? notes) {
+    final splits = getSplits(notes);
+    return splits.fold(0, (sum, item) => sum + item.amount);
+  }
+
+  /// Yangi partiya (bo'lish) qo'shish
+  static String addSplit({
+    required String? currentNotes,
+    required String name,
+    required int amount,
+  }) {
+    final splits = getSplits(currentNotes);
+    splits.add(SessionSplitItem(name: name.trim(), amount: amount));
+
+    return _rebuildNotesWithSplits(currentNotes: currentNotes, updatedSplits: splits);
+  }
+
+  /// Partiyani o'chirish
+  static String deleteSplit({
+    required String? currentNotes,
+    required int index,
+  }) {
+    final splits = getSplits(currentNotes);
+    if (index >= 0 && index < splits.length) {
+      splits.removeAt(index);
+    }
+    return _rebuildNotesWithSplits(currentNotes: currentNotes, updatedSplits: splits);
+  }
+
+  static String _rebuildNotesWithSplits({
+    required String? currentNotes,
+    required List<SessionSplitItem> updatedSplits,
+  }) {
+    final barTotal = getBarTotal(currentNotes);
+    final barItems = getBarItemsSummary(currentNotes);
+    final userNotes = getUserNotes(currentNotes);
+
+    final buffer = StringBuffer();
+    if (barTotal > 0) {
+      buffer.write('BAR_SUM:$barTotal');
+    }
+    if (barItems.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write(' | ');
+      buffer.write('Bar: ${barItems.join(', ')}');
+    }
+    if (updatedSplits.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write(' | ');
+      final splitsJson = jsonEncode(updatedSplits.map((s) => s.toMap()).toList());
+      buffer.write('SPLITS:$splitsJson');
+    }
+    if (userNotes.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write(' | ');
+      buffer.write(userNotes);
+    }
+
+    return buffer.toString();
+  }
+
   /// Izohdan faqat foydalanuvchi yozgan qo'shimcha matnni ajratib olish
   static String getUserNotes(String? notes) {
     if (notes == null || notes.isEmpty) return '';
@@ -112,7 +214,8 @@ class SessionBillingHelper {
       final trimmed = p.trim();
       if (!trimmed.startsWith('BAR_SUM:') &&
           !trimmed.startsWith('Bar:') &&
-          !trimmed.startsWith('BAR_META:')) {
+          !trimmed.startsWith('BAR_META:') &&
+          !trimmed.startsWith('SPLITS:')) {
         if (trimmed.isNotEmpty) {
           userParts.add(trimmed);
         }
@@ -134,6 +237,9 @@ class SessionBillingHelper {
     final existingItems = getBarItemsSummary(currentNotes);
     final allItems = [...existingItems, ...newItemsSummary];
 
+    // Mavjud partiyalar
+    final splits = getSplits(currentNotes);
+
     // Mavjud foydalanuvchi izohini saqlab qolish
     final userNotes = getUserNotes(currentNotes);
 
@@ -141,6 +247,10 @@ class SessionBillingHelper {
     buffer.write('BAR_SUM:$newTotalBarSum');
     if (allItems.isNotEmpty) {
       buffer.write(' | Bar: ${allItems.join(', ')}');
+    }
+    if (splits.isNotEmpty) {
+      final splitsJson = jsonEncode(splits.map((s) => s.toMap()).toList());
+      buffer.write(' | SPLITS:$splitsJson');
     }
     if (userNotes.isNotEmpty) {
       buffer.write(' | $userNotes');
@@ -156,6 +266,7 @@ class SessionBillingHelper {
   }) {
     final barTotal = getBarTotal(originalNotes);
     final barItems = getBarItemsSummary(originalNotes);
+    final splits = getSplits(originalNotes);
     final existingUserNote = getUserNotes(originalNotes);
 
     final buffer = StringBuffer();
@@ -165,6 +276,11 @@ class SessionBillingHelper {
     if (barItems.isNotEmpty) {
       if (buffer.isNotEmpty) buffer.write(' | ');
       buffer.write('Bar: ${barItems.join(', ')}');
+    }
+    if (splits.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write(' | ');
+      final splitsJson = jsonEncode(splits.map((s) => s.toMap()).toList());
+      buffer.write('SPLITS:$splitsJson');
     }
 
     final userNotes = <String>[];
