@@ -1,11 +1,13 @@
 // ============================================
 // Arena — ESC/POS Termal Chek Generatori
 // 58mm va 80mm termal printerlar uchun
+// O'yin vaqti, Bo'lingan partiyalar, Bar savdosi
 // ============================================
 
 import 'package:intl/intl.dart';
 import '../../data/local/app_database.dart';
 import 'formatters.dart';
+import 'session_billing_helper.dart';
 
 class ReceiptGenerator {
   ReceiptGenerator._();
@@ -32,13 +34,14 @@ class ReceiptGenerator {
     return char * width;
   }
 
-  // Stol sessiyasi uchun chek
+  // Stol sessiyasi uchun to'liq POS cheki
   static String forTableSession({
     required ClubTable table,
     required Session session,
     required int finalAmount,
     required String paymentType,
     String? customerName,
+    String? customNotes,
   }) {
     final buffer = StringBuffer();
     final now = DateTime.now();
@@ -47,14 +50,24 @@ class ReceiptGenerator {
         ? session.endedAt!.difference(session.startedAt)
         : now.difference(session.startedAt);
 
+    final effectiveNotes = customNotes ?? session.notes;
+    final gameAmount = SessionBillingHelper.calculateGameAmount(
+      startedAt: session.startedAt,
+      endedAt: session.endedAt ?? now,
+      pricePerHour: table.pricePerHour,
+    );
+    final barTotal = SessionBillingHelper.getBarTotal(effectiveNotes);
+    final barItems = SessionBillingHelper.getBarItemsSummary(effectiveNotes);
+    final splits = SessionBillingHelper.getSplits(effectiveNotes);
+
     buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('ARENA CLUB'));
-    buffer.writeln(_center('Sport & O\'yin Zali'));
+    buffer.writeln(_center('ARENA POS'));
+    buffer.writeln(_center('Sport & O\'yin Markazi'));
     buffer.writeln(_divider(width58, '='));
     buffer.writeln(_row('Chek #:', session.id.substring(0, 8).toUpperCase()));
     buffer.writeln(_row('Sana:', dateStr));
-    buffer.writeln(_row('Zal/Stol:', table.name));
-    if (customerName != null) {
+    buffer.writeln(_row('Maydon/Stol:', table.name));
+    if (customerName != null && customerName.isNotEmpty) {
       buffer.writeln(_row('Mijoz:', customerName));
     }
     buffer.writeln(_divider());
@@ -62,15 +75,46 @@ class ReceiptGenerator {
     buffer.writeln(_row('Boshlandi:', DateFormat('HH:mm').format(session.startedAt)));
     buffer.writeln(_row('Tugatildi:', DateFormat('HH:mm').format(now)));
     buffer.writeln(_row('Vaqt:', Formatters.timerString(duration)));
-    buffer.writeln(_row('Stavka:', '${Formatters.currency(table.pricePerHour)}/soat'));
-    buffer.writeln(_divider());
+    buffer.writeln(_row('Tarif:', '${table.pricePerHour ~/ 1000} ming/soat'));
+    buffer.writeln(_row('O\'yin narxi:', Formatters.currency(gameAmount)));
 
+    // Partiyalar bo'yicha taqsimot (agar bo'lingan bo'lsa)
+    if (splits.isNotEmpty) {
+      buffer.writeln(_divider());
+      buffer.writeln(_center('BO\'LINGAN PARTIYALAR'));
+      for (int i = 0; i < splits.length; i++) {
+        final s = splits[i];
+        buffer.writeln(_row('${i + 1}. ${s.name}:', Formatters.currency(s.amount)));
+      }
+      final totalSplits = splits.fold(0, (sum, s) => sum + s.amount);
+      if (gameAmount > totalSplits) {
+        buffer.writeln(_row('Qolgan vaqt:', Formatters.currency(gameAmount - totalSplits)));
+      }
+    }
+
+    // Bardan xaridlar (agar bor bo'lsa)
+    if (barTotal > 0) {
+      buffer.writeln(_divider());
+      buffer.writeln(_center('BARDAN XARIDLAR'));
+      for (final item in barItems) {
+        buffer.writeln('  $item');
+      }
+      buffer.writeln(_row('Bar jami:', '+${Formatters.currency(barTotal)}'));
+    }
+
+    buffer.writeln(_divider(width58, '='));
     buffer.writeln(_row('JAMI TO\'LOV:', Formatters.currency(finalAmount)));
-    buffer.writeln(_row('To\'lov turi:', paymentType.toUpperCase()));
+
+    final paymentName = paymentType == 'cash'
+        ? 'NAQD PUL'
+        : paymentType == 'card'
+            ? 'BANK KARTASI'
+            : 'NASIYA / QARZ';
+    buffer.writeln(_row('To\'lov turi:', paymentName));
     buffer.writeln(_divider(width58, '='));
     buffer.writeln(_center('Xaridingiz uchun rahmat!'));
-    buffer.writeln(_center('Yana kuting!'));
-    buffer.writeln(_center('Dasturchi: Samar Baxtiyorov'));
+    buffer.writeln(_center('Biznes Egasi: Samar'));
+    buffer.writeln(_center('Arena POS v2.0'));
     buffer.writeln(_divider(width58, '='));
 
     return buffer.toString();
@@ -85,7 +129,7 @@ class ReceiptGenerator {
     final isIncome = record.type == 'income';
 
     buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('ARENA CLUB'));
+    buffer.writeln(_center('ARENA POS'));
     buffer.writeln(_center(isIncome ? 'KASSA TO\'LOV CHEKI' : 'CHIQIM ORDERI'));
     buffer.writeln(_divider(width58, '='));
     buffer.writeln(_row('Order #:', record.id.substring(0, 8).toUpperCase()));
@@ -98,14 +142,13 @@ class ReceiptGenerator {
 
     if (record.description != null && record.description!.isNotEmpty) {
       buffer.writeln('Izoh:');
-      buffer.writeln(' ${record.description!}');
+      buffer.writeln('  ${record.description!}');
       buffer.writeln(_divider());
     }
 
-    buffer.writeln(_row('SUMMA:', Formatters.currency(record.amount.abs())));
+    buffer.writeln(_row('SUMMA:', Formatters.currency(record.amount)));
     buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('Arena Boshqaruv Tizimi'));
-    buffer.writeln(_center('Dasturchi: Samar Baxtiyorov'));
+    buffer.writeln(_center('Arena POS'));
     buffer.writeln(_divider(width58, '='));
 
     return buffer.toString();

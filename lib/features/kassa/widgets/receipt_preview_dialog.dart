@@ -1,12 +1,10 @@
 // ============================================
-// Arena — Termal Chek Ko'rish Modali
+// Arena — Termal POS Chek Ko'rish Modali
 // ============================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
-
-import '../../../core/constants/app_colors.dart';
 
 class ReceiptPreviewDialog extends StatelessWidget {
   final String receiptText;
@@ -16,13 +14,13 @@ class ReceiptPreviewDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: AppColors.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+        constraints: const BoxConstraints(maxWidth: 400),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -30,40 +28,61 @@ class ReceiptPreviewDialog extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.receipt_long,
-                          color: AppColors.primary, size: 22),
-                      Gap(8),
-                      Text(
-                        'Termal Chek (58mm)',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        child: const Icon(Icons.receipt_long_rounded,
+                            color: Color(0xFF2563EB), size: 22),
+                      ),
+                      const Gap(10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kassa To\'lov Cheki',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            'ESC/POS Termal (58mm)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.close_rounded,
+                        color: Color(0xFF94A3B8)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
 
-              const Gap(12),
+              const Gap(14),
 
               // Qog'oz chek ko'rinishi (Thermal Paper)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC), // Oq-kulrang termal qog'oz
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withOpacity(0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -71,24 +90,30 @@ class ReceiptPreviewDialog extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    SelectableText(
-                      receiptText,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        height: 1.35,
-                        color: Color(0xFF0F172A), // To'q termal bosma siyoh
-                        fontWeight: FontWeight.w600,
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.48,
+                      ),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          receiptText,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            height: 1.4,
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                    const Gap(8),
+                    const Gap(10),
                     // Shtrix-kod simulyatsiyasi
                     Container(
-                      height: 24,
-                      decoration: BoxDecoration(
+                      height: 28,
+                      decoration: const BoxDecoration(
                         border: Border(
-                          top: BorderSide(
-                              color: Colors.black.withOpacity(0.3), width: 1),
+                          top: BorderSide(color: Color(0xFFCBD5E1), width: 1),
                         ),
                       ),
                       child: const Center(
@@ -96,9 +121,9 @@ class ReceiptPreviewDialog extends StatelessWidget {
                           '||||| |||| |||||| ||||| ||||',
                           style: TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 14,
-                            letterSpacing: 2,
-                            color: Color(0xFF0F172A),
+                            fontSize: 15,
+                            letterSpacing: 3,
+                            color: Color(0xFF334155),
                           ),
                         ),
                       ),
@@ -114,15 +139,23 @@ class ReceiptPreviewDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.copy, size: 16),
+                      icon: const Icon(Icons.copy_rounded, size: 16),
                       label: const Text('Nusxa olish'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: receiptText));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Chek matni nusxalandi!'),
-                            backgroundColor: AppColors.success,
+                            content: Text('Chek matni buferga nusxalandi!'),
+                            backgroundColor: Color(0xFF10B981),
                             duration: Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
                           ),
                         );
                       },
@@ -132,17 +165,27 @@ class ReceiptPreviewDialog extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
                       ),
-                      icon: const Icon(Icons.print, size: 16),
-                      label: const Text('Chop etish'),
+                      icon: const Icon(Icons.print_rounded, size: 17),
+                      label: const Text(
+                        'Chop etish',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
                                 'ESC/POS termal printerga buyruq yuborildi!'),
-                            backgroundColor: AppColors.info,
+                            backgroundColor: Color(0xFF2563EB),
                             duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
                           ),
                         );
                         Navigator.of(context).pop();

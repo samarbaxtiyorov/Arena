@@ -18,6 +18,7 @@ import 'stadium_banner.dart';
 import 'session_finish_dialog.dart';
 import 'add_bar_to_session_sheet.dart';
 import 'split_session_dialog.dart';
+import '../../kassa/widgets/receipt_preview_dialog.dart';
 
 class TableCard extends ConsumerStatefulWidget {
   final ClubTable table;
@@ -459,8 +460,8 @@ class _TableCardState extends ConsumerState<TableCard> {
                     child: SizedBox(
                       height: uiScale.buttonHeight,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          showDialog(
+                        onPressed: () async {
+                          final receiptText = await showDialog<String>(
                             context: context,
                             barrierDismissible: false,
                             builder: (_) => SessionFinishDialog(
@@ -468,6 +469,16 @@ class _TableCardState extends ConsumerState<TableCard> {
                               table: widget.table,
                             ),
                           );
+
+                          if (receiptText != null && context.mounted) {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => ReceiptPreviewDialog(
+                                receiptText: receiptText,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.check_circle_outline, size: 16),
                         label: const Text(

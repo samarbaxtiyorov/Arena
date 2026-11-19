@@ -10,8 +10,10 @@ import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_billing_helper.dart';
+import '../../../core/utils/receipt_generator.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../kassa/widgets/receipt_preview_dialog.dart';
 import '../providers/tables_providers.dart';
 
 class SessionFinishDialog extends ConsumerStatefulWidget {
@@ -35,6 +37,7 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
 
   String _paymentType = 'cash'; // 'cash', 'card', 'debt'
   String? _selectedCustomerId;
+  String? _selectedCustomerName;
   late final Duration _duration;
   late final int _gameAmount;
   late final int _barAmount;
@@ -78,6 +81,27 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
     });
   }
 
+  void _showReceiptPreview() {
+    final amount =
+        int.tryParse(_amountController.text.trim()) ?? _exactTotal;
+    final finalNotes = SessionBillingHelper.finalizeNotes(
+      originalNotes: widget.session.notes,
+      extraUserNote: _notesController.text.trim(),
+    );
+    final receiptText = ReceiptGenerator.forTableSession(
+      table: widget.table,
+      session: widget.session,
+      finalAmount: amount,
+      paymentType: _paymentType,
+      customerName: _selectedCustomerName,
+      customNotes: finalNotes,
+    );
+    showDialog(
+      context: context,
+      builder: (_) => ReceiptPreviewDialog(receiptText: receiptText),
+    );
+  }
+
   Future<void> _onFinish() async {
     final amount =
         int.tryParse(_amountController.text.trim()) ?? _exactTotal;
@@ -110,8 +134,17 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
             notes: finalNotes.isEmpty ? null : finalNotes,
           );
 
+      final receiptText = ReceiptGenerator.forTableSession(
+        table: widget.table,
+        session: widget.session,
+        finalAmount: amount,
+        paymentType: _paymentType,
+        customerName: _selectedCustomerName,
+        customNotes: finalNotes,
+      );
+
       if (mounted) {
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(receiptText);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -120,7 +153,7 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                 const Gap(8),
                 Expanded(
                   child: Text(
-                    "${widget.table.name} hisobi yopildi: ${formatSum(amount)} qabul qilindi!",
+                    "${widget.table.name} to'lovi qabul qilindi: ${formatSum(amount)}!",
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -217,6 +250,36 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                       ],
                     ),
                   ),
+                  InkWell(
+                    onTap: _showReceiptPreview,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.receipt_long_rounded,
+                              size: 16, color: Color(0xFF2563EB)),
+                          Gap(4),
+                          Text(
+                            "Chekni olish",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Gap(4),
                   IconButton(
                     icon: const Icon(Icons.close_rounded,
                         color: Color(0xFF94A3B8)),
@@ -634,8 +697,15 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                                 ),
                               ))
                           .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedCustomerId = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCustomerId = val;
+                          final match = customers
+                              .where((c) => c.id == val)
+                              .firstOrNull;
+                          _selectedCustomerName = match?.name;
+                        });
+                      },
                     );
                   },
                 ),
