@@ -1,6 +1,7 @@
 // ============================================
-// Arena — Maydon/Stol Banneri (Floodlit Stadium)
-// Skrinshot 6 dagi tungi stadion va LED taymer
+// Arena — Maydon/Stol Haqiqiy Foto Banneri
+// Real suratlar: Stadion, Bilyard, PlayStation
+// LED Neon Taymer va Jonli Vaqt nishoni
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -10,69 +11,119 @@ class StadiumBanner extends StatelessWidget {
   final bool isLive;
   final String timerString;
   final String type;
+  final int tableIndex;
 
   const StadiumBanner({
     super.key,
     required this.isLive,
     required this.timerString,
     this.type = 'football',
+    this.tableIndex = 1,
   });
+
+  String _getImageAsset() {
+    switch (type) {
+      case 'billiard':
+        return 'assets/images/billiard_table.jpg';
+      case 'ps':
+        return 'assets/images/playstation_room.jpg';
+      case 'tennis':
+        return 'assets/images/tennis_court.jpg';
+      case 'football':
+      default:
+        // Maydon 1 va Maydon 2 uchun turli burchakdagi tungi stadion suratlari
+        if (tableIndex % 2 == 0) {
+          return 'assets/images/stadium_night_2.jpg';
+        }
+        return 'assets/images/stadium_night_1.jpg';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 155,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         color: const Color(0xFF0F172A),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            // Fon stadioni rasmi / gradienti
-            Positioned.fill(
-              child: CustomPaint(
-                painter: StadiumNightPainter(type: type),
-              ),
+            // 1. Haqiqiy Surat (Real Photography)
+            Image.asset(
+              _getImageAsset(),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Agar fayl topilmasa to'q gradient
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.sports_soccer, color: Colors.white24, size: 48),
+                  ),
+                );
+              },
             ),
 
-            // Qoraytirilgan qatlam
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.4),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
-                  ),
+            // 2. Qoraytirilgan gradient (matnlar o'qilishi uchun)
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.55),
+                    Colors.black.withOpacity(0.15),
+                    Colors.black.withOpacity(0.65),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
             ),
 
-            // Banner ichidagi ko'rsatkichlar
+            // 3. Banner ustidagi interfeys elementlari
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Jonli vaqt ko'rsatkichi
+                      // Jonli Vaqt ko'rsatkichi
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: isLive
                               ? const Color(0xFF10B981)
-                              : const Color(0xFF475569).withOpacity(0.8),
+                              : Colors.black.withOpacity(0.55),
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: isLive
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF10B981).withOpacity(0.4),
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -80,73 +131,92 @@ class StadiumBanner extends StatelessWidget {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white,
+                                color: isLive ? Colors.white : const Color(0xFF94A3B8),
                               ),
                             ),
                             const Gap(6),
                             Text(
-                              isLive ? 'JONLI VAQT' : 'TO\'XTATILGAN',
-                              style: const TextStyle(
+                              isLive ? 'JONLI VAQT' : "KUTILMOQDA",
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                                color: isLive ? Colors.white : const Color(0xFFCBD5E1),
+                                letterSpacing: 0.6,
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      // LED Raqamli Taymer (Neon Cyan)
+                      // LED Raqamli Neon Taymer
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
+                            horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF050B14).withOpacity(0.85),
+                          color: const Color(0xFF030712).withOpacity(0.88),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: const Color(0xFF22D3EE).withOpacity(0.5),
-                            width: 1,
+                            color: isLive
+                                ? const Color(0xFF22D3EE)
+                                : const Color(0xFF334155),
+                            width: 1.2,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF22D3EE).withOpacity(0.2),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                          boxShadow: isLive
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF22D3EE).withOpacity(0.35),
+                                    blurRadius: 10,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Text(
                           timerString,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF22D3EE),
-                            letterSpacing: 2.0,
+                            color: isLive
+                                ? const Color(0xFF22D3EE)
+                                : const Color(0xFF94A3B8),
+                            letterSpacing: 2.2,
                           ),
                         ),
                       ),
                     ],
                   ),
 
-                  // Pastki qism: Stadion chiroqlari yoki maydon ramzi
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        type == 'football'
-                            ? Icons.sports_soccer
-                            : (type == 'billiard'
-                                ? Icons.sports_baseball
-                                : Icons.sports_esports),
-                        color: Colors.white.withOpacity(0.25),
-                        size: 30,
-                      ),
-                    ],
-                  ),
+                  // Pastki ramz (faqat bo'sh bo'lganda nozik ko'rinadi)
+                  if (!isLive)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.sports_soccer_rounded, color: Colors.white70, size: 16),
+                              Gap(6),
+                              Text(
+                                "Stadion tayyor",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -155,104 +225,4 @@ class StadiumBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-// Haqiqiy stadion atmosferasini chizuvchi maxsus painter
-class StadiumNightPainter extends CustomPainter {
-  final String type;
-  StadiumNightPainter({this.type = 'football'});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Tungi osmon va projektor nurlari
-    final skyPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF0B1329), Color(0xFF1E293B)],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.6));
-
-    canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height * 0.6), skyPaint);
-
-    // Projektor nurlari (Floodlights)
-    final lightPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.7, -0.6),
-        radius: 0.8,
-        colors: [
-          Colors.white.withOpacity(0.4),
-          const Color(0xFF38BDF8).withOpacity(0.15),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.2),
-        size.width * 0.45, lightPaint);
-
-    final lightPaint2 = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0.7, -0.6),
-        radius: 0.8,
-        colors: [
-          Colors.white.withOpacity(0.4),
-          const Color(0xFF38BDF8).withOpacity(0.15),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.2),
-        size.width * 0.45, lightPaint2);
-
-    // 2. Yashil maysa (Football pitch) yoki Bilyard movut / Zali
-    Color pitchTopColor = const Color(0xFF15803D);
-    Color pitchBottomColor = const Color(0xFF166534);
-
-    if (type == 'billiard') {
-      pitchTopColor = const Color(0xFF047857);
-      pitchBottomColor = const Color(0xFF064E3B);
-    } else if (type == 'ps') {
-      pitchTopColor = const Color(0xFF1E3A8A);
-      pitchBottomColor = const Color(0xFF1E1B4B);
-    }
-
-    final pitchPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [pitchTopColor, pitchBottomColor],
-      ).createShader(
-        Rect.fromLTWH(0, size.height * 0.55, size.width, size.height * 0.45),
-      );
-
-    final path = Path()
-      ..moveTo(0, size.height * 0.55)
-      ..lineTo(size.width, size.height * 0.55)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(path, pitchPaint);
-
-    // Maydon chiziqlari (Oq chiziqlar)
-    final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    canvas.drawLine(
-      Offset(0, size.height * 0.65),
-      Offset(size.width, size.height * 0.65),
-      linePaint,
-    );
-
-    canvas.drawCircle(
-      Offset(size.width * 0.5, size.height * 0.78),
-      size.width * 0.2,
-      linePaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

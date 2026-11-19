@@ -1,6 +1,6 @@
 // ============================================
 // Arena — Maydon/Stol Kartasi (Skrinshot 6 bilan 1:1)
-// Stadion banneri, LED taymer, ⏱/☕ ajratilgan hisob,
+// Stadion banneri (haqiqiy surat), LED taymer, ⏱/☕ ajratilgan hisob,
 // [☕], [⚏ Bo'lish] va [✓ To'lov] tugmalari
 // ============================================
 
@@ -107,7 +107,6 @@ class _TableCardState extends ConsumerState<TableCard> {
     // Bar summasini notes dan hisoblash
     _barAmount = 0;
     if (session.notes != null && session.notes!.contains('Bar:')) {
-      // Notes dan bar summasini parsing qilish yoki totalAmount - gameAmount
       if (session.totalAmount > _gameAmount) {
         _barAmount = session.totalAmount - _gameAmount;
       }
@@ -133,17 +132,19 @@ class _TableCardState extends ConsumerState<TableCard> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isBand
-              ? const Color(0xFF10B981).withOpacity(0.4)
+              ? const Color(0xFF10B981).withOpacity(0.5)
               : const Color(0xFFE2E8F0),
           width: isBand ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
+            color: isBand
+                ? const Color(0xFF10B981).withOpacity(0.08)
+                : Colors.black.withOpacity(0.03),
+            blurRadius: 14,
             offset: const Offset(0, 4),
           ),
         ],
@@ -170,7 +171,7 @@ class _TableCardState extends ConsumerState<TableCard> {
                       '${widget.index}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
                         fontSize: 14,
                       ),
                     ),
@@ -205,7 +206,7 @@ class _TableCardState extends ConsumerState<TableCard> {
                         isBand ? 'Band' : "Bo'sh",
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: isBand
                               ? const Color(0xFFEF4444)
                               : const Color(0xFF10B981),
@@ -219,11 +220,12 @@ class _TableCardState extends ConsumerState<TableCard> {
 
             const Gap(12),
 
-            // ── 2. Stadion / Maydon Banneri va LED taymer ───────
+            // ── 2. Stadion Haqiqiy Foto Banneri va LED taymer ──
             StadiumBanner(
               isLive: isBand,
               timerString: isBand ? _formatTimer() : "00:00:00",
               type: widget.table.type,
+              tableIndex: widget.index,
             ),
 
             const Gap(12),
@@ -499,7 +501,7 @@ class _TableCardState extends ConsumerState<TableCard> {
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

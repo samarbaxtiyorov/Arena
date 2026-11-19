@@ -135,6 +135,24 @@ class AppDatabase extends _$AppDatabase {
     for (final prod in initialProducts) {
       await into(products).insertOnConflictUpdate(prod);
     }
+
+    // 3. Maydon 1 uchun jonli sessiya (Skrinshot 6 bilan 1:1)
+    final existingSession = await (select(sessions)
+          ..where((s) => s.tableId.equals('1') & s.status.equals('active')))
+        .get();
+    if (existingSession.isEmpty) {
+      await into(sessions).insertOnConflictUpdate(
+        SessionsCompanion.insert(
+          id: 'demo_session_1',
+          tableId: '1',
+          startedAt: now.subtract(const Duration(seconds: 8)),
+          status: const Value('active'),
+          totalAmount: const Value(1000),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+    }
   }
 }
 
