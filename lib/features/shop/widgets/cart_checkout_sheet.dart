@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/formatters.dart';
@@ -22,9 +23,10 @@ class CartCheckoutSheet extends ConsumerStatefulWidget {
 class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
   String _paymentType = 'cash'; // 'cash', 'card', 'debt'
   String? _selectedCustomerId;
+  String? _selectedCustomerName;
   bool _isLoading = false;
 
-  Future<void> _onCheckout(List<CartItem> items) async {
+  Future<void> _onCheckout(List<CartItem> items, int totalAmount) async {
     if (_paymentType == 'debt' && _selectedCustomerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -44,12 +46,49 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
             customerId: _selectedCustomerId,
           );
 
+      final now = DateTime.now();
+      final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(now);
+      final buffer = StringBuffer();
+      buffer.writeln('================================');
+      buffer.writeln('           ARENA POS            ');
+      buffer.writeln('     Do\'kon / Bar Savdosi       ');
+      buffer.writeln('================================');
+      buffer.writeln('Sana: $dateStr');
+      if (_selectedCustomerName != null) {
+        buffer.writeln('Mijoz: $_selectedCustomerName');
+      }
+      buffer.writeln('--------------------------------');
+      for (final item in items) {
+        final lineName = '${item.product.name} x${item.quantity}';
+        final linePrice = formatSum(item.subtotal);
+        final pad = 32 - lineName.length - linePrice.length;
+        if (pad > 0) {
+          buffer.writeln('$lineName${" " * pad}$linePrice');
+        } else {
+          buffer.writeln('$lineName $linePrice');
+        }
+      }
+      buffer.writeln('--------------------------------');
+      buffer.writeln('JAMI TO\'LOV: ${formatSum(totalAmount)}');
+      final pTypeName = _paymentType == 'cash'
+          ? 'NAQD PUL'
+          : _paymentType == 'card'
+              ? 'BANK KARTASI'
+              : 'NASIYA / QARZ';
+      buffer.writeln('To\'lov turi: $pTypeName');
+      buffer.writeln('================================');
+      buffer.writeln('     Xaridingiz uchun rahmat!   ');
+      buffer.writeln('================================');
+
+      final receiptText = buffer.toString();
+
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(receiptText);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Savdo muvaffaqiyatli amalga oshirildi!'),
             backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -319,8 +358,15 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                                     ),
                                   ))
                               .toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedCustomerId = val),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedCustomerId = val;
+                              final match = customers
+                                  .where((c) => c.id == val)
+                                  .firstOrNull;
+                              _selectedCustomerName = match?.name;
+                            });
+                          },
                         );
                       },
                     ),
@@ -337,7 +383,9 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _isLoading ? null : () => _onCheckout(items),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _onCheckout(items, cartState.totalAmount),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,

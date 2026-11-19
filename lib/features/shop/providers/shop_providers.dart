@@ -48,12 +48,33 @@ final filteredProductsProvider = Provider<List<Product>>((ref) {
     data: (list) {
       return list.where((p) {
         // Toifa mosligi
-        final matchesCat = category == 'all' || p.category == category;
+        final nameLower = p.name.toLowerCase();
+        final matchesCat = category == 'all' ||
+            p.category == category ||
+            (category == 'drink' &&
+                (nameLower.contains('cola') ||
+                    nameLower.contains('fanta') ||
+                    nameLower.contains('pepsi') ||
+                    nameLower.contains('suv') ||
+                    nameLower.contains('water') ||
+                    nameLower.contains('sharbat') ||
+                    nameLower.contains('redbull'))) ||
+            (category == 'snack' &&
+                (nameLower.contains('chips') ||
+                    nameLower.contains('lays') ||
+                    nameLower.contains('pista') ||
+                    nameLower.contains('snack') ||
+                    nameLower.contains('shokolad'))) ||
+            (category == 'hot' &&
+                (nameLower.contains('choy') ||
+                    nameLower.contains('kofe') ||
+                    nameLower.contains('coffee') ||
+                    nameLower.contains('tea')));
         if (!matchesCat) return false;
 
         // Qidiruv mosligi
         if (query.isEmpty) return true;
-        final matchesName = p.name.toLowerCase().contains(query);
+        final matchesName = nameLower.contains(query);
         final matchesBarcode = p.barcode != null && p.barcode!.contains(query);
         return matchesName || matchesBarcode;
       }).toList();

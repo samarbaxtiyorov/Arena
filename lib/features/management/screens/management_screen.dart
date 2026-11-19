@@ -10,9 +10,9 @@ import 'package:gap/gap.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
-import '../../tables/widgets/add_table_dialog.dart';
 import '../../shop/widgets/add_product_dialog.dart';
 import '../../kassa/providers/kassa_providers.dart';
+import 'manage_tables_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
   const ManagementScreen({super.key});
@@ -241,9 +241,11 @@ class ManagementScreen extends ConsumerWidget {
               subtitle: "Bilyard, futbol, karaoke, kino...",
               onTap: () {
                 _checkOwnerPermission(context, auth, () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const AddTableDialog(),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ManageTablesScreen(),
+                    ),
                   );
                 });
               },

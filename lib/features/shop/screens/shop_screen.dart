@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../kassa/widgets/receipt_preview_dialog.dart';
 import '../providers/shop_providers.dart';
 import '../widgets/product_card.dart';
 import '../widgets/cart_checkout_sheet.dart';
@@ -173,7 +174,7 @@ class ShopScreen extends ConsumerWidget {
 
                 const SliverToBoxAdapter(child: Gap(12)),
 
-                // ── Kategoriya Chiplari (Barchasi, Ichimlik va yegulik)
+                // ── Kategoriya Chiplari ───────────────────────────
                 SliverToBoxAdapter(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -189,9 +190,23 @@ class ShopScreen extends ConsumerWidget {
                         const Gap(8),
                         _buildCategoryChip(
                           ref: ref,
-                          label: "Ichimlik va yegulik",
+                          label: "Ichimliklar",
                           categoryKey: 'drink',
                           isSelected: selectedCategory == 'drink',
+                        ),
+                        const Gap(8),
+                        _buildCategoryChip(
+                          ref: ref,
+                          label: "Yegulik va gazaklar",
+                          categoryKey: 'snack',
+                          isSelected: selectedCategory == 'snack',
+                        ),
+                        const Gap(8),
+                        _buildCategoryChip(
+                          ref: ref,
+                          label: "Choy va Qahva",
+                          categoryKey: 'hot',
+                          isSelected: selectedCategory == 'hot',
                         ),
                       ],
                     ),
@@ -249,7 +264,7 @@ class ShopScreen extends ConsumerWidget {
                             crossAxisCount: 2,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            childAspectRatio: 1.15,
+                            childAspectRatio: 0.9,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -329,13 +344,23 @@ class ShopScreen extends ConsumerWidget {
                         ],
                       ),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          showModalBottomSheet(
+                        onPressed: () async {
+                          final receiptText =
+                              await showModalBottomSheet<String>(
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
                             builder: (_) => const CartCheckoutSheet(),
                           );
+
+                          if (receiptText != null && context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => ReceiptPreviewDialog(
+                                receiptText: receiptText,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                         label: const Text(

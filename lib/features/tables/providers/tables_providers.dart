@@ -180,6 +180,32 @@ class TablesController {
     _triggerSync();
   }
 
+  // Mavjud stol / zonani tahrirlash (nomi, toifasi, narxi)
+  Future<void> updateTable({
+    required String tableId,
+    required String name,
+    required String type,
+    required int pricePerHour,
+  }) async {
+    final now = DateTime.now();
+    await _db.clubTablesDao.updateTable(ClubTablesCompanion(
+      id: Value(tableId),
+      name: Value(name),
+      type: Value(type),
+      pricePerHour: Value(pricePerHour),
+      updatedAt: Value(now),
+      isSynced: const Value(false),
+    ));
+
+    _triggerSync();
+  }
+
+  // Stol / zonani o'chirish (faolsizlantirish)
+  Future<void> deleteTable(String tableId) async {
+    await _db.clubTablesDao.deactivateTable(tableId);
+    _triggerSync();
+  }
+
   void _triggerSync() {
     try {
       final sync = _ref.read(syncServiceProvider);
