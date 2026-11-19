@@ -1,7 +1,7 @@
 // ============================================
 // Arena — Maydon/Stol Haqiqiy Foto Banneri
 // Desktopdagi Arena_Rasmlar to'plamidan real suratlar
-// LED Neon Taymer va Jonli Vaqt nishoni
+// Skrinshot 6 bilan 1:1 uyg'unlik
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -61,8 +61,8 @@ class StadiumBanner extends StatelessWidget {
         color: const Color(0xFF0F172A),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.14),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -92,145 +92,108 @@ class StadiumBanner extends StatelessWidget {
               },
             ),
 
-            // 2. Qoraytirilgan gradient (matnlar o'qilishi uchun)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.55),
-                    Colors.black.withOpacity(0.12),
-                    Colors.black.withOpacity(0.68),
-                  ],
-                  stops: const [0.0, 0.45, 1.0],
+            // 2. Qoraytirilgan gradient (faqat Jonli o'yinda o'qilishni kuchaytiradi)
+            if (isLive)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.60),
+                      Colors.black.withOpacity(0.10),
+                      Colors.black.withOpacity(0.65),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
                 ),
               ),
-            ),
 
-            // 3. Banner ustidagi interfeys elementlari
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Jonli Vaqt ko'rsatkichi
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isLive
-                              ? const Color(0xFF10B981)
-                              : Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isLive
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(0xFF10B981).withOpacity(0.45),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isLive ? Colors.white : const Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const Gap(6),
-                            Text(
-                              isLive ? 'JONLI VAQT' : "KUTILMOQDA",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: isLive ? Colors.white : const Color(0xFFCBD5E1),
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // LED Raqamli Neon Taymer (Skrinshot 6 bilan 1:1)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF030712).withOpacity(0.88),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isLive
-                                ? const Color(0xFF22D3EE)
-                                : const Color(0xFF334155),
-                            width: 1.2,
-                          ),
-                          boxShadow: isLive
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(0xFF22D3EE).withOpacity(0.35),
-                                    blurRadius: 10,
-                                    spreadRadius: 1,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Text(
-                          timerString,
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: isLive
-                                ? const Color(0xFF22D3EE)
-                                : const Color(0xFF94A3B8),
-                            letterSpacing: 2.2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Pastki ramz (faqat bo'sh bo'lganda nozik ko'rinadi)
-                  if (!isLive)
+            // 3. Faqat Jonli o'yin (isLive == true) bo'lganda ko'rinadigan LED va JONLI VAQT
+            if (isLive)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // Jonli Vaqt nishoni
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withOpacity(0.45),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
                           ),
-                          child: const Row(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.sports_soccer_rounded, color: Colors.white70, size: 16),
-                              Gap(6),
-                              Text(
-                                "Maydon o'yinga shay",
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const Gap(6),
+                              const Text(
+                                'JONLI VAQT',
                                 style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
                                 ),
                               ),
                             ],
                           ),
                         ),
+
+                        // LED Raqamli Neon Taymer (Skrinshot 6 bilan 1:1)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF030712).withOpacity(0.88),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFF22D3EE),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF22D3EE).withOpacity(0.35),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            timerString,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF22D3EE),
+                              letterSpacing: 2.2,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

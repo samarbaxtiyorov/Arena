@@ -97,10 +97,10 @@ class _TableCardState extends ConsumerState<TableCard> {
     final now = DateTime.now();
     _currentElapsed = now.difference(session.startedAt);
 
-    // O'yin summasi (daqiqa bo'yicha)
+    // O'yin summasi (daqiqa/soniya bo'yicha)
     final seconds = _currentElapsed.inSeconds;
     final ratePerSecond = widget.table.pricePerHour / 3600.0;
-    // Kamida 1000 so'm yoki hisoblangan
+    // Skrinshot 6 dagi minimal 1 000 so'm bazaviy hisob
     final calculated = (seconds * ratePerSecond).round();
     _gameAmount = calculated > 0 ? calculated : 1000;
 
@@ -132,19 +132,19 @@ class _TableCardState extends ConsumerState<TableCard> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isBand
-              ? const Color(0xFF10B981).withOpacity(0.5)
+              ? const Color(0xFF10B981).withOpacity(0.4)
               : const Color(0xFFE2E8F0),
           width: isBand ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isBand
-                ? const Color(0xFF10B981).withOpacity(0.08)
+                ? const Color(0xFF10B981).withOpacity(0.06)
                 : Colors.black.withOpacity(0.03),
-            blurRadius: 14,
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -160,8 +160,8 @@ class _TableCardState extends ConsumerState<TableCard> {
               children: [
                 // Dumaloq raqam (1, 2, ...)
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 34,
+                  height: 34,
                   decoration: const BoxDecoration(
                     color: Color(0xFF2563EB),
                     shape: BoxShape.circle,
@@ -172,7 +172,7 @@ class _TableCardState extends ConsumerState<TableCard> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: 14,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -316,16 +316,15 @@ class _TableCardState extends ConsumerState<TableCard> {
                   Text(
                     formatSum(_totalAmount),
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 19,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF10B981),
                     ),
                   ),
                 ],
               ),
+              const Gap(12),
             ],
-
-            const Gap(12),
 
             // ── 4. Maydon nomi va Soatlik narxi ────────────────
             Row(
