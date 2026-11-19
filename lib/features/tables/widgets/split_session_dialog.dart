@@ -304,38 +304,6 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
                 ),
               ),
 
-              const Gap(8),
-
-              // Tezkor ismlar / izohlar
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _QuickNameChip(
-                      label: "Samar",
-                      onTap: () => setState(() => _nameController.text = "Samar"),
-                    ),
-                    const Gap(6),
-                    _QuickNameChip(
-                      label: "Bobur",
-                      onTap: () => setState(() => _nameController.text = "Bobur"),
-                    ),
-                    const Gap(6),
-                    _QuickNameChip(
-                      label: "Teng (Ikkalamiz)",
-                      onTap: () =>
-                          setState(() => _nameController.text = "Teng (Ikkalamiz)"),
-                    ),
-                    const Gap(6),
-                    _QuickNameChip(
-                      label: "1-partiya",
-                      onTap: () =>
-                          setState(() => _nameController.text = "1-partiya"),
-                    ),
-                  ],
-                ),
-              ),
-
               const Gap(16),
 
               // ── 3. Saqlab qo'yish tugmasi ─────────────────
@@ -465,40 +433,6 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
                 ),
               ],
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickNameChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickNameChip({
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFCBD5E1)),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
           ),
         ),
       ),
