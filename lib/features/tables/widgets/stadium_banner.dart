@@ -12,6 +12,7 @@ class StadiumBanner extends StatelessWidget {
   final String timerString;
   final String type;
   final int tableIndex;
+  final double? height;
 
   const StadiumBanner({
     super.key,
@@ -19,6 +20,7 @@ class StadiumBanner extends StatelessWidget {
     required this.timerString,
     this.type = 'football',
     this.tableIndex = 1,
+    this.height,
   });
 
   String _getImageAsset() {
@@ -54,7 +56,7 @@ class StadiumBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 160,
+      height: height ?? 135,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),

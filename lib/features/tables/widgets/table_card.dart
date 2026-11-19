@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/local/app_database.dart';
 import '../providers/tables_providers.dart';
 import 'stadium_banner.dart';
@@ -127,12 +128,13 @@ class _TableCardState extends ConsumerState<TableCard> {
     final session = widget.activeSession;
     final isBand = session != null && session.status == 'active';
     final controller = ref.read(tablesControllerProvider);
+    final uiScale = ref.watch(uiScaleProvider);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: uiScale == UiScale.small ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(uiScale == UiScale.small ? 20 : 24),
         border: Border.all(
           color: isBand
               ? const Color(0xFF10B981).withOpacity(0.4)
@@ -144,13 +146,13 @@ class _TableCardState extends ConsumerState<TableCard> {
             color: isBand
                 ? const Color(0xFF10B981).withOpacity(0.06)
                 : Colors.black.withOpacity(0.03),
-            blurRadius: 16,
+            blurRadius: uiScale == UiScale.small ? 12 : 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(uiScale.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -160,8 +162,8 @@ class _TableCardState extends ConsumerState<TableCard> {
               children: [
                 // Dumaloq raqam (1, 2, ...)
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: uiScale == UiScale.small ? 30 : 34,
+                  height: uiScale == UiScale.small ? 30 : 34,
                   decoration: const BoxDecoration(
                     color: Color(0xFF2563EB),
                     shape: BoxShape.circle,
@@ -169,10 +171,10 @@ class _TableCardState extends ConsumerState<TableCard> {
                   child: Center(
                     child: Text(
                       '${widget.index}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontSize: uiScale == UiScale.small ? 13 : 15,
                       ),
                     ),
                   ),
@@ -218,7 +220,7 @@ class _TableCardState extends ConsumerState<TableCard> {
               ],
             ),
 
-            const Gap(12),
+            Gap(uiScale == UiScale.small ? 9 : 12),
 
             // ── 2. Stadion Haqiqiy Foto Banneri va LED taymer ──
             StadiumBanner(
@@ -226,9 +228,10 @@ class _TableCardState extends ConsumerState<TableCard> {
               timerString: isBand ? _formatTimer() : "00:00:00",
               type: widget.table.type,
               tableIndex: widget.index,
+              height: uiScale.bannerHeight,
             ),
 
-            const Gap(12),
+            Gap(uiScale == UiScale.small ? 9 : 12),
 
             // ── 3. Agar Band bo'lsa: ⏱ va ☕ qismlari, Jami hisob ─
             if (isBand) ...[
@@ -401,18 +404,18 @@ class _TableCardState extends ConsumerState<TableCard> {
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      width: 48,
-                      height: 44,
+                      width: uiScale == UiScale.small ? 42 : 48,
+                      height: uiScale.buttonHeight,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFCBD5E1)),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.local_cafe_rounded,
-                          color: Color(0xFF2563EB),
-                          size: 20,
+                          color: const Color(0xFF2563EB),
+                          size: uiScale == UiScale.small ? 18 : 20,
                         ),
                       ),
                     ),
@@ -421,28 +424,32 @@ class _TableCardState extends ConsumerState<TableCard> {
 
                   // [⚏ Bo'lish] tugmasi
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => SplitSessionDialog(
-                            table: widget.table,
-                            totalAmount: _totalAmount,
+                    child: SizedBox(
+                      height: uiScale.buttonHeight,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => SplitSessionDialog(
+                              table: widget.table,
+                              totalAmount: _totalAmount,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.call_split_rounded, size: 16),
+                        label: const Text(
+                          "Bo'lish",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFEF3C7),
+                          foregroundColor: const Color(0xFFB45309),
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(
+                              vertical: uiScale == UiScale.small ? 6 : 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.call_split_rounded, size: 16),
-                      label: const Text(
-                        "Bo'lish",
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFEF3C7),
-                        foregroundColor: const Color(0xFFB45309),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -451,29 +458,33 @@ class _TableCardState extends ConsumerState<TableCard> {
 
                   // [✓ To'lov] tugmasi
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (_) => SessionFinishDialog(
-                            session: session,
-                            table: widget.table,
+                    child: SizedBox(
+                      height: uiScale.buttonHeight,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => SessionFinishDialog(
+                              session: session,
+                              table: widget.table,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.check_circle_outline, size: 16),
+                        label: const Text(
+                          "To'lov",
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(
+                              vertical: uiScale == UiScale.small ? 6 : 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text(
-                        "To'lov",
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -484,11 +495,13 @@ class _TableCardState extends ConsumerState<TableCard> {
               // Bo'sh bo'lganda: [▶ O'yinni boshlash]
               SizedBox(
                 width: double.infinity,
+                height: uiScale.buttonHeight,
                 child: ElevatedButton.icon(
                   onPressed: () {
                     controller.startSession(widget.table.id);
                   },
-                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                  icon: Icon(Icons.play_arrow_rounded,
+                      size: uiScale == UiScale.small ? 18 : 20),
                   label: const Text(
                     "O'yinni boshlash",
                     style: TextStyle(
@@ -500,7 +513,6 @@ class _TableCardState extends ConsumerState<TableCard> {
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

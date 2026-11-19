@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
@@ -23,6 +24,7 @@ class TablesScreen extends ConsumerWidget {
     final activeSessionsAsync = ref.watch(activeSessionsStreamProvider);
     final allTablesAsync = ref.watch(tablesStreamProvider);
     final selectedCategory = ref.watch(tableCategoryProvider);
+    final uiScale = ref.watch(uiScaleProvider);
 
     final activeSessions = activeSessionsAsync.value ?? [];
     final allTables = allTablesAsync.value ?? [];
@@ -91,8 +93,8 @@ class TablesScreen extends ConsumerWidget {
                       children: [
                         // 8-ball real surati (Desktopdagi billiard_logo.jpg)
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: uiScale.headerAvatarSize,
+                          height: uiScale.headerAvatarSize,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(

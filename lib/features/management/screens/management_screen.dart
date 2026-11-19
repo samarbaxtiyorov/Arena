@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
 import '../../tables/widgets/add_table_dialog.dart';
 import '../../shop/widgets/add_product_dialog.dart';
@@ -205,7 +206,7 @@ class ManagementScreen extends ConsumerWidget {
               subtitle: "Tariflar, tungi rejim, aqlli chir...",
               onTap: () {
                 _checkOwnerPermission(context, auth, () {
-                  _showSettingsDialog(context);
+                  _showSettingsDialog(context, ref);
                 });
               },
             ),
@@ -706,37 +707,183 @@ class ManagementScreen extends ConsumerWidget {
   }
 
   // ── Biznes Sozlamalari Dialogi ────────────────────────────
-  void _showSettingsDialog(BuildContext context) {
+  void _showSettingsDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Tizim Sozlamalari"),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              dense: true,
-              leading: Icon(Icons.nightlight_round, color: Color(0xFF2563EB)),
-              title: Text("Tungi tarif (22:00 - 06:00)"),
-              subtitle: Text("Soatiga +20 000 so'm qo'shimcha"),
-              trailing: Icon(Icons.check, color: Color(0xFF10B981)),
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final currentScale = ref.watch(uiScaleProvider);
+          final scaleNotifier = ref.read(uiScaleProvider.notifier);
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            title: const Row(
+              children: [
+                Icon(Icons.tune_rounded, color: Color(0xFF2563EB)),
+                Gap(8),
+                Text(
+                  "Tizim va Ekran Sozlamalari",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ],
             ),
-            ListTile(
-              dense: true,
-              leading: Icon(Icons.lightbulb_outline, color: Color(0xFFF59E0B)),
-              title: Text("Aqlli chiroqlar (Smart Relay)"),
-              subtitle: Text("O'yin boshlanganda avtomatik yonadi"),
-              trailing: Icon(Icons.check, color: Color(0xFF10B981)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "EKRAN VA SHRIFT KATTALIGI",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF64748B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Gap(4),
+                  const Text(
+                    "O'zingizga qulay ko'rinish va zichlikni tanlang:",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                  ),
+                  const Gap(12),
+
+                  // 3 xil Kattalik / Zichlik varianti
+                  ...UiScale.values.map((scale) {
+                    final isSelected = currentScale == scale;
+                    return InkWell(
+                      onTap: () {
+                        scaleNotifier.setScale(scale);
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFFE2E8F0),
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              color: isSelected
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFF94A3B8),
+                              size: 20,
+                            ),
+                            const Gap(12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        scale.name,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: isSelected
+                                              ? const Color(0xFF1D4ED8)
+                                              : const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFFDBEAFE)
+                                              : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          "${scale.textScale}x",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: isSelected
+                                                ? const Color(0xFF1D4ED8)
+                                                : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Gap(2),
+                                  Text(
+                                    scale.subtitle,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+
+                  const Gap(16),
+                  const Divider(),
+                  const Gap(8),
+
+                  const Text(
+                    "QO'SHIMCHA FUNKSIYALAR",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF64748B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Gap(8),
+
+                  const ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.nightlight_round, color: Color(0xFF2563EB)),
+                    title: Text("Tungi tarif (22:00 - 06:00)", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text("Soatiga +20 000 so'm qo'shimcha", style: TextStyle(fontSize: 11)),
+                    trailing: Icon(Icons.check_circle, color: Color(0xFF10B981), size: 20),
+                  ),
+                  const ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.lightbulb_outline, color: Color(0xFFF59E0B)),
+                    title: Text("Aqlli chiroqlar (Smart Relay)", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text("O'yin boshlanganda avtomatik yonadi", style: TextStyle(fontSize: 11)),
+                    trailing: Icon(Icons.check_circle, color: Color(0xFF10B981), size: 20),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Saqlash"),
-          ),
-        ],
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text("Saqlash"),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
