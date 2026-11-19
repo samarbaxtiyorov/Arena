@@ -44,4 +44,21 @@ class Formatters {
   static String timeOnly(DateTime dt) {
     return DateFormat('HH:mm').format(dt);
   }
+
+  // O'zbekcha qulay sana va vaqt (hech qanday locale xatolarisiz)
+  static String uzDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final isYesterday = dt.year == now.year && dt.month == now.month && dt.day == (now.day - 1);
+    final timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+    if (isToday) return 'Bugun, $timeStr';
+    if (isYesterday) return 'Kecha, $timeStr';
+
+    const months = [
+      'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+      'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'
+    ];
+    return '${dt.day}-${months[dt.month - 1]}, $timeStr';
+  }
 }
