@@ -1,7 +1,7 @@
 // ============================================
-// Arena — O'yinlar Arxivi Ekrani (Skrinshot 4 bilan 1:1)
-// Qorong'i mavzu (#070B14, #0F172A), 4 ta metrika,
-// Qidiruv, Sana filtrlari va mukammal o'yin cheklari
+// Arena — Moliya va Savdo Arxivi Ekrani (Super Ochiq Rangli Dizayn)
+// O'yinlar, Do'kon/Bar savdolari va Qarz to'lovlari to'liq hisobi
+// Zamonaviy ochiq rangli fon (#F8FAFC, #FFFFFF), statistika va kassa cheklari
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -10,27 +10,68 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/receipt_generator.dart';
-import '../../../data/local/app_database.dart';
 import '../../kassa/widgets/receipt_preview_dialog.dart';
 import '../providers/archive_providers.dart';
 
 class ArchiveScreen extends ConsumerWidget {
   const ArchiveScreen({super.key});
 
+  // Har bir arxiv elementi uchun kassa chekini generatsiya qilish
+  String _generateReceiptText(ArchiveItem item) {
+    final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(item.timestamp);
+    final buffer = StringBuffer();
+    buffer.writeln('================================');
+    buffer.writeln('           ARENA POS            ');
+    buffer.writeln('        Moliya Arxivi           ');
+    buffer.writeln('================================');
+    buffer.writeln('Sana: $dateStr');
+    buffer.writeln('Amal turi: ${item.title}');
+
+    if (item.customerName != null && item.customerName!.isNotEmpty) {
+      buffer.writeln('Mijoz: ${item.customerName}');
+    }
+
+    buffer.writeln('--------------------------------');
+
+    if (item.details.isNotEmpty) {
+      buffer.writeln('Tafsilotlar:');
+      final lines = item.details.split('\n');
+      for (final line in lines) {
+        buffer.writeln(' • $line');
+      }
+      buffer.writeln('--------------------------------');
+    }
+
+    buffer.writeln('JAMI SUMMA: ${formatSum(item.amount)}');
+
+    String payName = 'NAQD PUL';
+    if (item.paymentType == 'card') {
+      payName = 'BANK KARTASI';
+    } else if (item.paymentType == 'debt') {
+      payName = 'NASIYA / QARZ';
+    }
+    buffer.writeln('To\'lov turi: $payName');
+
+    buffer.writeln('================================');
+    buffer.writeln('      Kassa hujjati tasdiqlandi ');
+    buffer.writeln('================================');
+
+    return buffer.toString();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(archiveStatsProvider);
+    final stats = ref.watch(archiveOverallStatsProvider);
     final filter = ref.watch(archiveFilterProvider);
     final filterNotifier = ref.read(archiveFilterProvider.notifier);
-    final gamesAsync = ref.watch(archiveGamesProvider);
+    final itemsAsync = ref.watch(archiveItemsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF070B14),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Sarlavha Qatori ──────────────────────────────
+            // ── 1. Sarlavha Paneli ──────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -40,12 +81,19 @@ class ArchiveScreen extends ConsumerWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A8A),
+                        color: const Color(0xFF0F172A),
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0F172A).withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: const Icon(
-                        Icons.inventory_2_rounded,
-                        color: Color(0xFF60A5FA),
+                        Icons.history_rounded,
+                        color: Colors.white,
                         size: 24,
                       ),
                     ),
@@ -57,11 +105,11 @@ class ArchiveScreen extends ConsumerWidget {
                           Row(
                             children: [
                               const Text(
-                                "O'yinlar Arxivi",
+                                "Moliya va Savdo Arxivi",
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.white,
+                                  color: Color(0xFF0F172A),
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -70,19 +118,19 @@ class ArchiveScreen extends ConsumerWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: const Color(0xFF334155),
+                                    color: const Color(0xFFA7F3D0),
                                     width: 1,
                                   ),
                                 ),
                                 child: Text(
-                                  '${stats.gamesCount} ta o\'yin',
+                                  '${stats.totalCount} ta amal',
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF38BDF8),
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF059669),
                                   ),
                                 ),
                               ),
@@ -90,10 +138,10 @@ class ArchiveScreen extends ConsumerWidget {
                           ),
                           const Gap(2),
                           const Text(
-                            "Bugungi yakunlangan o'yinlar va cheklar",
+                            "Maydonlar, bar savdosi va qarz to'lovlari hisobi",
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF94A3B8),
+                              color: Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -104,7 +152,7 @@ class ArchiveScreen extends ConsumerWidget {
               ),
             ),
 
-            // ── 4 ta Metrika Kartalari (2x2 Grid) ──────────────
+            // ── 2. Statistika Kartalari (Ochiq rangli 2x2 Grid) ──
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -112,25 +160,29 @@ class ArchiveScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
+                        // Jami Tushum
                         Expanded(
-                          child: _buildDarkStatCard(
-                            icon: Icons.sports_esports_rounded,
-                            iconBg: const Color(0xFF1E293B),
-                            iconColor: const Color(0xFF94A3B8),
-                            label: "O'YINLAR SONI",
-                            value: '${stats.gamesCount} ta',
-                            valueColor: Colors.white,
+                          child: _buildLightStatCard(
+                            icon: Icons.account_balance_wallet_rounded,
+                            iconBg: const Color(0xFFDCFCE7),
+                            iconColor: const Color(0xFF059669),
+                            label: "JAMI TUSHUM",
+                            value: formatSum(stats.totalRevenue),
+                            subvalue: "${stats.totalCount} ta jami amal",
+                            valueColor: const Color(0xFF059669),
                           ),
                         ),
                         const Gap(10),
+                        // Maydonlar Tushumi
                         Expanded(
-                          child: _buildDarkStatCard(
-                            icon: Icons.account_balance_wallet_rounded,
-                            iconBg: const Color(0xFF064E3B),
-                            iconColor: const Color(0xFF34D399),
-                            label: "JAMI TUSHUM",
-                            value: formatSum(stats.totalRevenue),
-                            valueColor: const Color(0xFF10B981),
+                          child: _buildLightStatCard(
+                            icon: Icons.sports_soccer_rounded,
+                            iconBg: const Color(0xFFEFF6FF),
+                            iconColor: const Color(0xFF2563EB),
+                            label: "MAYDONLAR TUSHUMI",
+                            value: formatSum(stats.gameRevenue),
+                            subvalue: "${stats.gameCount} ta o'yin",
+                            valueColor: const Color(0xFF2563EB),
                           ),
                         ),
                       ],
@@ -138,25 +190,29 @@ class ArchiveScreen extends ConsumerWidget {
                     const Gap(10),
                     Row(
                       children: [
+                        // Do'kon / Bar Tushumi
                         Expanded(
-                          child: _buildDarkStatCard(
-                            icon: Icons.timer_outlined,
-                            iconBg: const Color(0xFF083344),
-                            iconColor: const Color(0xFF22D3EE),
-                            label: "O'YIN TUSHUMI",
-                            value: formatSum(stats.gameRevenue),
-                            valueColor: const Color(0xFF22D3EE),
+                          child: _buildLightStatCard(
+                            icon: Icons.shopping_bag_rounded,
+                            iconBg: const Color(0xFFFEF3C7),
+                            iconColor: const Color(0xFFD97706),
+                            label: "DO'KON & BAR SAVDOSI",
+                            value: formatSum(stats.shopRevenue),
+                            subvalue: "${stats.shopCount} ta savdo",
+                            valueColor: const Color(0xFFD97706),
                           ),
                         ),
                         const Gap(10),
+                        // Qarz To'lovlari
                         Expanded(
-                          child: _buildDarkStatCard(
-                            icon: Icons.local_cafe_rounded,
-                            iconBg: const Color(0xFF451A03),
-                            iconColor: const Color(0xFFFBBF24),
-                            label: "BAR TUSHUMI",
-                            value: formatSum(stats.barRevenue),
-                            valueColor: const Color(0xFFF59E0B),
+                          child: _buildLightStatCard(
+                            icon: Icons.assignment_turned_in_rounded,
+                            iconBg: const Color(0xFFF3E8FF),
+                            iconColor: const Color(0xFF7C3AED),
+                            label: "QARZ TO'LOVLARI",
+                            value: formatSum(stats.debtPaymentRevenue),
+                            subvalue: "${stats.debtPaymentCount} ta to'lov",
+                            valueColor: const Color(0xFF7C3AED),
                           ),
                         ),
                       ],
@@ -166,245 +222,205 @@ class ArchiveScreen extends ConsumerWidget {
               ),
             ),
 
-            const SliverToBoxAdapter(child: Gap(16)),
+            const SliverToBoxAdapter(child: Gap(14)),
 
-            // ── Qidiruv va Sana Tanlash Qatori ─────────────────
+            // ── 3. Qidiruv Maydoni (Ochiq Rangda) ────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    // Qidiruv maydoni
-                    Expanded(
-                      child: Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF1E293B),
-                            width: 1,
-                          ),
-                        ),
-                        child: TextField(
-                          onChanged: filterNotifier.setSearch,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: "Stol, o'yinchi yoki izoh bo'yi...",
-                            hintStyle: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 13,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Color(0xFF64748B),
-                              size: 20,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFFE2E8F0),
+                      width: 1,
                     ),
-                    const Gap(10),
-                    // Sana tugmasi
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2023),
-                          lastDate: DateTime.now().add(const Duration(days: 1)),
-                          builder: (context, child) {
-                            return Theme(
-                              data: ThemeData.dark().copyWith(
-                                colorScheme: const ColorScheme.dark(
-                                  primary: Color(0xFF2563EB),
-                                  onPrimary: Colors.white,
-                                  surface: Color(0xFF0F172A),
-                                  onSurface: Colors.white,
-                                ),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (picked != null) {
-                          filterNotifier.setCustomDate(picked);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF1D4ED8),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_month_outlined,
-                              color: Color(0xFF38BDF8),
-                              size: 18,
-                            ),
-                            const Gap(6),
-                            Text(
-                              filter.customDate != null
-                                  ? DateFormat('dd.MM').format(filter.customDate!)
-                                  : "Sana...",
-                              style: const TextStyle(
-                                color: Color(0xFF38BDF8),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                  ),
+                  child: TextField(
+                    onChanged: (val) => filterNotifier.setSearch(val),
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: "Maydon, tovar yoki mijoz nomini qidirish...",
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 13,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          color: Color(0xFF94A3B8), size: 20),
+                      suffixIcon: filter.searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded,
+                                  size: 18, color: Color(0xFF64748B)),
+                              onPressed: () {
+                                filterNotifier.setSearch('');
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
 
             const SliverToBoxAdapter(child: Gap(12)),
 
-            // ── Sana Filtrlari (Pills) ─────────────────────────
+            // ── 4. Toifa Chiplari (Barchasi, Maydonlar, Do'kon, Qarz) ─
             SliverToBoxAdapter(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _buildDatePill(
-                      label: "Bugun",
-                      isSelected: filter.dateFilter == ArchiveDateFilter.today &&
-                          filter.customDate == null,
-                      onTap: () => filterNotifier.setFilter(ArchiveDateFilter.today),
-                    ),
-                    const Gap(8),
-                    _buildDatePill(
-                      label: "Kecha",
-                      isSelected:
-                          filter.dateFilter == ArchiveDateFilter.yesterday &&
-                              filter.customDate == null,
+                    _buildTypeChip(
+                      label: "Barchasi (${stats.totalCount})",
+                      type: ArchiveTypeFilter.all,
+                      current: filter.typeFilter,
                       onTap: () =>
-                          filterNotifier.setFilter(ArchiveDateFilter.yesterday),
+                          filterNotifier.setTypeFilter(ArchiveTypeFilter.all),
                     ),
                     const Gap(8),
-                    _buildDatePill(
-                      label: "Oxirgi 7 kun",
-                      isSelected: filter.dateFilter == ArchiveDateFilter.week &&
-                          filter.customDate == null,
-                      onTap: () => filterNotifier.setFilter(ArchiveDateFilter.week),
+                    _buildTypeChip(
+                      label: "Maydonlar (${stats.gameCount})",
+                      type: ArchiveTypeFilter.game,
+                      current: filter.typeFilter,
+                      onTap: () =>
+                          filterNotifier.setTypeFilter(ArchiveTypeFilter.game),
                     ),
                     const Gap(8),
-                    _buildDatePill(
-                      label: "Shu oy",
-                      isSelected: filter.dateFilter == ArchiveDateFilter.month &&
-                          filter.customDate == null,
-                      onTap: () => filterNotifier.setFilter(ArchiveDateFilter.month),
+                    _buildTypeChip(
+                      label: "Do'kon & Bar (${stats.shopCount})",
+                      type: ArchiveTypeFilter.shop,
+                      current: filter.typeFilter,
+                      onTap: () =>
+                          filterNotifier.setTypeFilter(ArchiveTypeFilter.shop),
                     ),
                     const Gap(8),
-                    _buildDatePill(
-                      label: "Barchasi",
-                      isSelected: filter.dateFilter == ArchiveDateFilter.all &&
-                          filter.customDate == null,
-                      onTap: () => filterNotifier.setFilter(ArchiveDateFilter.all),
+                    _buildTypeChip(
+                      label: "Qarz To'lovlari (${stats.debtPaymentCount})",
+                      type: ArchiveTypeFilter.debtPayment,
+                      current: filter.typeFilter,
+                      onTap: () => filterNotifier
+                          .setTypeFilter(ArchiveTypeFilter.debtPayment),
                     ),
                   ],
                 ),
               ),
             ),
 
-            const SliverToBoxAdapter(child: Gap(16)),
+            const SliverToBoxAdapter(child: Gap(10)),
 
-            // ── O'yinlar Ro'yxati yoki Bo'sh holat ─────────────
-            gamesAsync.when(
+            // ── 5. Sana Chiplari (Bugun, Kecha, Hafta, Oy, Barchasi) ──
+            SliverToBoxAdapter(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _buildDateChip(
+                      label: "Bugun",
+                      filter: ArchiveDateFilter.today,
+                      current: filter.dateFilter,
+                      onTap: () => filterNotifier
+                          .setDateFilter(ArchiveDateFilter.today),
+                    ),
+                    const Gap(8),
+                    _buildDateChip(
+                      label: "Kecha",
+                      filter: ArchiveDateFilter.yesterday,
+                      current: filter.dateFilter,
+                      onTap: () => filterNotifier
+                          .setDateFilter(ArchiveDateFilter.yesterday),
+                    ),
+                    const Gap(8),
+                    _buildDateChip(
+                      label: "Shu hafta",
+                      filter: ArchiveDateFilter.week,
+                      current: filter.dateFilter,
+                      onTap: () =>
+                          filterNotifier.setDateFilter(ArchiveDateFilter.week),
+                    ),
+                    const Gap(8),
+                    _buildDateChip(
+                      label: "Shu oy",
+                      filter: ArchiveDateFilter.month,
+                      current: filter.dateFilter,
+                      onTap: () =>
+                          filterNotifier.setDateFilter(ArchiveDateFilter.month),
+                    ),
+                    const Gap(8),
+                    _buildDateChip(
+                      label: "Barchasi",
+                      filter: ArchiveDateFilter.all,
+                      current: filter.dateFilter,
+                      onTap: () =>
+                          filterNotifier.setDateFilter(ArchiveDateFilter.all),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: Gap(14)),
+
+            // ── 6. Arxiv Yozuvlari Ro'yxati ─────────────────────
+            itemsAsync.when(
               loading: () => const SliverFillRemaining(
                 child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF2563EB)),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFF2563EB),
+                  ),
                 ),
               ),
               error: (err, _) => SliverFillRemaining(
                 child: Center(
                   child: Text(
-                    "Xatolik: $err",
-                    style: const TextStyle(color: Colors.redAccent),
+                    "Xatolik yuz berdi: $err",
+                    style: const TextStyle(color: Color(0xFFEF4444)),
                   ),
                 ),
               ),
-              data: (games) {
-                if (games.isEmpty) {
-                  return SliverFillRemaining(
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF0F172A),
-                              border: Border.all(
-                                color: const Color(0xFF1E293B),
-                                width: 2,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.inventory_2_outlined,
-                              size: 38,
-                              color: Color(0xFF475569),
-                            ),
+                          Icon(
+                            Icons.history_toggle_off_rounded,
+                            size: 48,
+                            color: Color(0xFF94A3B8),
                           ),
-                          const Gap(20),
-                          const Text(
-                            "Tanlangan oraliqda yakunlangan o'yinlar topilmadi",
-                            textAlign: TextAlign.center,
+                          Gap(12),
+                          Text(
+                            "Arxivda amallar topilmadi",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: 1.3,
+                              color: Color(0xFF475569),
                             ),
                           ),
-                          const Gap(8),
-                          const Text(
-                            "Sana filtrini yoki qidiruv so'zini o'zgartirib ko'ring",
-                            textAlign: TextAlign.center,
+                          Gap(4),
+                          Text(
+                            "Filtrlarni o'zgartirib ko'ring",
                             style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const Gap(24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              filterNotifier.setFilter(ArchiveDateFilter.all);
-                            },
-                            icon: const Icon(Icons.history_rounded, size: 18),
-                            label: const Text("Barcha tarixni ko'rish"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0284C7),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 22,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              fontSize: 12,
+                              color: Color(0xFF94A3B8),
                             ),
                           ),
                         ],
@@ -414,45 +430,322 @@ class ArchiveScreen extends ConsumerWidget {
                 }
 
                 return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final g = games[index];
-                        return _buildGameItemCard(context, g);
+                        final item = items[index];
+                        return _buildArchiveItemCard(context, item);
                       },
-                      childCount: games.length,
+                      childCount: items.length,
                     ),
                   ),
                 );
               },
             ),
-
-            const SliverToBoxAdapter(child: Gap(30)),
           ],
         ),
       ),
     );
   }
 
-  // Metrika kartasi
-  Widget _buildDarkStatCard({
+  // ── Arxiv Kartochkasi ──────────────────────────────────
+  Widget _buildArchiveItemCard(BuildContext context, ArchiveItem item) {
+    IconData typeIcon;
+    Color iconBg;
+    Color iconColor;
+    String typeBadge;
+    Color typeBadgeBg;
+    Color typeBadgeText;
+
+    switch (item.type) {
+      case ArchiveItemType.game:
+        typeIcon = Icons.sports_soccer_rounded;
+        iconBg = const Color(0xFFEFF6FF);
+        iconColor = const Color(0xFF2563EB);
+        typeBadge = "O'yin";
+        typeBadgeBg = const Color(0xFFDBEAFE);
+        typeBadgeText = const Color(0xFF1D4ED8);
+        break;
+      case ArchiveItemType.shop:
+        typeIcon = Icons.storefront_rounded;
+        iconBg = const Color(0xFFECFDF5);
+        iconColor = const Color(0xFF059669);
+        typeBadge = "Do'kon & Bar";
+        typeBadgeBg = const Color(0xFFD1FAE5);
+        typeBadgeText = const Color(0xFF047857);
+        break;
+      case ArchiveItemType.debtPayment:
+        typeIcon = Icons.assignment_turned_in_rounded;
+        iconBg = const Color(0xFFF5F3FF);
+        iconColor = const Color(0xFF7C3AED);
+        typeBadge = "Qarz to'lovi";
+        typeBadgeBg = const Color(0xFFEDE9FE);
+        typeBadgeText = const Color(0xFF6D28D9);
+        break;
+    }
+
+    String payBadge = "Naqd";
+    Color payBadgeBg = const Color(0xFFF1F5F9);
+    Color payBadgeText = const Color(0xFF475569);
+
+    if (item.paymentType == 'card') {
+      payBadge = "Karta";
+      payBadgeBg = const Color(0xFFEFF6FF);
+      payBadgeText = const Color(0xFF2563EB);
+    } else if (item.paymentType == 'debt') {
+      payBadge = "Nasiya";
+      payBadgeBg = const Color(0xFFFEF3C7);
+      payBadgeText = const Color(0xFFB45309);
+    }
+
+    final dateFormatted =
+        DateFormat('dd-MMM, HH:mm', 'uz').format(item.timestamp);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Yuqori qator: Ikonka, Nomi, Vaqti va Summasi
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(typeIcon, color: iconColor, size: 22),
+              ),
+              const Gap(10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Gap(6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: typeBadgeBg,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            typeBadge,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: typeBadgeText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(2),
+                    Row(
+                      children: [
+                        Text(
+                          dateFormatted,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Gap(6),
+                        Text(
+                          "• ${item.subtitle}",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Gap(8),
+              // Summa
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatSum(item.amount),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                  const Gap(2),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: payBadgeBg,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      payBadge,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: payBadgeText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Tafsilotlar (agar mavjud bo'lsa)
+          if (item.details.isNotEmpty) ...[
+            const Gap(8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFF1F5F9)),
+              ),
+              child: Text(
+                item.details,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF334155),
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
+
+          const Gap(8),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Gap(6),
+
+          // Pastki amallar: Chekni ko'rish tugmasi va Mijoz
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (item.customerName != null && item.customerName!.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline_rounded,
+                        size: 14, color: Color(0xFF64748B)),
+                    const Gap(4),
+                    Text(
+                      item.customerName!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox(),
+
+              // Chekni chiqarish / ko'rish tugmasi
+              InkWell(
+                onTap: () {
+                  final receiptText = _generateReceiptText(item);
+                  showDialog(
+                    context: context,
+                    builder: (_) =>
+                        ReceiptPreviewDialog(receiptText: receiptText),
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.receipt_long_rounded,
+                          size: 14, color: Color(0xFF2563EB)),
+                      Gap(4),
+                      Text(
+                        "Chek",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Ochiq Rangli Statistika Kartochkasi ─────────────────
+  Widget _buildLightStatCard({
     required IconData icon,
     required Color iconBg,
     required Color iconColor,
     required String label,
     required String value,
+    required String subvalue,
     required Color valueColor,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF1E293B),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,39 +753,47 @@ class ArchiveScreen extends ConsumerWidget {
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: iconBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: iconColor, size: 18),
+                child: Icon(icon, color: iconColor, size: 16),
               ),
-              const Gap(8),
+              const Gap(6),
               Expanded(
                 child: Text(
                   label,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF94A3B8),
-                    letterSpacing: 0.5,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.3,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const Gap(10),
+          const Gap(6),
           Text(
             value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 17,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
               color: valueColor,
-              letterSpacing: -0.3,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const Gap(2),
+          Text(
+            subvalue,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF94A3B8),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -500,345 +801,77 @@ class ArchiveScreen extends ConsumerWidget {
     );
   }
 
-  // Sana pill
-  Widget _buildDatePill({
+  // ── Toifa Chipi ────────────────────────────────────────
+  Widget _buildTypeChip({
     required String label,
-    required bool isSelected,
+    required ArchiveTypeFilter type,
+    required ArchiveTypeFilter current,
     required VoidCallback onTap,
   }) {
+    final isSelected = type == current;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF0F172A) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF1E293B),
+            color: isSelected
+                ? const Color(0xFF0F172A)
+                : const Color(0xFFE2E8F0),
             width: 1,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) ...[
-              const Icon(Icons.check, size: 14, color: Colors.white),
-              const Gap(4),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFF0F172A).withOpacity(0.12)
+                  : Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
         ),
       ),
     );
   }
 
-  // O'yin kartasi
-  Widget _buildGameItemCard(BuildContext context, ArchivedGameSession g) {
-    final s = g.session;
-    final tableName = g.table?.name ?? "Maydon";
-    final timeStr = s.endedAt != null
-        ? "${DateFormat('HH:mm').format(s.startedAt)} - ${DateFormat('HH:mm').format(s.endedAt!)}"
-        : DateFormat('HH:mm').format(s.startedAt);
-
-    final durationText = s.durationMin < 60
-        ? "${s.durationMin} daqiqa"
-        : "${s.durationMin ~/ 60} soat ${s.durationMin % 60} daq";
-
-    final isPaid = s.paymentType != 'debt';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF1E293B),
-          width: 1,
+  // ── Sana Chipi ─────────────────────────────────────────
+  Widget _buildDateChip({
+    required String label,
+    required ArchiveDateFilter filter,
+    required ArchiveDateFilter current,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = filter == current;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Yuqori qator: Stol nomi va To'lov holati
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.sports_soccer_rounded,
-                      color: Color(0xFF38BDF8),
-                      size: 18,
-                    ),
-                  ),
-                  const Gap(8),
-                  Text(
-                    tableName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isPaid
-                      ? const Color(0xFF064E3B)
-                      : const Color(0xFF451A03),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  isPaid ? "To'langan (${s.paymentType})" : "Nasiyaga (Qarz)",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isPaid
-                        ? const Color(0xFF34D399)
-                        : const Color(0xFFFBBF24),
-                  ),
-                ),
-              ),
-            ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF64748B),
           ),
-
-          const Gap(10),
-
-          // Vaqt va muddat
-          Row(
-            children: [
-              const Icon(Icons.schedule, size: 14, color: Color(0xFF64748B)),
-              const Gap(4),
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
-                ),
-              ),
-              const Gap(12),
-              const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF64748B)),
-              const Gap(4),
-              Text(
-                durationText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF38BDF8),
-                ),
-              ),
-            ],
-          ),
-
-          if (g.customer != null) ...[
-            const Gap(6),
-            Row(
-              children: [
-                const Icon(Icons.person_outline, size: 14, color: Color(0xFF64748B)),
-                const Gap(4),
-                Text(
-                  g.customer!.name,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFCBD5E1),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          const Gap(10),
-          const Divider(color: Color(0xFF1E293B), height: 1),
-          const Gap(10),
-
-          // O'yin va Bar hisobi
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "O'yin summasi",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    const Gap(2),
-                    Text(
-                      formatSum(g.gameAmount),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF22D3EE),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Bar buyurtmalari",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    const Gap(2),
-                    Text(
-                      formatSum(g.barAmount),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFF59E0B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    "Jami summa",
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                  const Gap(2),
-                  Text(
-                    formatSum(g.totalAmount),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF10B981),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          if (g.barItemsSummary.isNotEmpty) ...[
-            const Gap(8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.coffee_rounded,
-                    size: 14,
-                    color: Color(0xFFF59E0B),
-                  ),
-                  const Gap(6),
-                  Expanded(
-                    child: Text(
-                      g.barItemsSummary,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFCBD5E1),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const Gap(10),
-
-          // Chek ko'rish tugmasi
-          Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              onTap: () {
-                final tbl = g.table ?? ClubTable(
-                  id: s.tableId,
-                  name: tableName,
-                  type: 'football',
-                  pricePerHour: 100000,
-                  isActive: true,
-                  sortOrder: 1,
-                  createdAt: s.startedAt,
-                  updatedAt: s.startedAt,
-                  isSynced: true,
-                );
-                final receipt = ReceiptGenerator.forTableSession(
-                  table: tbl,
-                  session: s,
-                  finalAmount: g.totalAmount,
-                  paymentType: s.paymentType,
-                  customerName: g.customer?.name,
-                );
-                showDialog(
-                  context: context,
-                  builder: (_) => ReceiptPreviewDialog(
-                    receiptText: receipt,
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF334155),
-                    width: 1,
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.receipt_long_rounded,
-                      size: 14,
-                      color: Color(0xFF38BDF8),
-                    ),
-                    Gap(6),
-                    Text(
-                      "Chekni ko'rish",
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF38BDF8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
