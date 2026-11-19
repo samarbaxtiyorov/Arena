@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../../core/utils/session_billing_helper.dart';
 
 enum ArchiveDateFilter { today, yesterday, week, month, all }
 
@@ -144,28 +145,11 @@ final archiveGamesProvider = StreamProvider<List<ArchivedGameSession>>((ref) asy
       final cust = customerMap[s.customerId];
 
       // Bar va O'yin summasini hisoblash
-      int gameAmt = s.totalAmount;
-      int barAmt = 0;
-      String barNote = '';
-
-      if (s.notes != null && s.notes!.contains('Bar:')) {
-        // Notes format: "Bar: Cola x2 (20000 so'm), Choy x1 (8000 so'm) | O'yin: 30000 so'm"
-        final parts = s.notes!.split('|');
-        for (final p in parts) {
-          if (p.trim().startsWith('Bar:')) {
-            barNote = p.replaceAll('Bar:', '').trim();
-          }
-        }
-      }
-
-      // Agar duration bo'lsa stol narxidan kelib chiqib o'yin narxini topamiz
-      if (tbl != null && s.durationMin > 0) {
-        final calculatedGame = ((s.durationMin / 60.0) * tbl.pricePerHour).round();
-        if (calculatedGame <= s.totalAmount) {
-          gameAmt = calculatedGame;
-          barAmt = s.totalAmount - calculatedGame;
-        }
-      }
+      final barAmt = SessionBillingHelper.getBarTotal(s.notes);
+      final barItems = SessionBillingHelper.getBarItemsSummary(s.notes);
+      final barNote = barItems.join(', ');
+      final gameAmt =
+          s.totalAmount >= barAmt ? s.totalAmount - barAmt : s.totalAmount;
 
       return ArchivedGameSession(
         session: s,

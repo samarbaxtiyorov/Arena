@@ -8,6 +8,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../core/utils/session_billing_helper.dart';
 
 // Barcha faol stollar oqimi
 final tablesStreamProvider = StreamProvider<List<ClubTable>>((ref) {
@@ -95,7 +97,8 @@ class TablesController {
     String? notes,
   }) async {
     final now = DateTime.now();
-    final elapsedMinutes = now.difference(session.startedAt).inMinutes;
+    final durationSeconds = now.difference(session.startedAt).inSeconds;
+    final elapsedMinutes = durationSeconds > 0 ? ((durationSeconds + 59) ~/ 60) : 1;
 
     // 1. Sessiyani yakunlash
     await (_db.update(_db.sessions)..where((s) => s.id.equals(session.id)))
@@ -111,6 +114,12 @@ class TablesController {
       isSynced: const Value(false),
     ));
 
+    final barTotal = SessionBillingHelper.getBarTotal(notes);
+    final gamePart = finalAmount >= barTotal ? finalAmount - barTotal : finalAmount;
+    final recordDesc = barTotal > 0
+        ? "${table.name} to'lovi: O'yin (${formatSum(gamePart)}) + Bar (${formatSum(barTotal)})"
+        : "${table.name} sessiya to'lovi ($paymentType)";
+
     // 2. To'lov turiga qarab kassa yoki qarzga yozish
     if (paymentType == 'cash' || paymentType == 'card') {
       // Kassaga kirim
@@ -119,7 +128,7 @@ class TablesController {
         amount: finalAmount,
         type: 'income',
         category: const Value('table'),
-        description: Value('${table.name} sessiya to\'lovi ($paymentType)'),
+        description: Value(recordDesc),
         sessionId: Value(session.id),
         recordedAt: Value(now),
         createdAt: Value(now),
@@ -132,7 +141,7 @@ class TablesController {
         customerId: customerId,
         amount: finalAmount,
         type: 'debt',
-        description: Value('${table.name} o\'yin to\'lovi'),
+        description: Value(recordDesc),
         sessionId: Value(session.id),
         createdAt: Value(now),
         updatedAt: Value(now),

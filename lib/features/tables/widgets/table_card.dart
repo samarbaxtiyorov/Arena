@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/session_billing_helper.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/local/app_database.dart';
 import '../providers/tables_providers.dart';
@@ -98,21 +99,17 @@ class _TableCardState extends ConsumerState<TableCard> {
     final now = DateTime.now();
     _currentElapsed = now.difference(session.startedAt);
 
-    // O'yin summasi (daqiqa/soniya bo'yicha)
-    final seconds = _currentElapsed.inSeconds;
-    final ratePerSecond = widget.table.pricePerHour / 3600.0;
-    // Skrinshot 6 dagi minimal 1 000 so'm bazaviy hisob
-    final calculated = (seconds * ratePerSecond).round();
-    _gameAmount = calculated > 0 ? calculated : 1000;
+    // O'yin summasi (boshlang'ich kamida 1 000 so'm)
+    _gameAmount = SessionBillingHelper.calculateGameAmount(
+      startedAt: session.startedAt,
+      endedAt: now,
+      pricePerHour: widget.table.pricePerHour,
+    );
 
-    // Bar summasini notes dan hisoblash
-    _barAmount = 0;
-    if (session.notes != null && session.notes!.contains('Bar:')) {
-      if (session.totalAmount > _gameAmount) {
-        _barAmount = session.totalAmount - _gameAmount;
-      }
-    }
+    // Bar summasi: sessiya buyurtmalaridan 100% aniq olish
+    _barAmount = SessionBillingHelper.getBarTotal(session.notes);
 
+    // Jami hisob = O'yin summasi + Bar summasi
     _totalAmount = _gameAmount + _barAmount;
   }
 

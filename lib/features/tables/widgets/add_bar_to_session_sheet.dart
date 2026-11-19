@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 import 'package:drift/drift.dart' show Value;
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/session_billing_helper.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../shop/providers/shop_providers.dart';
@@ -30,20 +31,36 @@ class AddBarToSessionSheet extends ConsumerStatefulWidget {
 
 class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
   final Map<String, int> _selectedQuantities = {};
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsStreamProvider);
-    final products = productsAsync.value ?? [];
+    final allProducts = productsAsync.value ?? [];
+
+    final products = allProducts.where((p) {
+      if (_searchQuery.isEmpty) return true;
+      return p.name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
 
     int totalBarSum = 0;
-    for (final p in products) {
+    for (final p in allProducts) {
       final qty = _selectedQuantities[p.id] ?? 0;
       totalBarSum += qty * p.price;
     }
 
+    final existingBarItems =
+        SessionBillingHelper.getBarItemsSummary(widget.session.notes);
+    final existingBarSum =
+        SessionBillingHelper.getBarTotal(widget.session.notes);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 14,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -62,135 +79,224 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
               ),
             ),
           ),
-          const Gap(16),
+          const Gap(14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${widget.table.name} — Bardan qo'shish",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${widget.table.name} — Bardan qo'shish",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  const Text(
-                    "Ichimlik yoki yeguliklarni tanlang",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                ],
+                    const Gap(2),
+                    const Text(
+                      "Ichimlik yoki yeguliklarni hisobga kiriting",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
               ),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.local_cafe_rounded,
                   color: Color(0xFFD97706),
-                  size: 20,
+                  size: 22,
                 ),
               ),
             ],
           ),
-          const Gap(16),
+
+          // Oldingi buyurtmalar bo'lsa ko'rsatamiz
+          if (existingBarSum > 0) ...[
+            const Gap(12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.history_rounded,
+                      size: 16, color: Color(0xFF64748B)),
+                  const Gap(8),
+                  Expanded(
+                    child: Text(
+                      "Oldingi buyurtmalar (${formatSum(existingBarSum)}): ${existingBarItems.join(', ')}",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const Gap(12),
+
+          // Qidiruv maydoni
+          Container(
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: const InputDecoration(
+                hintText: "Mahsulot qidirish...",
+                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                prefixIcon: Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+
+          const Gap(12),
 
           // Mahsulotlar ro'yxati
           ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.45,
+              maxHeight: MediaQuery.of(context).size.height * 0.38,
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: products.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final product = products[index];
-                final qty = _selectedQuantities[product.id] ?? 0;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.fastfood_outlined,
-                          color: Color(0xFF64748B),
-                          size: 20,
-                        ),
+            child: products.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        "Mahsulotlar topilmadi",
+                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                       ),
-                      const Gap(12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: products.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      final qty = _selectedQuantities[product.id] ?? 0;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
                           children: [
-                            Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.fastfood_outlined,
+                                color: Color(0xFF64748B),
+                                size: 18,
                               ),
                             ),
-                            Text(
-                              formatSum(product.price),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFD97706),
+                            const Gap(12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        formatSum(product.price),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFFD97706),
+                                        ),
+                                      ),
+                                      const Gap(8),
+                                      Text(
+                                        "Qoldiq: ${product.stock} dona",
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: product.stock > 5
+                                              ? const Color(0xFF64748B)
+                                              : const Color(0xFFEF4444),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
+                            ),
+
+                            // Miqdor boshqaruvi
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline,
+                                      color: Color(0xFF94A3B8), size: 22),
+                                  onPressed: qty > 0
+                                      ? () {
+                                          setState(() {
+                                            _selectedQuantities[product.id] =
+                                                qty - 1;
+                                          });
+                                        }
+                                      : null,
+                                ),
+                                Container(
+                                  constraints: const BoxConstraints(minWidth: 24),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$qty',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: qty > 0
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle,
+                                      color: Color(0xFF2563EB), size: 22),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedQuantities[product.id] = qty + 1;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ),
-
-                      // Miqdor boshqaruvi
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline,
-                                color: Color(0xFF94A3B8)),
-                            onPressed: qty > 0
-                                ? () {
-                                    setState(() {
-                                      _selectedQuantities[product.id] = qty - 1;
-                                    });
-                                  }
-                                : null,
-                          ),
-                          Text(
-                            '$qty',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle,
-                                color: Color(0xFF2563EB)),
-                            onPressed: () {
-                              setState(() {
-                                _selectedQuantities[product.id] = qty + 1;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
 
           const Gap(16),
@@ -204,22 +310,30 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                       final db = ref.read(appDatabaseProvider);
                       // String summary yasash
                       final items = <String>[];
-                      for (final p in products) {
+                      for (final p in allProducts) {
                         final qty = _selectedQuantities[p.id] ?? 0;
                         if (qty > 0) {
-                          items.add("${p.name} x$qty (${formatSum(p.price * qty)})");
+                          items.add(
+                              "${p.name} x$qty (${formatSum(p.price * qty)})");
                           // Ombor qoldig'ini kamaytirish
                           await db.productsDao.decreaseStock(p.id, qty);
                         }
                       }
 
-                      final currentNotes = widget.session.notes ?? '';
-                      final barSummary = "Bar: ${items.join(', ')}";
-                      final newNotes = currentNotes.isEmpty
-                          ? barSummary
-                          : "$currentNotes | $barSummary";
+                      final newNotes = SessionBillingHelper.composeNotesWithBar(
+                        currentNotes: widget.session.notes,
+                        newItemsSummary: items,
+                        addedBarSum: totalBarSum,
+                      );
 
-                      final newTotal = widget.session.totalAmount + totalBarSum;
+                      final currentBarTotal =
+                          SessionBillingHelper.getBarTotal(newNotes);
+                      final gameAmt =
+                          SessionBillingHelper.calculateGameAmount(
+                        startedAt: widget.session.startedAt,
+                        pricePerHour: widget.table.pricePerHour,
+                      );
+                      final newTotal = gameAmt + currentBarTotal;
 
                       // Sessiyani yangilash
                       await (db.update(db.sessions)
@@ -236,8 +350,9 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                "+${formatSum(totalBarSum)} stol hisobiga qo'shildi!"),
+                                "+${formatSum(totalBarSum)} bar buyurtmasi stol hisobiga qo'shildi!"),
                             backgroundColor: const Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
                           ),
                         );
                       }
@@ -250,10 +365,11 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
+                elevation: 0,
               ),
               child: Text(
                 totalBarSum > 0
-                    ? "Qo'shish: ${formatSum(totalBarSum)}"
+                    ? "Hisobga qo'shish: +${formatSum(totalBarSum)}"
                     : "Mahsulot tanlang",
                 style: const TextStyle(
                   fontSize: 15,
