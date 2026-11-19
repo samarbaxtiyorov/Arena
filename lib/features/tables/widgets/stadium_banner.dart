@@ -1,6 +1,6 @@
 // ============================================
 // Arena — Maydon/Stol Haqiqiy Foto Banneri
-// Real suratlar: Stadion, Bilyard, PlayStation
+// Desktopdagi Arena_Rasmlar to'plamidan real suratlar
 // LED Neon Taymer va Jonli Vaqt nishoni
 // ============================================
 
@@ -24,48 +24,59 @@ class StadiumBanner extends StatelessWidget {
   String _getImageAsset() {
     switch (type) {
       case 'billiard':
-        return 'assets/images/billiard_table.jpg';
-      case 'ps':
-        return 'assets/images/playstation_room.jpg';
+        return isLive
+            ? 'assets/images/billiard_active.jpg'
+            : (tableIndex % 2 == 0
+                ? 'assets/images/billiard_table_balls.jpg'
+                : 'assets/images/billiard_table.jpg');
       case 'tennis':
-        return 'assets/images/tennis_court.jpg';
+      case 'table_tennis':
+        return 'assets/images/table_tennis.jpg';
+      case 'ps':
+      case 'playstation':
+        return 'assets/images/vr_zone.jpg';
+      case 'bowling':
+        return 'assets/images/bowling.jpg';
+      case 'cinema':
+        return 'assets/images/cinema.jpg';
+      case 'karaoke':
+        return 'assets/images/karaoke.jpg';
+      case 'badminton':
+        return 'assets/images/badminton.jpg';
+      case 'playground':
+        return 'assets/images/playground.jpg';
       case 'football':
       default:
-        // Maydon 1 va Maydon 2 uchun turli burchakdagi tungi stadion suratlari
-        if (tableIndex % 2 == 0) {
-          return 'assets/images/stadium_night_2.jpg';
-        }
-        return 'assets/images/stadium_night_1.jpg';
+        return 'assets/images/football_pitch.jpg';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 155,
+      height: 160,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         color: const Color(0xFF0F172A),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.14),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Haqiqiy Surat (Real Photography)
+            // 1. Haqiqiy Professional Surat (Arena_Rasmlar)
             Image.asset(
               _getImageAsset(),
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                // Agar fayl topilmasa to'q gradient
                 return Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -89,10 +100,10 @@ class StadiumBanner extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withOpacity(0.55),
-                    Colors.black.withOpacity(0.15),
-                    Colors.black.withOpacity(0.65),
+                    Colors.black.withOpacity(0.12),
+                    Colors.black.withOpacity(0.68),
                   ],
-                  stops: const [0.0, 0.5, 1.0],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
               ),
             ),
@@ -113,12 +124,12 @@ class StadiumBanner extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isLive
                               ? const Color(0xFF10B981)
-                              : Colors.black.withOpacity(0.55),
+                              : Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: isLive
                               ? [
                                   BoxShadow(
-                                    color: const Color(0xFF10B981).withOpacity(0.4),
+                                    color: const Color(0xFF10B981).withOpacity(0.45),
                                     blurRadius: 8,
                                     spreadRadius: 1,
                                   ),
@@ -150,7 +161,7 @@ class StadiumBanner extends StatelessWidget {
                         ),
                       ),
 
-                      // LED Raqamli Neon Taymer
+                      // LED Raqamli Neon Taymer (Skrinshot 6 bilan 1:1)
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 5),
@@ -177,7 +188,7 @@ class StadiumBanner extends StatelessWidget {
                           timerString,
                           style: TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
                             color: isLive
                                 ? const Color(0xFF22D3EE)
@@ -205,7 +216,7 @@ class StadiumBanner extends StatelessWidget {
                               Icon(Icons.sports_soccer_rounded, color: Colors.white70, size: 16),
                               Gap(6),
                               Text(
-                                "Stadion tayyor",
+                                "Maydon o'yinga shay",
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11,

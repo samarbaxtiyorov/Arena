@@ -1,6 +1,7 @@
 // ============================================
 // Arena — Maydonlar Asosiy Ekrani (Skrinshot 6 bilan 1:1)
-// 8-ball haqiqiy surati, 1 ta band • 5 ta bo'sh, 📅/☁️/QR tugmalari
+// billiard_page_bg.jpg orqa fon, billiard_logo.jpg nishoni,
+// 1 ta band • 5 ta bo'sh, 📅/☁️/QR tugmalari
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -51,20 +52,28 @@ class TablesScreen extends ConsumerWidget {
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // ── Orqa fon atmosferasi (nozik stadion nurlari) ──────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240,
+          // ── Orqa fon (Desktop/Arena_Rasmlar/billiard_page_bg.jpg) ──
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.12,
+              child: Image.asset(
+                'assets/images/billiard_page_bg.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox(),
+              ),
+            ),
+          ),
+
+          // Nozik yorug'lik gradienti
+          Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFDBEAFE).withOpacity(0.5),
-                    const Color(0xFFF8FAFC),
+                    const Color(0xFFEFF6FF).withOpacity(0.85),
+                    const Color(0xFFF8FAFC).withOpacity(0.96),
                   ],
                 ),
               ),
@@ -74,25 +83,25 @@ class TablesScreen extends ConsumerWidget {
           SafeArea(
             child: CustomScrollView(
               slivers: [
-                // ── Sarlavha Qatori (8-ball, Maydonlar, 📅/☁️/QR) ─────
+                // ── Sarlavha Qatori (billiard_logo.jpg, Maydonlar, 📅/☁️/QR) ──
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     child: Row(
                       children: [
-                        // 8-ball real surati (Moviy halqa bilan)
+                        // 8-ball real surati (Desktopdagi billiard_logo.jpg)
                         Container(
-                          width: 46,
-                          height: 46,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: const Color(0xFF2563EB),
-                              width: 2,
+                              width: 2.2,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.3),
+                                color: const Color(0xFF2563EB).withOpacity(0.35),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -100,7 +109,7 @@ class TablesScreen extends ConsumerWidget {
                           ),
                           child: ClipOval(
                             child: Image.asset(
-                              'assets/images/ball_8.jpg',
+                              'assets/images/billiard_logo.jpg',
                               fit: BoxFit.cover,
                               errorBuilder: (_, _, _) => Container(
                                 color: const Color(0xFF0F172A),
