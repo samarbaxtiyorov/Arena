@@ -1,6 +1,7 @@
 // ============================================
 // Arena — Maydonlar va Stollar Boshqaruv Sahifasi
-// Yangi qo'shish, tahrirlash, o'chirish, narxlarni o'zgartirish
+// Ko'zga yoqimli, zamonaviy va haqiqiy suratlar bilan bezatilgan
+// Yangi qo'shish, tahrirlash, o'chirish va narxlarni tezkor o'zgartirish
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -31,14 +32,43 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
   }
 
   void _showQuickPriceDialog(ClubTable table) {
-    final controller = TextEditingController(text: table.pricePerHour.toString());
+    final controller =
+        TextEditingController(text: table.pricePerHour.toString());
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          "${table.name} — Tarifni o'zgartirish",
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.payments_outlined,
+                  color: Color(0xFF059669), size: 22),
+            ),
+            const Gap(10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    table.name,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Text(
+                    "Soatlik tarifni o'zgartirish",
+                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -48,25 +78,47 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
               "Yangi soatlik narxni kiriting:",
               style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
-            const Gap(8),
+            const Gap(10),
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
               autofocus: true,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF10B981),
+                color: Color(0xFF059669),
               ),
               decoration: InputDecoration(
                 suffixText: "so'm/soat",
                 filled: true,
-                fillColor: const Color(0xFFF1F5F9),
+                fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
+            ),
+            const Gap(12),
+            Wrap(
+              spacing: 8,
+              children: [30000, 40000, 50000, 70000, 100000].map((price) {
+                return ActionChip(
+                  label: Text("${price ~/ 1000}k"),
+                  labelStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB)),
+                  backgroundColor: const Color(0xFFEFF6FF),
+                  side: const BorderSide(color: Color(0xFFBFDBFE)),
+                  onPressed: () {
+                    controller.text = price.toString();
+                  },
+                );
+              }).toList(),
             ),
           ],
         ),
@@ -79,6 +131,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -92,9 +145,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
                       type: table.type,
                       pricePerHour: newPrice,
                     );
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                }
+                if (ctx.mounted) Navigator.pop(ctx);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -119,7 +170,8 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded,
@@ -155,22 +207,29 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.delete_outline_rounded,
-                color: Color(0xFFEF4444), size: 24),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: Color(0xFFEF4444), size: 24),
+            ),
             const Gap(10),
-            Expanded(
+            const Expanded(
               child: Text(
-                "${table.name} ni o'chirish",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                "Maydonni o'chirish",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
         content: Text(
-          "Rostdan ham '${table.name}' maydonini tizimdan o'chirmoqchimisiz? Ushbu maydon asosiy ekrandan olib tashlanadi.",
+          "Rostdan ham \"${table.name}\" maydonini o'chirmoqchimisiz? Uni qayta tiklab bo'lmaydi.",
           style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
         ),
         actions: [
@@ -188,14 +247,12 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
             ),
             onPressed: () async {
               await ref.read(tablesControllerProvider).deleteTable(table.id);
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-              }
+              if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("${table.name} muvaffaqiyatli o'chirildi!"),
-                    backgroundColor: const Color(0xFF10B981),
+                    content: Text("${table.name} o'chirildi!"),
+                    backgroundColor: const Color(0xFFEF4444),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -208,48 +265,33 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
     );
   }
 
-  IconData _getTypeIcon(String type) {
+  String _getImageForType(String type) {
     switch (type.toLowerCase()) {
       case 'football':
-        return Icons.sports_soccer_rounded;
+        return 'assets/images/football_pitch.jpg';
       case 'billiard':
-        return Icons.sports_baseball_outlined;
+        return 'assets/images/billiard_table.jpg';
       case 'ps':
-        return Icons.sports_esports_rounded;
+        return 'assets/images/playstation_room.jpg';
       case 'tennis':
-        return Icons.sports_tennis_rounded;
+        return 'assets/images/table_tennis.jpg';
       default:
-        return Icons.games_rounded;
-    }
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'football':
-        return const Color(0xFF10B981);
-      case 'billiard':
-        return const Color(0xFF2563EB);
-      case 'ps':
-        return const Color(0xFF8B5CF6);
-      case 'tennis':
-        return const Color(0xFFF59E0B);
-      default:
-        return const Color(0xFF64748B);
+        return 'assets/images/billiard_active.jpg';
     }
   }
 
   String _getTypeName(String type) {
     switch (type.toLowerCase()) {
       case 'football':
-        return 'Futbol maydoni';
+        return '⚽ Futbol maydoni';
       case 'billiard':
-        return 'Bilyard stoli';
+        return '🎱 Bilyard stoli';
       case 'ps':
-        return 'PlayStation zona';
+        return '🎮 PlayStation';
       case 'tennis':
-        return 'Stol tennisi';
+        return '🏓 Stol tennisi';
       default:
-        return 'O\'yin zonasi';
+        return '🎯 O\'yin zonasi';
     }
   }
 
@@ -266,9 +308,13 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
         .map((s) => s.tableId)
         .toSet();
 
+    final busyCount =
+        allTables.where((t) => activeTableIds.contains(t.id)).length;
+    final freeCount = allTables.length - busyCount;
+
     final filteredTables = allTables.where((t) {
       if (_selectedCategory == 'all') return true;
-      return t.type == _selectedCategory;
+      return t.type.toLowerCase() == _selectedCategory.toLowerCase();
     }).toList();
 
     return Scaffold(
@@ -293,7 +339,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
               ),
             ),
             Text(
-              "Jami: ${allTables.length} ta zona mavjud",
+              "Jami: ${allTables.length} ta zona • $busyCount band, $freeCount bo'sh",
               style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
             ),
           ],
@@ -305,13 +351,14 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
               onPressed: () => _openAddOrEdit(),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text(
-                "Qo'shish",
+                "Yangi Maydon",
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -323,10 +370,47 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
       ),
       body: Column(
         children: [
+          // ── Statistika Kartalari ───────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                _buildStatCard(
+                  title: "Jami Zonalar",
+                  value: "${allTables.length} ta",
+                  color: const Color(0xFF2563EB),
+                  bgColor: const Color(0xFFEFF6FF),
+                  icon: Icons.sports_soccer_rounded,
+                ),
+                const Gap(8),
+                _buildStatCard(
+                  title: "Bo'sh (Tayyor)",
+                  value: "$freeCount ta",
+                  color: const Color(0xFF059669),
+                  bgColor: const Color(0xFFECFDF5),
+                  icon: Icons.check_circle_outline_rounded,
+                ),
+                const Gap(8),
+                _buildStatCard(
+                  title: "Band (O'yinda)",
+                  value: "$busyCount ta",
+                  color: busyCount > 0
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFF64748B),
+                  bgColor: busyCount > 0
+                      ? const Color(0xFFFEF2F2)
+                      : const Color(0xFFF1F5F9),
+                  icon: Icons.timer_outlined,
+                ),
+              ],
+            ),
+          ),
+
           // ── Kategoriya Chiplari ────────────────────────
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.only(bottom: 12),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -334,15 +418,15 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
                 children: [
                   _buildCategoryChip('all', "Barchasi (${allTables.length})"),
                   const Gap(8),
-                  _buildCategoryChip('football', "Futbol"),
+                  _buildCategoryChip('football', "⚽ Futbol"),
                   const Gap(8),
-                  _buildCategoryChip('billiard', "Bilyard"),
+                  _buildCategoryChip('billiard', "🎱 Bilyard"),
                   const Gap(8),
-                  _buildCategoryChip('ps', "PlayStation"),
+                  _buildCategoryChip('ps', "🎮 PlayStation"),
                   const Gap(8),
-                  _buildCategoryChip('tennis', "Tennis"),
+                  _buildCategoryChip('tennis', "🏓 Tennis"),
                   const Gap(8),
-                  _buildCategoryChip('other', "Boshqa"),
+                  _buildCategoryChip('other', "🎯 Boshqa"),
                 ],
               ),
             ),
@@ -381,7 +465,8 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
                         const Gap(6),
                         const Text(
                           "Yangi maydon yoki stol qo'shish uchun yuqoridagi tugmani bosing",
-                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style:
+                              TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                           textAlign: TextAlign.center,
                         ),
                         const Gap(16),
@@ -403,217 +488,342 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: filteredTables.length,
-                    separatorBuilder: (_, _) => const Gap(12),
+                    separatorBuilder: (_, _) => const Gap(14),
                     itemBuilder: (context, index) {
                       final table = filteredTables[index];
                       final isBusy = activeTableIds.contains(table.id);
-                      final typeColor = _getTypeColor(table.type);
-                      final typeIcon = _getTypeIcon(table.type);
+                      final imagePath = _getImageForType(table.type);
 
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: isBusy
-                                ? const Color(0xFFEF4444).withOpacity(0.3)
+                                ? const Color(0xFFFCA5A5)
                                 : const Color(0xFFE2E8F0),
                             width: isBusy ? 1.5 : 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          children: [
-                            // Yuqori qator: Ikonka, Nomi, Holati
-                            Row(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: typeColor.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(typeIcon, color: typeColor, size: 22),
-                                ),
-                                const Gap(12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            table.name,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFF0F172A),
-                                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Maydonning Haqiqiy Surati va Banner Qismi
+                              SizedBox(
+                                height: 110,
+                                width: double.infinity,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.asset(
+                                      imagePath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        color: const Color(0xFF1E293B),
+                                        child: const Center(
+                                          child: Icon(Icons.sports_soccer,
+                                              color: Colors.white24, size: 40),
+                                        ),
+                                      ),
+                                    ),
+                                    // Qoraytirish gradienti
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.black.withOpacity(0.2),
+                                            Colors.black.withOpacity(0.75),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    // Chapda: Maydon turi
+                                    Positioned(
+                                      top: 10,
+                                      left: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.55),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.white24),
+                                        ),
+                                        child: Text(
+                                          _getTypeName(table.type),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
                                           ),
-                                          const Gap(8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 7, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: isBusy
-                                                  ? const Color(0xFFFEE2E2)
-                                                  : const Color(0xFFDCFCE7),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                    ),
+                                    // O'ngda: Holat (Band / Bo'sh)
+                                    Positioned(
+                                      top: 10,
+                                      right: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 9, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isBusy
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF10B981),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (isBusy
+                                                      ? const Color(0xFFEF4444)
+                                                      : const Color(0xFF10B981))
+                                                  .withOpacity(0.4),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
                                             ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Container(
-                                                  width: 5,
-                                                  height: 5,
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    color: isBusy
-                                                        ? const Color(0xFFEF4444)
-                                                        : const Color(0xFF10B981),
-                                                  ),
-                                                ),
-                                                const Gap(4),
-                                                Text(
-                                                  isBusy ? "Band" : "Bo'sh",
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: isBusy
-                                                        ? const Color(0xFFEF4444)
-                                                        : const Color(0xFF10B981),
-                                                  ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              width: 6,
+                                              height: 6,
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const Gap(5),
+                                            Text(
+                                              isBusy ? "BAND" : "BO'SH",
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    // Pastki qismda maydon nomi va narxi
+                                    Positioned(
+                                      bottom: 10,
+                                      left: 12,
+                                      right: 12,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              table.name,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                shadows: [
+                                                Shadow(
+                                                  blurRadius: 6,
+                                                  color: Colors.black54,
                                                 ),
                                               ],
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF0F172A)
+                                                  .withOpacity(0.85),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                  color:
+                                                      const Color(0xFF34D399),
+                                                  width: 1),
+                                            ),
+                                            child: Text(
+                                              "${formatSum(table.pricePerHour)}/soat",
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w900,
+                                                color: Color(0xFF34D399),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const Gap(2),
-                                      Text(
-                                        _getTypeName(table.type),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF64748B),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Pastki Boshqaruv Tugmalari
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                                child: Row(
+                                  children: [
+                                    // Tahrirlash tugmasi
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _openAddOrEdit(table),
+                                        icon: const Icon(Icons.edit_outlined,
+                                            size: 15),
+                                        label: const Text(
+                                          "Tahrirlash",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFF2563EB),
+                                          side: const BorderSide(
+                                              color: Color(0xFFBFDBFE)),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      formatSum(table.pricePerHour),
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFF0F172A),
+                                    ),
+                                    const Gap(8),
+                                    // Tarifni o'zgartirish tugmasi
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _showQuickPriceDialog(table),
+                                        icon: const Icon(
+                                            Icons.payments_outlined,
+                                            size: 15),
+                                        label: const Text(
+                                          "Tarif",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFF059669),
+                                          side: const BorderSide(
+                                              color: Color(0xFFA7F3D0)),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    const Text(
-                                      "soatiga",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF64748B),
+                                    const Gap(8),
+                                    // O'chirish tugmasi
+                                    InkWell(
+                                      onTap: () => _confirmDelete(table, isBusy),
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(9),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF2F2),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                              color: const Color(0xFFFECACA)),
+                                        ),
+                                        child: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Color(0xFFEF4444),
+                                          size: 19,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-
-                            const Gap(12),
-                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                            const Gap(10),
-
-                            // Pastki boshqaruv tugmalari
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => _openAddOrEdit(table),
-                                    icon: const Icon(Icons.edit_outlined, size: 15),
-                                    label: const Text(
-                                      "Tahrirlash",
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF2563EB),
-                                      side: const BorderSide(
-                                          color: Color(0xFFBFDBFE)),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const Gap(8),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () =>
-                                        _showQuickPriceDialog(table),
-                                    icon: const Icon(Icons.payments_outlined,
-                                        size: 15),
-                                    label: const Text(
-                                      "Tarif",
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF10B981),
-                                      side: const BorderSide(
-                                          color: Color(0xFFA7F3D0)),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const Gap(8),
-                                InkWell(
-                                  onTap: () => _confirmDelete(table, isBusy),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFEF2F2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: const Color(0xFFFECACA)),
-                                    ),
-                                    child: const Icon(
-                                      Icons.delete_outline_rounded,
-                                      color: Color(0xFFEF4444),
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required Color color,
+    required Color bgColor,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 14),
+                const Gap(4),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const Gap(4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

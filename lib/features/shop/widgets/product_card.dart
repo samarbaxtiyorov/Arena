@@ -1,6 +1,7 @@
 // ============================================
 // Arena — Do'kon Tovar Kartasi
-// Ikonka, Nomi, Narxi, Qoldiq va interaktiv hisoblagich (+ / -)
+// Orqa fonda mahsulotning haqiqiy surati (Cola, Chips, Choy, Fanta, Suv),
+// Oltin narx, Qoldiq va interaktiv hisoblagich (+ / -)
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/product_asset_helper.dart';
 import '../../../data/local/app_database.dart';
 import '../providers/shop_providers.dart';
 
@@ -15,36 +17,6 @@ class ProductCard extends ConsumerWidget {
   final Product product;
 
   const ProductCard({super.key, required this.product});
-
-  IconData _getProductIcon(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('suv') || n.contains('water') || n.contains('chortoq')) {
-      return Icons.water_drop_rounded;
-    } else if (n.contains('choy') || n.contains('kofe') || n.contains('tea') || n.contains('qahva')) {
-      return Icons.local_cafe_rounded;
-    } else if (n.contains('chips') || n.contains('lays') || n.contains('pista') || n.contains('snack') || n.contains('shokolad')) {
-      return Icons.fastfood_rounded;
-    } else if (n.contains('cola') || n.contains('fanta') || n.contains('pepsi') || n.contains('sharbat') || n.contains('sok') || n.contains('redbull')) {
-      return Icons.local_drink_rounded;
-    }
-    return Icons.inventory_2_outlined;
-  }
-
-  Color _getProductColor(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('suv') || n.contains('water') || n.contains('chortoq')) {
-      return const Color(0xFF0284C7); // Cyan
-    } else if (n.contains('choy') || n.contains('kofe') || n.contains('tea') || n.contains('qahva')) {
-      return const Color(0xFFD97706); // Amber
-    } else if (n.contains('chips') || n.contains('lays') || n.contains('pista') || n.contains('snack')) {
-      return const Color(0xFFEA580C); // Orange
-    } else if (n.contains('cola')) {
-      return const Color(0xFFDC2626); // Red
-    } else if (n.contains('fanta')) {
-      return const Color(0xFFF97316); // Orange-Red
-    }
-    return const Color(0xFF2563EB); // Blue default
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,8 +26,7 @@ class ProductCard extends ConsumerWidget {
     final isOutOfStock = product.stock <= 0;
     final isLowStock = product.stock > 0 && product.stock <= 5;
 
-    final iconColor = _getProductColor(product.name);
-    final iconData = _getProductIcon(product.name);
+    final imagePath = ProductAssetHelper.getImageForProduct(product.name);
 
     return Container(
       decoration: BoxDecoration(
@@ -70,179 +41,216 @@ class ProductCard extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: qtyInCart > 0
-                ? const Color(0xFF2563EB).withOpacity(0.06)
-                : Colors.black.withOpacity(0.02),
+                ? const Color(0xFF2563EB).withOpacity(0.08)
+                : Colors.black.withOpacity(0.03),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── 1. Ikonka va Cart nishoni ────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
+          // ── 1. Tovar Rasmi va Badge'lar ─────────────
+          Expanded(
+            flex: 11,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
                 ),
-                child: Icon(iconData, color: iconColor, size: 20),
-              ),
-              if (qtyInCart > 0)
+                // Gradient soya
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    "$qtyInCart ta",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.1),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.4),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
                     ),
                   ),
                 ),
-            ],
-          ),
-
-          const Gap(8),
-
-          // ── 2. Nomi va Narxi ─────────────────────────
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                product.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const Gap(2),
-              Text(
-                formatSum(product.price),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFFD97706),
-                ),
-              ),
-              const Gap(2),
-              Text(
-                isOutOfStock
-                    ? "Tugagan"
-                    : isLowStock
-                        ? "Qoldiq: ${product.stock} (kam)"
-                        : "Qoldiq: ${product.stock} dona",
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isOutOfStock
-                      ? const Color(0xFFEF4444)
-                      : isLowStock
-                          ? const Color(0xFFF59E0B)
-                          : const Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-
-          const Gap(8),
-
-          // ── 3. Interaktiv Stepper yoki Savatga tugmasi ─
-          if (qtyInCart > 0)
-            Container(
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      ref.read(cartProvider.notifier).removeOne(product);
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: const SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: Icon(Icons.remove, size: 16, color: Color(0xFF475569)),
-                    ),
-                  ),
-                  Text(
-                    '$qtyInCart',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF2563EB),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: (qtyInCart < product.stock)
-                        ? () {
-                            ref.read(cartProvider.notifier).addItem(product);
-                          }
-                        : null,
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: Icon(
-                        Icons.add,
-                        size: 16,
-                        color: (qtyInCart < product.stock)
-                            ? const Color(0xFF2563EB)
-                            : const Color(0xFF94A3B8),
+                // Savatdagi soni (Badge)
+                if (qtyInCart > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        "$qtyInCart ta",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            )
-          else
-            SizedBox(
-              height: 32,
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isOutOfStock
-                    ? null
-                    : () {
-                        ref.read(cartProvider.notifier).addItem(product);
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEFF6FF),
-                  foregroundColor: const Color(0xFF2563EB),
-                  padding: EdgeInsets.zero,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                // Qoldiq indikatori pastda
+                Positioned(
+                  bottom: 6,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isOutOfStock
+                          ? const Color(0xFFEF4444)
+                          : isLowStock
+                              ? const Color(0xFFF59E0B)
+                              : Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      isOutOfStock
+                          ? "Tugagan"
+                          : "Qoldiq: ${product.stock} dona",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  isOutOfStock ? "Yo'q" : "+ Qo'shish",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              ],
             ),
+          ),
+
+          // ── 2. Tovar Nomi, Narxi va Boshqaruv ────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const Gap(2),
+                Text(
+                  formatSum(product.price),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFD97706),
+                  ),
+                ),
+                const Gap(6),
+
+                // Stepper (+ / -) yoki Savatga tugmasi
+                if (qtyInCart > 0)
+                  Container(
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            ref.read(cartProvider.notifier).removeOne(product);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: const SizedBox(
+                            width: 28,
+                            height: 30,
+                            child: Icon(Icons.remove,
+                                size: 15, color: Color(0xFF334155)),
+                          ),
+                        ),
+                        Text(
+                          '$qtyInCart',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: (qtyInCart < product.stock)
+                              ? () {
+                                  ref
+                                      .read(cartProvider.notifier)
+                                      .addItem(product);
+                                }
+                              : null,
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            width: 28,
+                            height: 30,
+                            child: Icon(
+                              Icons.add,
+                              size: 15,
+                              color: (qtyInCart < product.stock)
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 30,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isOutOfStock
+                          ? null
+                          : () {
+                              ref.read(cartProvider.notifier).addItem(product);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        foregroundColor: const Color(0xFF2563EB),
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        ),
+                      ),
+                      child: Text(
+                        isOutOfStock ? "Yo'q" : "+ Qo'shish",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -10,8 +10,8 @@ import 'package:gap/gap.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
-import '../../shop/widgets/add_product_dialog.dart';
 import '../../kassa/providers/kassa_providers.dart';
+import 'manage_products_screen.dart';
 import 'manage_tables_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
@@ -222,10 +222,14 @@ class ManagementScreen extends ConsumerWidget {
               title: "Ombor va Mahsulotlar",
               subtitle: "Barning barcha tovarlari, nar...",
               onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const AddProductDialog(),
-                );
+                _checkOwnerPermission(context, auth, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ManageProductsScreen(),
+                    ),
+                  );
+                });
               },
             ),
 

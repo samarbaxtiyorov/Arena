@@ -249,6 +249,43 @@ class ShopController {
     _triggerSync();
   }
 
+  // Tovarni tahrirlash
+  Future<void> updateProduct({
+    required String id,
+    required String name,
+    required int price,
+    int stock = 0,
+    String? barcode,
+    String? category,
+  }) async {
+    final now = DateTime.now();
+    await _db.productsDao.updateProduct(ProductsCompanion(
+      id: Value(id),
+      name: Value(name),
+      price: Value(price),
+      stock: Value(stock),
+      barcode: Value(barcode),
+      category: Value(category ?? 'drink'),
+      updatedAt: Value(now),
+      isSynced: const Value(false),
+    ));
+
+    _triggerSync();
+  }
+
+  // Tovarni o'chirish (soft-delete)
+  Future<void> deleteProduct(String id) async {
+    final now = DateTime.now();
+    await _db.productsDao.updateProduct(ProductsCompanion(
+      id: Value(id),
+      isActive: const Value(false),
+      updatedAt: Value(now),
+      isSynced: const Value(false),
+    ));
+
+    _triggerSync();
+  }
+
   // Tovar zaxirasini oshirish (Kirim / Prikhod)
   Future<void> addStock({
     required String productId,

@@ -8,15 +8,80 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../kassa/widgets/receipt_preview_dialog.dart';
 import '../providers/shop_providers.dart';
 import '../widgets/product_card.dart';
 import '../widgets/cart_checkout_sheet.dart';
 import '../widgets/add_product_dialog.dart';
+import '../widgets/barcode_scan_dialog.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
+
+  Future<void> _handleScanBarcode(BuildContext context, WidgetRef ref) async {
+    final scanned = await showDialog<String>(
+      context: context,
+      builder: (_) => const BarcodeScanDialog(),
+    );
+
+    if (scanned == null || scanned.isEmpty) return;
+
+    final allProducts = ref.read(productsStreamProvider).value ?? [];
+    Product? found;
+    for (final p in allProducts) {
+      if (p.barcode != null && p.barcode!.trim() == scanned.trim()) {
+        found = p;
+        break;
+      }
+    }
+
+    if (found != null) {
+      ref.read(cartProvider.notifier).add(found);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
+                const Gap(8),
+                Expanded(
+                  child: Text("${found.name} savatga qo'shildi!"),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      ref.read(shopSearchQueryProvider.notifier).setQuery(scanned);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Shtrix-kod: $scanned. Tovar topilmadi."),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: "Qo'shish",
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const AddProductDialog(),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,14 +121,7 @@ class ShopScreen extends ConsumerWidget {
                                 color: Color(0xFF2563EB),
                                 size: 24,
                               ),
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Shtrix-kod skaneri faollashtirildi"),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              },
+                              onPressed: () => _handleScanBarcode(context, ref),
                             ),
                             IconButton(
                               icon: const Icon(
@@ -140,14 +198,7 @@ class ShopScreen extends ConsumerWidget {
                         const Gap(10),
                         // QR Skaner Ko'k tugmasi
                         InkWell(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Shtrix-kod skanerlandi"),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          },
+                          onTap: () => _handleScanBarcode(context, ref),
                           borderRadius: BorderRadius.circular(14),
                           child: Container(
                             width: 48,
@@ -264,7 +315,7 @@ class ShopScreen extends ConsumerWidget {
                             crossAxisCount: 2,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            childAspectRatio: 0.9,
+                            childAspectRatio: 0.74,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
