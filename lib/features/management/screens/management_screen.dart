@@ -17,6 +17,7 @@ import 'business_settings_screen.dart';
 import 'manage_products_screen.dart';
 import 'manage_staff_screen.dart';
 import 'manage_tables_screen.dart';
+import 'subscription_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
   const ManagementScreen({super.key});
@@ -322,12 +323,19 @@ class ManagementScreen extends ConsumerWidget {
               iconBg: const Color(0xFFFEF3C7),
               iconColor: const Color(0xFFB45309),
               title: "Obuna va Litsenziya",
-              badge: "PREMIUM VIP",
+              badge: "Har bir stol 100 000",
               badgeColor: const Color(0xFFD1FAE5),
               badgeTextColor: const Color(0xFF047857),
-              subtitle: "START, PRO va VIP litsenziya...",
+              subtitle: "Tariflar, muddatlar va TezCheck to'lov...",
               onTap: () {
-                _showSubscriptionDialog(context, auth);
+                _checkOwnerPermission(context, auth, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SubscriptionScreen(),
+                    ),
+                  );
+                });
               },
             ),
 
@@ -517,184 +525,6 @@ class ManagementScreen extends ConsumerWidget {
           Icons.chevron_right_rounded,
           color: Color(0xFF94A3B8),
         ),
-      ),
-    );
-  }
-
-  // ── Obuna va Litsenziya Modali (Arena POS Monizatsiyasi) ─────
-  void _showSubscriptionDialog(BuildContext context, AuthState auth) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const Gap(16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Arena POS Litsenziyasi",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      "PREMIUM VIP",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF047857),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Gap(8),
-              const Text(
-                "Sizning obunangiz: 2026-yil oxirigacha faol. Barcha modullar (Offline SQLite, Supabase Cloud Sync, Arxiv, Cheklar) cheklovlarsiz ishlaydi.",
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
-              ),
-              const Gap(20),
-
-              // Tariflar
-              _buildPlanTile(
-                title: "START Reja",
-                price: "150 000 so'm / oy",
-                desc: "3 tagacha maydon, asosiy kassa va chek chiqarish",
-                isCurrent: false,
-              ),
-              const Gap(8),
-              _buildPlanTile(
-                title: "PRO Biznes",
-                price: "350 000 so'm / oy",
-                desc: "10 ta maydon, do'kon ombori, qarz daftari va statistika",
-                isCurrent: false,
-              ),
-              const Gap(8),
-              _buildPlanTile(
-                title: "PREMIUM VIP",
-                price: "600 000 so'm / oy",
-                desc: "Cheksiz maydonlar, 2-tomonlama bulut sinxronizatsiyasi, 24/7 qo'llab-quvvatlash",
-                isCurrent: true,
-              ),
-
-              const Gap(24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Litsenziyani uzaytirish: +998 90 000 00 01 (Samar Baxtiyorov)"),
-                        backgroundColor: Color(0xFF2563EB),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.verified_rounded),
-                  label: const Text("Litsenziyani uzaytirish"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-              const Gap(16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPlanTile({
-    required String title,
-    required String price,
-    required String desc,
-    required bool isCurrent,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isCurrent ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isCurrent ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
-          width: isCurrent ? 1.5 : 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-            color: isCurrent ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
-            size: 20,
-          ),
-          const Gap(10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    Text(
-                      price,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isCurrent ? const Color(0xFF2563EB) : const Color(0xFF475569),
-                      ),
-                    ),
-                  ],
-                ),
-                const Gap(2),
-                Text(
-                  desc,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
