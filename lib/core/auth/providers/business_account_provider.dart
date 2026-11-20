@@ -221,12 +221,21 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     required String venueName,
     required String ownerName,
     required String phone,
+    String? newPassword,
+    String? newOwnerPin,
   }) async {
     if (state.activeAccount == null) return;
-    final updatedAcc = state.activeAccount!.copyWith(
+    final current = state.activeAccount!;
+    final updatedAcc = current.copyWith(
       venueName: venueName.trim(),
       ownerName: ownerName.trim(),
       phone: phone.trim(),
+      password: (newPassword != null && newPassword.trim().isNotEmpty)
+          ? newPassword.trim()
+          : current.password,
+      ownerPin: (newOwnerPin != null && newOwnerPin.trim().length == 4)
+          ? newOwnerPin.trim()
+          : current.ownerPin,
     );
 
     final updatedList = state.accounts

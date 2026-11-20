@@ -23,9 +23,9 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
   // Login Controllerlari
   final TextEditingController _loginPhoneCtrl =
-      TextEditingController(text: '+998 90 000 00 01');
+      TextEditingController(text: '+998 ');
   final TextEditingController _loginPassCtrl =
-      TextEditingController(text: '123');
+      TextEditingController();
   bool _obscureLoginPass = true;
 
   // Ro'yxatdan o'tish Controllerlari
@@ -366,101 +366,6 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
             ),
           ),
         ),
-
-        // Mavjud hisoblar tezkor ro'yxati
-        if (businessState.accounts.isNotEmpty) ...[
-          const Gap(22),
-          const Divider(color: Color(0xFFF1F5F9)),
-          const Gap(12),
-          const Text(
-            'Mavjud hisoblar:',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF64748B),
-            ),
-          ),
-          const Gap(8),
-          ...businessState.accounts.map((acc) {
-            return InkWell(
-              onTap: () {
-                setState(() {
-                  _loginPhoneCtrl.text = acc.phone;
-                  _loginPassCtrl.text = acc.password;
-                });
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.stadium_rounded,
-                        size: 16, color: Color(0xFF2563EB)),
-                    const Gap(8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            acc.venueName,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            "${acc.ownerName} • ${acc.phone}",
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _loginPhoneCtrl.text = acc.phone;
-                          _loginPassCtrl.text = acc.password;
-                        });
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        child: Text(
-                          'Tanlash',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF2563EB),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (businessState.accounts.length > 1) ...[
-                      const Gap(4),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded,
-                            size: 16, color: Color(0xFFEF4444)),
-                        onPressed: () => _confirmDeleteAccount(context, acc.id, acc.venueName),
-                        tooltip: "Hisobni o'chirish",
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
       ],
     );
   }
@@ -786,52 +691,5 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         );
       }
     }
-  }
-
-  void _confirmDeleteAccount(BuildContext context, String accountId, String venueName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444)),
-            Gap(8),
-            Text("Hisobni O'chirish"),
-          ],
-        ),
-        content: Text(
-          "$venueName hisobini butunlay o'chirmoqchimisiz?\nUshbu hisobga tegishli barcha alohida ma'lumotlar o'chiriladi.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Bekor qilish"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              Navigator.pop(ctx);
-              final success = await ref
-                  .read(businessAccountProvider.notifier)
-                  .deleteAccount(accountId);
-              if (success) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text("$venueName o'chirildi!"),
-                    backgroundColor: const Color(0xFF0F172A),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("O'chirish"),
-          ),
-        ],
-      ),
-    );
   }
 }
