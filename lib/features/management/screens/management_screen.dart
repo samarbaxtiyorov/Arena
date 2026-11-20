@@ -11,6 +11,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
 import '../../kassa/providers/kassa_providers.dart';
+import 'analytics_screen.dart';
 import 'manage_products_screen.dart';
 import 'manage_tables_screen.dart';
 
@@ -187,7 +188,12 @@ class ManagementScreen extends ConsumerWidget {
               badgeTextColor: const Color(0xFF0369A1),
               subtitle: "Kunlik tushum, xarajat, savdo...",
               onTap: () {
-                _showAnalyticsDialog(context, ref);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AnalyticsScreen(),
+                  ),
+                );
               },
             ),
 
@@ -667,45 +673,6 @@ class ManagementScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Biznes Tahlili Dialogi ────────────────────────────────
-  void _showAnalyticsDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.trending_up_rounded, color: Color(0xFF0284C7)),
-            Gap(8),
-            Text("Biznes Tahlili"),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Bugungi jami savdo: 100% tahlil faol"),
-            Gap(10),
-            Text("• Eng ko'p daromad keltirgan maydon: Maydon 1"),
-            Text("• Eng ko'p sotilgan bar mahsuloti: Cola 0.5L"),
-            Text("• O'rtacha o'yin davomiyligi: 1 soat 15 daqiqa"),
-            Gap(10),
-            Text(
-              "Barcha o'yinlar to'liq Arxiv bo'limida saqlanmoqda.",
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Yopish"),
           ),
         ],
       ),
