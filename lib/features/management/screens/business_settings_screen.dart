@@ -487,7 +487,8 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
                           ),
                           const Gap(4),
                           Text(
-                            "Lokal Wi-Fi Rele",
+                            "Internetga ulangan Lokal Wi-Fi Relay",
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -497,7 +498,8 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
                             ),
                           ),
                           const Text(
-                            "(Internetsiz ishlaydi)",
+                            "(Router orqali lokal va internetsiz ishlaydi)",
+                            textAlign: TextAlign.center,
                             style: TextStyle(fontSize: 10, color: Color(0xFF10B981), fontWeight: FontWeight.bold),
                           ),
                         ],
