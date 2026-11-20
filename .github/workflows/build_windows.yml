@@ -17,6 +17,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
@@ -26,13 +32,30 @@ jobs:
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
       - name: Get Dependencies
         run: flutter pub get
 
       - name: Build Windows Release Executable
-        shell: cmd
+        shell: pwsh
         run: |
-          flutter build windows --release
+          flutter build windows --release -v 2>&1 | Tee-Object -FilePath build_output.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Flutter build failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+
+      - name: Publish Failure Log (if failed)
+        if: failure()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-failure
+          name: "Build Failure Log"
+          files: build_output.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package Windows Binary
         shell: pwsh
