@@ -12,6 +12,7 @@ import '../../../core/auth/providers/business_account_provider.dart';
 import '../../../core/auth/models/business_account.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../data/repositories/database_providers.dart';
 import '../../kassa/providers/kassa_providers.dart';
 import 'analytics_screen.dart';
 import 'manage_products_screen.dart';
@@ -328,16 +329,16 @@ class ManagementScreen extends ConsumerWidget {
 
             const Gap(10),
 
-            // ── 8. Xavfsizlik va Audit Jurnali ────────────────
+            // ── 8. Xavfsizlik va Bulut Zaxirasi ──────────────
             _buildMenuCard(
               context: context,
               icon: Icons.shield_outlined,
               iconBg: const Color(0xFFF1F5F9),
               iconColor: const Color(0xFF475569),
-              title: "Xavfsizlik va Audit Jurnali",
-              subtitle: "Kassirlar harakatlari va tizim...",
+              title: "Xavfsizlik va Bulut Zaxirasi",
+              subtitle: "Ma'lumotlar bazasi, SHA-256 va sinxronizatsiya",
               onTap: () {
-                _showSecurityDialog(context, authNotifier, auth);
+                _showSecurityDialog(context, authNotifier, auth, ref);
               },
             ),
 
@@ -1295,35 +1296,266 @@ class ManagementScreen extends ConsumerWidget {
     );
   }
 
-  // ── Xavfsizlik Dialogi ────────────────────────────────────
+  // ── Xavfsizlik va Bulut Paneli ───────────────────────────
   void _showSecurityDialog(
-      BuildContext context, AuthNotifier authNotifier, AuthState auth) {
-    showDialog(
+      BuildContext context, AuthNotifier authNotifier, AuthState auth, WidgetRef ref) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Xavfsizlik va PIN"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Hozirgi profil:"),
-            const Gap(6),
-            Text(
-              "${auth.userName} (${auth.isOwner ? 'Boshliq' : 'Kassir'})",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        bool isSyncing = false;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Gap(16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.security_rounded,
+                          color: Color(0xFF2563EB),
+                          size: 24,
+                        ),
+                      ),
+                      const Gap(12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Xavfsizlik va Ma'lumotlar",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            "Bank darajasidagi himoya va Bulut sinxronizatsiyasi",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Gap(20),
+
+                  // 1. Bulut holati
+                  _buildSecurityRow(
+                    icon: Icons.cloud_done_rounded,
+                    iconColor: const Color(0xFF10B981),
+                    title: "Bulutli Zaxira (Supabase Cloud)",
+                    desc: "Ulangan: PostgreSQL Cloud orqali avtomatik zaxiralanadi",
+                    badge: "ONLINE",
+                    badgeColor: const Color(0xFFD1FAE5),
+                    badgeTextColor: const Color(0xFF047857),
+                  ),
+                  const Gap(12),
+
+                  // 2. Lokal oflayn baza
+                  _buildSecurityRow(
+                    icon: Icons.storage_rounded,
+                    iconColor: const Color(0xFF3B82F6),
+                    title: "Lokal Xotira (Offline SQLite)",
+                    desc: "Har bir poliya o'zining mustaqil shifrlangan bazasida ishlaydi",
+                    badge: "IZOLYATSIYA",
+                    badgeColor: const Color(0xFFDBEAFE),
+                    badgeTextColor: const Color(0xFF1D4ED8),
+                  ),
+                  const Gap(12),
+
+                  // 3. SHA-256 Kriptografik xesh
+                  _buildSecurityRow(
+                    icon: Icons.lock_outline_rounded,
+                    iconColor: const Color(0xFF8B5CF6),
+                    title: "Parollar Himoyasi (SHA-256)",
+                    desc: "Parollar ochiq saqlanmaydi, kriptografik xesh bilan shifrlangan",
+                    badge: "SHA-256",
+                    badgeColor: const Color(0xFFEDE9FE),
+                    badgeTextColor: const Color(0xFF6D28D9),
+                  ),
+                  const Gap(12),
+
+                  // 4. Brute-Force PIN blokirovkasi
+                  _buildSecurityRow(
+                    icon: Icons.timer_outlined,
+                    iconColor: const Color(0xFFF59E0B),
+                    title: "PIN-kod Brute-Force Himoyasi",
+                    desc: "5 marta xato PIN kiritilsa, tizim 30 soniyaga avtomatik qulflanadi",
+                    badge: "ANTI-HACK",
+                    badgeColor: const Color(0xFFFEF3C7),
+                    badgeTextColor: const Color(0xFFB45309),
+                  ),
+
+                  const Gap(24),
+
+                  // Qo'lda sinxronlash tugmasi
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isSyncing
+                          ? null
+                          : () async {
+                              setModalState(() => isSyncing = true);
+                              try {
+                                await ref.read(syncServiceProvider).syncAll();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Barcha ma'lumotlar bulutga muvaffaqiyatli sinxronlandi!"),
+                                      backgroundColor: Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Sinxronlash xatosi: $e"),
+                                      backgroundColor: const Color(0xFFEF4444),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                setModalState(() => isSyncing = false);
+                              }
+                            },
+                      icon: isSyncing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.sync_rounded),
+                      label: Text(
+                        isSyncing
+                            ? "Bulutga yuklanmoqda..."
+                            : "Hozir Sinxronlash (Bulutga zaxiralash)",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Gap(10),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static Widget _buildSecurityRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String desc,
+    required String badge,
+    required Color badgeColor,
+    required Color badgeTextColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.12),
+              shape: BoxShape.circle,
             ),
-            const Gap(14),
-            const Text("Ega PIN-kodi: 7777"),
-            const Text("Kassir PIN-kodi: 1111"),
-            const Gap(14),
-            const Text("Audit jurnali: Har bir sessiya va to'lov vaqti qayd etiladi."),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Yopish"),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        badge,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: badgeTextColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Gap(3),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

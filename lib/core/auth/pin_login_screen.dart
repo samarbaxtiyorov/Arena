@@ -3,6 +3,7 @@
 // 4 xonali shaxsiy PIN (7777 - Ega, 1111 - Kassir)
 // ============================================
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -20,8 +21,47 @@ class PinLoginScreen extends ConsumerStatefulWidget {
 class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   String _enteredPin = '';
   String? _errorMessage;
+  int _failedAttempts = 0;
+  int _lockoutSeconds = 0;
+  Timer? _lockoutTimer;
+
+  @override
+  void dispose() {
+    _lockoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startLockout() {
+    setState(() {
+      _lockoutSeconds = 30;
+      _enteredPin = '';
+      _errorMessage = "Xavfsizlik blokirovkasi: 5 marta xato PIN! 30 soniya kuting.";
+    });
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_lockoutSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _lockoutSeconds = 0;
+          _failedAttempts = 0;
+          _errorMessage = null;
+        });
+      } else {
+        setState(() {
+          _lockoutSeconds--;
+          _errorMessage =
+              "Xavfsizlik blokirovkasi: 5 marta xato PIN! $_lockoutSeconds soniya kuting.";
+        });
+      }
+    });
+  }
 
   void _onDigitPress(String digit) {
+    if (_lockoutSeconds > 0) return;
     if (_enteredPin.length < 4) {
       setState(() {
         _enteredPin += digit;
@@ -35,6 +75,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   }
 
   void _onBackspace() {
+    if (_lockoutSeconds > 0) return;
     if (_enteredPin.isNotEmpty) {
       setState(() {
         _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
@@ -44,6 +85,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   }
 
   void _onClear() {
+    if (_lockoutSeconds > 0) return;
     setState(() {
       _enteredPin = '';
       _errorMessage = null;
@@ -57,6 +99,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
 
     // 1. Agar Boshliqning shaxsiy PIN-kodi kiritilgan bo'lsa
     if (activeVenue != null && _enteredPin == activeVenue.ownerPin) {
+      _failedAttempts = 0;
       ref.read(authProvider.notifier).loginAsOwner(
             ownerName: activeVenue.ownerName,
             phone: activeVenue.phone,
@@ -66,11 +109,19 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
 
     // 2. Agar kassirlardan birortasining PIN-kodi kiritilgan bo'lsa
     final success = ref.read(authProvider.notifier).verifyPin(_enteredPin, staffList: staffList);
-    if (!success) {
-      setState(() {
-        _errorMessage = "Noto'g'ri PIN-kod!";
-        _enteredPin = '';
-      });
+    if (success) {
+      _failedAttempts = 0;
+    } else {
+      _failedAttempts++;
+      if (_failedAttempts >= 5) {
+        _startLockout();
+      } else {
+        final remaining = 5 - _failedAttempts;
+        setState(() {
+          _errorMessage = "Noto'g'ri PIN-kod! (Qolgan urinishlar: $remaining)";
+          _enteredPin = '';
+        });
+      }
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../utils/security_helper.dart';
 import '../models/business_account.dart';
 
 const String _accountsPrefKey = 'arena_business_accounts_v2';
@@ -147,7 +148,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       venueName: cleanVenue,
       ownerName: cleanOwner,
       phone: cleanPhone,
-      password: cleanPass,
+      password: SecurityHelper.hashPassword(cleanPass),
       ownerPin: cleanPin.isNotEmpty ? cleanPin : '7777',
       licenseType: 'PREMIUM VIP',
       createdAt: DateTime.now(),
@@ -177,7 +178,9 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
 
     try {
       final match = state.accounts.firstWhere(
-        (a) => a.phone == cleanPhone && a.password == cleanPass,
+        (a) =>
+            a.phone == cleanPhone &&
+            SecurityHelper.verifyPassword(cleanPass, a.password),
       );
 
       final prefs = await SharedPreferences.getInstance();
@@ -231,7 +234,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       ownerName: ownerName.trim(),
       phone: phone.trim(),
       password: (newPassword != null && newPassword.trim().isNotEmpty)
-          ? newPassword.trim()
+          ? SecurityHelper.hashPassword(newPassword)
           : current.password,
       ownerPin: (newOwnerPin != null && newOwnerPin.trim().length == 4)
           ? newOwnerPin.trim()
