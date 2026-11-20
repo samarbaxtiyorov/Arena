@@ -108,8 +108,9 @@ class _CustomerTileState extends ConsumerState<CustomerTile> {
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFF0F172A),
                               ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                             ),
                             const Gap(3),
                             Text(
