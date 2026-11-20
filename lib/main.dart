@@ -34,11 +34,8 @@ class _ArenaAppState extends ConsumerState<ArenaApp> {
   @override
   void initState() {
     super.initState();
-    // Ilovani ochganda sinxronizatsiyani boshlash va boshlang'ich ma'lumotlar
+    // Ilovani ochganda davriy sinxronizatsiyani ishga tushirish
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final db = ref.read(appDatabaseProvider);
-      await db.seedInitialData();
-
       final syncService = ref.read(syncServiceProvider);
       syncService.startPeriodicSync();
     });

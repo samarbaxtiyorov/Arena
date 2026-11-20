@@ -1,6 +1,6 @@
 // ============================================
 // Arena — Xodimlar va Kassirlar Provideri
-// SharedPreferences orqali xodimlar va ularning PIN-kodlarini saqlash
+// Har bir biznes/poliya hisobi uchun alohida ajratilgan xodimlar va PIN-kodlar
 // ============================================
 
 import 'dart:convert';
@@ -8,9 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/auth/providers/business_account_provider.dart';
 import '../models/staff_member.dart';
-
-const String _staffPrefKey = 'arena_staff_members_v1';
 
 final defaultStaffList = [
   StaffMember(
@@ -34,17 +33,48 @@ final defaultStaffList = [
 ];
 
 class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
+  String get _currentKey {
+    final activeId =
+        ref.read(businessAccountProvider).activeAccount?.id ?? 'samar-arena';
+    return 'arena_staff_members_$activeId';
+  }
+
   @override
   Future<List<StaffMember>> build() async {
+    // Faol hisob o'zgarganda xodimlar ro'yxati avtomatik qayta yuklanadi
+    ref.watch(businessAccountProvider.select((s) => s.activeAccount?.id));
     return _loadStaff();
   }
 
   Future<List<StaffMember>> _loadStaff() async {
+    final activeAccount = ref.read(businessAccountProvider).activeAccount;
+    final accountId = activeAccount?.id ?? 'samar-arena';
+    final key = 'arena_staff_members_$accountId';
+
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_staffPrefKey);
+    final raw = prefs.getString(key);
+
+    List<StaffMember> initialList;
+    if (accountId == 'samar-arena' || accountId == 'default') {
+      initialList = defaultStaffList;
+    } else {
+      // Yangi hisob uchun faqat shu hisobning egasi boshlang'ich bo'ladi
+      initialList = [
+        StaffMember(
+          id: 'owner-$accountId',
+          name: activeAccount?.ownerName ?? 'Biznes Egasi',
+          phone: activeAccount?.phone ?? '',
+          role: StaffRole.owner,
+          pin: activeAccount?.ownerPin ?? '7777',
+          isActive: true,
+          createdAt: DateTime.now(),
+        ),
+      ];
+    }
+
     if (raw == null || raw.trim().isEmpty) {
-      await _saveList(defaultStaffList);
-      return defaultStaffList;
+      await _saveList(initialList);
+      return initialList;
     }
 
     try {
@@ -53,20 +83,20 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
           .map((item) => StaffMember.fromJson(item as Map<String, dynamic>))
           .toList();
       if (list.isEmpty) {
-        await _saveList(defaultStaffList);
-        return defaultStaffList;
+        await _saveList(initialList);
+        return initialList;
       }
       return list;
     } catch (_) {
-      await _saveList(defaultStaffList);
-      return defaultStaffList;
+      await _saveList(initialList);
+      return initialList;
     }
   }
 
   Future<void> _saveList(List<StaffMember> list) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(list.map((e) => e.toJson()).toList());
-    await prefs.setString(_staffPrefKey, jsonStr);
+    await prefs.setString(_currentKey, jsonStr);
   }
 
   Future<bool> addStaff({
@@ -77,7 +107,6 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
   }) async {
     final currentList = state.value ?? [];
 
-    // PIN 4 xonali ekanini va band emasligini tekshirish
     if (pin.length != 4) return false;
     if (currentList.any((s) => s.pin == pin)) {
       return false; // Ushbu PIN allaqachon mavjud
@@ -102,7 +131,6 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
   Future<bool> updateStaff(StaffMember member) async {
     final currentList = state.value ?? [];
 
-    // Agar PIN o'zgargan bo'lsa, boshqa xodim bilan to'qnashmasligini tekshirish
     final conflict =
         currentList.any((s) => s.id != member.id && s.pin == member.pin);
     if (conflict) return false;
@@ -118,7 +146,6 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
     if (newPin.length != 4) return false;
     final currentList = state.value ?? [];
 
-    // Boshqa xodimda bu PIN bormi?
     final conflict = currentList.any((s) => s.id != id && s.pin == newPin);
     if (conflict) return false;
 
@@ -139,7 +166,6 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
     final target = currentList.firstWhere((s) => s.id == id,
         orElse: () => currentList.first);
 
-    // Xavfsizlik: Tizimda kamida bitta Boshliq bo'lishi shart
     if (target.isOwner) {
       final ownersCount = currentList.where((s) => s.isOwner).length;
       if (ownersCount <= 1) return false;

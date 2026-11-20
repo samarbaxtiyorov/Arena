@@ -3,13 +3,16 @@
 // ============================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/auth/providers/business_account_provider.dart';
 import '../local/app_database.dart';
 import '../remote/supabase_remote.dart';
 import '../sync/sync_service.dart';
 
-// Singleton baza
+// Har bir faol biznes hisobi uchun alohida ajratilgan baza
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
+  final businessState = ref.watch(businessAccountProvider);
+  final activeId = businessState.activeAccount?.id ?? 'samar-arena';
+  final db = AppDatabase.forAccount(activeId);
   ref.onDispose(db.close);
   return db;
 });

@@ -3,6 +3,7 @@
 // Barcha jadvallar va DAO lar shu yerda
 // ============================================
 
+import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -45,7 +46,14 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+  final String accountId;
+
+  AppDatabase([QueryExecutor? executor, this.accountId = 'samar-arena'])
+      : super(executor ?? openConnectionForAccount(accountId));
+
+  factory AppDatabase.forAccount(String accountId) {
+    return AppDatabase(openConnectionForAccount(accountId), accountId);
+  }
 
   @override
   int get schemaVersion => 1;
@@ -54,18 +62,19 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      await seedInitialData();
+      final isDemoAccount = accountId == 'samar-arena' || accountId == 'default';
+      await seedInitialData(includeDemoSession: isDemoAccount);
     },
     onUpgrade: (m, from, to) async {
       // Keyingi versiyalar uchun
     },
   );
 
-  // Boshlang'ich ma'lumotlar (Skrinshotlar bilan 1:1)
-  Future<void> seedInitialData() async {
+  // Boshlang'ich ma'lumotlar
+  Future<void> seedInitialData({bool includeDemoSession = false}) async {
     final now = DateTime.now();
 
-    // 1. Maydonlar va Stollar (Skrinshot 6: Maydon 1, 100 000 so'm/soat)
+    // 1. Maydonlar va Stollar
     final initialTables = [
       ClubTablesCompanion.insert(
         id: '1', name: 'Maydon 1', type: 'football',
@@ -136,34 +145,50 @@ class AppDatabase extends _$AppDatabase {
       await into(products).insertOnConflictUpdate(prod);
     }
 
-    // 3. Maydon 1 uchun jonli sessiya (Skrinshot 6 bilan 1:1)
-    final existingSession = await (select(sessions)
-          ..where((s) => s.tableId.equals('1') & s.status.equals('active')))
-        .get();
-    if (existingSession.isEmpty) {
-      await into(sessions).insertOnConflictUpdate(
-        SessionsCompanion.insert(
-          id: 'demo_session_1',
-          tableId: '1',
-          startedAt: now.subtract(const Duration(seconds: 8)),
-          status: const Value('active'),
-          totalAmount: const Value(1000),
-          createdAt: Value(now),
-          updatedAt: Value(now),
-        ),
-      );
+    // 3. Faqat dastlabki demo hisob uchun demo sessiya (Yangi akkauntlarda sessiyalar toza va 0 bo'ladi)
+    if (includeDemoSession) {
+      final existingSession = await (select(sessions)
+            ..where((s) => s.tableId.equals('1') & s.status.equals('active')))
+          .get();
+      if (existingSession.isEmpty) {
+        await into(sessions).insertOnConflictUpdate(
+          SessionsCompanion.insert(
+            id: 'demo_session_1',
+            tableId: '1',
+            startedAt: now.subtract(const Duration(seconds: 8)),
+            status: const Value('active'),
+            totalAmount: const Value(1000),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+      }
     }
   }
 }
 
-// Baza faylini ochish
-QueryExecutor _openConnection() {
+// Har bir biznes hisobi uchun alohida baza faylini ochish
+QueryExecutor openConnectionForAccount(String accountId) {
+  final safeId = accountId.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
   return driftDatabase(
-    name: 'arena',
+    name: 'arena_$safeId',
     native: DriftNativeOptions(
       databasePath: () async {
         final dir = await getApplicationDocumentsDirectory();
-        return p.join(dir.path, 'arena.db');
+        final newPath = p.join(dir.path, 'arena_$safeId.db');
+        final oldPath = p.join(dir.path, 'arena.db');
+
+        // Agar samar-arena yoki default bo'lsa va eski arena.db mavjud bo'lsa, uni ko'chirish
+        if (safeId == 'samar_arena' || safeId == 'samar-arena' || safeId == 'default') {
+          final oldFile = File(oldPath);
+          final newFile = File(newPath);
+          if (oldFile.existsSync() && !newFile.existsSync()) {
+            try {
+              oldFile.copySync(newPath);
+            } catch (_) {}
+          }
+        }
+        return newPath;
       },
     ),
   );

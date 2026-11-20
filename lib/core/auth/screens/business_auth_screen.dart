@@ -425,14 +425,36 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                         ],
                       ),
                     ),
-                    const Text(
-                      'Tanlash',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF2563EB),
-                        fontWeight: FontWeight.w700,
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _loginPhoneCtrl.text = acc.phone;
+                          _loginPassCtrl.text = acc.password;
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Text(
+                          'Tanlash',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
+                    if (businessState.accounts.length > 1) ...[
+                      const Gap(4),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 16, color: Color(0xFFEF4444)),
+                        onPressed: () => _confirmDeleteAccount(context, acc.id, acc.venueName),
+                        tooltip: "Hisobni o'chirish",
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -674,9 +696,10 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
     if (success) {
       final active = ref.read(businessAccountProvider).activeAccount;
       if (active != null) {
-        // Auth providerni ham ushbu Boshliq nomiga sozlash
-        ref.read(authProvider.notifier).login();
-        ref.read(authProvider.notifier).switchRole(UserRole.owner);
+        ref.read(authProvider.notifier).loginAsOwner(
+              ownerName: active.ownerName,
+              phone: active.phone,
+            );
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -737,8 +760,13 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         );
 
     if (success) {
-      ref.read(authProvider.notifier).login();
-      ref.read(authProvider.notifier).switchRole(UserRole.owner);
+      final active = ref.read(businessAccountProvider).activeAccount;
+      if (active != null) {
+        ref.read(authProvider.notifier).loginAsOwner(
+              ownerName: active.ownerName,
+              phone: active.phone,
+            );
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -758,5 +786,52 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         );
       }
     }
+  }
+
+  void _confirmDeleteAccount(BuildContext context, String accountId, String venueName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444)),
+            Gap(8),
+            Text("Hisobni O'chirish"),
+          ],
+        ),
+        content: Text(
+          "$venueName hisobini butunlay o'chirmoqchimisiz?\nUshbu hisobga tegishli barcha alohida ma'lumotlar o'chiriladi.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Bekor qilish"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(ctx);
+              final success = await ref
+                  .read(businessAccountProvider.notifier)
+                  .deleteAccount(accountId);
+              if (success) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text("$venueName o'chirildi!"),
+                    backgroundColor: const Color(0xFF0F172A),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("O'chirish"),
+          ),
+        ],
+      ),
+    );
   }
 }

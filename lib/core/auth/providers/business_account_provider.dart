@@ -239,6 +239,25 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       activeAccount: updatedAcc,
     );
   }
+
+  Future<bool> deleteAccount(String accountId) async {
+    if (state.accounts.length <= 1) return false;
+    final updated = state.accounts.where((a) => a.id != accountId).toList();
+    await _saveAccounts(updated);
+
+    final prefs = await SharedPreferences.getInstance();
+    if (state.activeAccount?.id == accountId) {
+      final newActive = updated.first;
+      await prefs.setString(_activeAccountIdPrefKey, newActive.id);
+      state = state.copyWith(
+        accounts: updated,
+        activeAccount: newActive,
+      );
+    } else {
+      state = state.copyWith(accounts: updated);
+    }
+    return true;
+  }
 }
 
 final businessAccountProvider =

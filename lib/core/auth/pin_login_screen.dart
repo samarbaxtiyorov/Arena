@@ -57,8 +57,10 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
 
     // 1. Agar Boshliqning shaxsiy PIN-kodi kiritilgan bo'lsa
     if (activeVenue != null && _enteredPin == activeVenue.ownerPin) {
-      ref.read(authProvider.notifier).login();
-      ref.read(authProvider.notifier).switchRole(UserRole.owner);
+      ref.read(authProvider.notifier).loginAsOwner(
+            ownerName: activeVenue.ownerName,
+            phone: activeVenue.phone,
+          );
       return;
     }
 

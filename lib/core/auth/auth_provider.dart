@@ -80,6 +80,15 @@ class AuthNotifier extends Notifier<AuthState> {
     return false;
   }
 
+  void loginAsOwner({required String ownerName, required String phone}) {
+    state = state.copyWith(
+      isAuthenticated: true,
+      role: UserRole.owner,
+      userName: ownerName,
+      phone: phone,
+    );
+  }
+
   void loginAsStaff(StaffMember staff) {
     state = state.copyWith(
       isAuthenticated: true,
