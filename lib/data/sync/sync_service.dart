@@ -206,8 +206,8 @@ class SyncService {
       for (final row in rows) {
         final createdStr = row['created_at'] as String?;
         final updatedStr = row['updated_at'] as String?;
-        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
-        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr)?.toLocal() : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr)?.toLocal() : null;
 
         await _db.clubTablesDao.insertTable(ClubTablesCompanion.insert(
           id: row['id'] as String,
@@ -237,8 +237,8 @@ class SyncService {
         final noteValue = row['note'] as String? ?? row['notes'] as String?;
         final createdStr = row['created_at'] as String?;
         final updatedStr = row['updated_at'] as String?;
-        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
-        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr)?.toLocal() : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr)?.toLocal() : null;
 
         await _db.customersDao.insertCustomer(CustomersCompanion.insert(
           id:        row['id'] as String,
@@ -268,8 +268,8 @@ class SyncService {
             ((row['remaining_amount'] as num?)?.toInt() ?? 0);
         final createdStr = row['created_at'] as String?;
         final updatedStr = row['updated_at'] as String?;
-        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
-        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr)?.toLocal() : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr)?.toLocal() : null;
 
         await _db.debtsDao.insertDebt(DebtsCompanion.insert(
           id: row['id'] as String,
@@ -301,8 +301,8 @@ class SyncService {
             ((row['stock'] as num?)?.toInt() ?? 0);
         final createdStr = row['created_at'] as String?;
         final updatedStr = row['updated_at'] as String?;
-        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
-        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr)?.toLocal() : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr)?.toLocal() : null;
 
         await _db.productsDao.insertProduct(ProductsCompanion.insert(
           id:       row['id'] as String,
@@ -334,21 +334,21 @@ class SyncService {
     'hourly_rate': t.pricePerHour,
     'is_active':   t.isActive,
     'sort_order':  t.sortOrder,
-    'created_at':  t.createdAt.toIso8601String(),
+    'created_at':  t.createdAt.toUtc().toIso8601String(),
   };
 
   Map<String, dynamic> _sessionToMap(Session s) => {
     'id':               s.id,
     'business_id':      _remote.businessId,
     'table_id':         s.tableId,
-    'started_at':       s.startedAt.toIso8601String(),
-    'ended_at':         s.endedAt?.toIso8601String(),
+    'started_at':       s.startedAt.toUtc().toIso8601String(),
+    'ended_at':         s.endedAt?.toUtc().toIso8601String(),
     'duration_seconds': s.durationMin * 60,
     'total_amount':     s.totalAmount,
     'status':           s.status,
     'customer_id':      s.customerId,
     'payment_method':   s.paymentType,
-    'created_at':       s.createdAt.toIso8601String(),
+    'created_at':       s.createdAt.toUtc().toIso8601String(),
   };
 
   Map<String, dynamic> _customerToMap(Customer c) => {
@@ -358,8 +358,8 @@ class SyncService {
     'phone':       c.phone,
     'note':        c.notes,
     'total_debt':  c.totalDebt,
-    'created_at':  c.createdAt.toIso8601String(),
-    'updated_at':  c.updatedAt.toIso8601String(),
+    'created_at':  c.createdAt.toUtc().toIso8601String(),
+    'updated_at':  c.updatedAt.toUtc().toIso8601String(),
   };
 
   Future<Map<String, dynamic>> _debtToMap(Debt d) async {
@@ -373,8 +373,8 @@ class SyncService {
       'amount':           d.amount,
       'remaining_amount': d.amount,
       'description':      d.description,
-      'created_at':       d.createdAt.toIso8601String(),
-      'updated_at':       d.updatedAt.toIso8601String(),
+      'created_at':       d.createdAt.toUtc().toIso8601String(),
+      'updated_at':       d.updatedAt.toUtc().toIso8601String(),
     };
   }
 
@@ -386,7 +386,7 @@ class SyncService {
     'stock_quantity': p.stock,
     'category':       p.category,
     'is_active':      p.isActive,
-    'created_at':     p.createdAt.toIso8601String(),
+    'created_at':     p.createdAt.toUtc().toIso8601String(),
   };
 }
 

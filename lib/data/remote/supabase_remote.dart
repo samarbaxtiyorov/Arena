@@ -38,12 +38,13 @@ class SupabaseRemote {
 
   Future<List<Map<String, dynamic>>> fetchSessions({
     DateTime? since,
+    int limit = 500,
   }) async {
     var query = _client.from('sessions').select().eq('business_id', businessId);
     if (since != null) {
-      query = query.gte('updated_at', since.toIso8601String());
+      query = query.gte('updated_at', since.toUtc().toIso8601String());
     }
-    return await query.order('started_at', ascending: false);
+    return await query.order('started_at', ascending: false).limit(limit);
   }
 
   // ── customers ────────────────────────────────
@@ -52,12 +53,13 @@ class SupabaseRemote {
     await _client.from('customers').upsert(data);
   }
 
-  Future<List<Map<String, dynamic>>> fetchCustomers() async {
+  Future<List<Map<String, dynamic>>> fetchCustomers({int limit = 500}) async {
     return await _client
         .from('customers')
         .select()
         .eq('business_id', businessId)
-        .order('name');
+        .order('name')
+        .limit(limit);
   }
 
   // ── debts ────────────────────────────────────
@@ -68,12 +70,13 @@ class SupabaseRemote {
 
   Future<List<Map<String, dynamic>>> fetchDebts({
     String? customerId,
+    int limit = 500,
   }) async {
     var query = _client.from('debts').select().eq('business_id', businessId);
     if (customerId != null) {
       query = query.eq('customer_id', customerId);
     }
-    return await query.order('created_at', ascending: false);
+    return await query.order('created_at', ascending: false).limit(limit);
   }
 
   // ── products ─────────────────────────────────
@@ -82,12 +85,13 @@ class SupabaseRemote {
     await _client.from('products').upsert(data);
   }
 
-  Future<List<Map<String, dynamic>>> fetchProducts() async {
+  Future<List<Map<String, dynamic>>> fetchProducts({int limit = 500}) async {
     return await _client
         .from('products')
         .select()
         .eq('business_id', businessId)
-        .order('name');
+        .order('name')
+        .limit(limit);
   }
 
   // ── Ulanish tekshiruvi ───────────────────────

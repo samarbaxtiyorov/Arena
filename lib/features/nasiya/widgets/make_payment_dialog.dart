@@ -194,6 +194,7 @@ class _MakePaymentDialogState extends ConsumerState<MakePaymentDialog> {
                 controller: _amountController,
                 autofocus: true,
                 keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -221,6 +222,31 @@ class _MakePaymentDialogState extends ConsumerState<MakePaymentDialog> {
                   ),
                 ),
               ),
+
+              // Ortiqcha to'lov ogohlantirishi
+              if ((int.tryParse(_amountController.text.trim()) ?? 0) > widget.customer.totalDebt && widget.customer.totalDebt > 0) ...[
+                const Gap(8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, color: Color(0xFFB45309), size: 16),
+                      const Gap(6),
+                      Expanded(
+                        child: Text(
+                          "Diqqat: To'lov qarzdan ortiq (${formatSum((int.tryParse(_amountController.text.trim()) ?? 0) - widget.customer.totalDebt)} avans bo'lib qoladi)",
+                          style: const TextStyle(fontSize: 11, color: Color(0xFFB45309), fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const Gap(14),
 

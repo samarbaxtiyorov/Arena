@@ -90,6 +90,16 @@ class _AddProductDialogState extends ConsumerState<AddProductDialog> {
       return;
     }
 
+    if (stock < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Zaxira miqdori manfiy bo\'lishi mumkin emas!'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {

@@ -59,6 +59,11 @@ class TablesController {
 
   // Sessiyani boshlash
   Future<void> startSession(String tableId, {String? customerId}) async {
+    final existingActive = await _db.sessionsDao.getActiveSessionForTable(tableId);
+    if (existingActive != null) {
+      // Stol allaqachon band! Ikkinchi parallel sessiya ochish taqiqlanadi
+      return;
+    }
     final now = DateTime.now();
     final newSession = SessionsCompanion.insert(
       id: _uuid.v4(),

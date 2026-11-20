@@ -503,6 +503,7 @@ class ManagementScreen extends ConsumerWidget {
       return;
     }
 
+    int attempts = 0;
     final pinCtrl = TextEditingController();
     showDialog(
       context: context,
@@ -569,13 +570,24 @@ class ManagementScreen extends ConsumerWidget {
                 Navigator.pop(ctx);
                 onAllowed();
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text("Boshliq PIN-kodi noto'g'ri! Kirish rad etildi."),
-                    backgroundColor: Color(0xFFEF4444),
-                  ),
-                );
+                attempts++;
+                if (attempts >= 3) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("3 marta xato PIN! Xavfsizlik tufayli ruxsat berilmadi."),
+                      backgroundColor: Color(0xFFEF4444),
+                    ),
+                  );
+                } else {
+                  pinCtrl.clear();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Boshliq PIN-kodi noto'g'ri! Qolgan urinishlar: ${3 - attempts} ta"),
+                      backgroundColor: const Color(0xFFEF4444),
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
