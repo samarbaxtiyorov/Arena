@@ -152,10 +152,14 @@ function isDateInRange(dateStr, range) {
 // 3. MA'LUMOTLARNI YUKLASH VA HISOB-KITOB
 // =========================================================
 async function fetchAllData() {
+  if (!state.venue || !state.venue.id) {
+    checkAuth();
+    return;
+  }
   setLoadingState(true);
 
   try {
-    const bizId = state.venue?.id || 'biz_arena_sport';
+    const bizId = state.venue.id;
 
     // 1. Maydonlar va Stollar
     const { data: tablesData } = await supabaseClient
@@ -592,28 +596,31 @@ function renderLowStockAlerts() {
 // 5. SUPABASE REALTIME WEBSOCKET OBUNALARI
 // =========================================================
 function subscribeToRealtimeUpdates() {
-  const bizId = state.venue?.id || 'biz_arena_sport';
+  if (!state.venue || !state.venue.id) return;
+  const bizId = state.venue.id;
   console.log("⚡ [Realtime] Supabase kanaliga ulanish: ", bizId);
 
   supabaseClient
     .channel('arena-boss-channel')
     // 1. Sessiyalar (O'yinlar boshlanishi va tugashi)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, payload => {
-      console.log("🔔 [Realtime] Sessiya yangilandi:", payload);
-      const session = payload.new;
+      const session = payload.new || payload.old;
+      if (session && session.business_id && session.business_id !== bizId) return;
 
-      if (payload.eventType === 'INSERT') {
+      console.log("🔔 [Realtime] Sessiya yangilandi:", payload);
+
+      if (payload.eventType === 'INSERT' && payload.new) {
         showToast({
           title: "O'yin Boshlandi",
-          message: `Stol ID: ${session.table_id} da yangi o'yin boshlandi`,
+          message: `Stol ID: ${payload.new.table_id} da yangi o'yin boshlandi`,
           type: 'info'
         });
         playChime(false);
-      } else if (payload.eventType === 'UPDATE' && session.status === 'finished') {
-        const amount = session.total_amount || 0;
+      } else if (payload.eventType === 'UPDATE' && payload.new && payload.new.status === 'finished') {
+        const amount = payload.new.total_amount || 0;
         showToast({
           title: "O'yin Yakunlandi & To'lov",
-          message: `${session.payment_method || 'Naqd'} orqali to'lov qabul qilindi`,
+          message: `${payload.new.payment_method || 'Naqd'} orqali to'lov qabul qilindi`,
           type: 'payment',
           amount: amount
         });
@@ -629,9 +636,11 @@ function subscribeToRealtimeUpdates() {
     })
     // 2. Qarzlar va To'lovlar
     .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, payload => {
+      const debt = payload.new || payload.old;
+      if (debt && debt.business_id && debt.business_id !== bizId) return;
+
       console.log("💳 [Realtime] Qarz o'zgardi:", payload);
-      const debt = payload.new;
-      if (debt.amount < 0) {
+      if (debt && debt.amount < 0) {
         showToast({
           title: "Qarz To'landi",
           message: `${debt.customer_name || 'Mijoz'} qarzini so'ndirdi`,
@@ -644,11 +653,17 @@ function subscribeToRealtimeUpdates() {
     })
     // 3. Do'kon mahsulotlari (Bar savdosi)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
+      const prod = payload.new || payload.old;
+      if (prod && prod.business_id && prod.business_id !== bizId) return;
+
       console.log("📦 [Realtime] Tovar yangilandi:", payload);
       fetchAllData();
     })
     // 4. Stollar holati
     .on('postgres_changes', { event: '*', schema: 'public', table: 'club_tables' }, payload => {
+      const tbl = payload.new || payload.old;
+      if (tbl && tbl.business_id && tbl.business_id !== bizId) return;
+
       console.log("🎱 [Realtime] Stollar yangilandi:", payload);
       fetchAllData();
     })
@@ -663,17 +678,56 @@ function subscribeToRealtimeUpdates() {
 }
 
 // =========================================================
-// 6. AVTORIZATSIYA VA TIZIMGA KIRISH (AUTH)
+// 6. AVTORIZATSIYA VA TIZIMGA QAT'IY KIRISH (AUTH & SECURITY)
 // =========================================================
+const ARENA_SALT = 'arena_venue_secure_salt_2026';
+
+// SHA-256 xeshlash (Web Crypto API)
+async function computeSha256(str) {
+  const enc = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Parolni tekshirish (Flutter SecurityHelper bilan to'liq mos keladi)
+async function verifyBossPassword(inputPassword, storedHashOrPassword) {
+  if (!storedHashOrPassword || !inputPassword) return false;
+  const cleanInput = inputPassword.trim();
+  const stored = storedHashOrPassword.trim();
+
+  // 1. Tuzlangan SHA-256 (Arena asosiy xavfsizlik standarti)
+  const saltedHash = await computeSha256(`${ARENA_SALT}:${cleanInput}`);
+  if (saltedHash.toLowerCase() === stored.toLowerCase()) {
+    return true;
+  }
+
+  // 2. Oddiy SHA-256 (tuzsiz fallback)
+  const plainHash = await computeSha256(cleanInput);
+  if (plainHash.toLowerCase() === stored.toLowerCase()) {
+    return true;
+  }
+
+  // 3. Ochiq matn (eski hisoblar uchun)
+  if (cleanInput === stored) {
+    return true;
+  }
+
+  return false;
+}
+
 function checkAuth() {
   const savedVenue = localStorage.getItem('arena_boss_venue');
   if (savedVenue) {
     try {
-      state.venue = JSON.parse(savedVenue);
-      document.getElementById('venue-name-display').textContent = state.venue.name || 'Arena Majmuasi';
-      document.getElementById('auth-modal').classList.add('hidden');
-      initDashboard();
-      return;
+      const parsed = JSON.parse(savedVenue);
+      if (parsed && parsed.id && parsed.name) {
+        state.venue = parsed;
+        document.getElementById('venue-name-display').textContent = state.venue.name;
+        document.getElementById('auth-modal').classList.add('hidden');
+        initDashboard();
+        return;
+      }
     } catch (_) {}
   }
 
@@ -681,7 +735,7 @@ function checkAuth() {
   document.getElementById('auth-modal').classList.remove('hidden');
 }
 
-// Kirish formasi
+// Kirish formasi (Qat'iy xavfsizlik — har qanday raqam bilan kirish taqiqlangan!)
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const phone = document.getElementById('login-phone').value.trim();
@@ -689,29 +743,73 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   const errorEl = document.getElementById('login-error');
   const btn = document.getElementById('btn-submit-login');
 
+  if (!phone || !pass) {
+    errorEl.textContent = "Telefon raqami va parolni to'liq kiriting!";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (cleanPhone.length < 7) {
+    errorEl.textContent = "Telefon raqami juda qisqa! Raqamni to'liq kiriting.";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  const last9 = cleanPhone.slice(-9);
+
   btn.disabled = true;
   btn.innerHTML = '<span>Tekshirilmoqda...</span>';
   errorEl.classList.add('hidden');
 
   try {
-    // 1. Supabase cloud_accounts dan tekshirish
-    const cleanPhone = phone.replace(/\D/g, '');
+    // 1. Supabase cloud_accounts dan haqiqiy hisoblarni tekshirish
     const { data: accounts, error } = await supabaseClient
       .from('cloud_accounts')
-      .select('*')
-      .limit(10);
+      .select('*');
 
-    // Agar hisob topilsa yoki boshliq kirsa
-    let matched = null;
-    if (accounts && accounts.length > 0) {
-      matched = accounts.find(a => a.phone && a.phone.replace(/\D/g, '').includes(cleanPhone));
+    if (error) {
+      throw new Error("Supabase bulutiga ulanishda xatolik: " + error.message);
     }
 
-    // Default boshliq hisobi fallback
+    if (!accounts || accounts.length === 0) {
+      errorEl.textContent = "Bulutli bazada hali birorta ham muassasa ro'yxatdan o'tmagan! Iltimos, avval Arena ilovasida muassasangizni ro'yxatdan o'tkazing.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Telefon raqam bo'yicha qat'iy qidirish (oxirgi 9 raqam orqali moslik)
+    const matched = accounts.find(a => {
+      const aPhone = (a.phone || '').replace(/\D/g, '');
+      return aPhone.endsWith(last9) || cleanPhone.endsWith(aPhone.slice(-9));
+    });
+
+    if (!matched) {
+      errorEl.textContent = "Bunday telefon raqamli muassasa mavjud emas! Iltimos, Arena ilovasida ro'yxatdan o'tgan raqamni kiriting.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Bloklanganlik tekshiruvi
+    if (matched.is_blocked === true) {
+      errorEl.textContent = "Ushbu hisob bloklangan! Xizmat ko'rsatish muddati yoki administrator tomonidan to'xtatilgan.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Parolni qat'iy tekshirish
+    const isValidPass = await verifyBossPassword(pass, matched.pin_hash);
+    if (!isValidPass) {
+      errorEl.textContent = "Parol noto'g'ri! Iltimos, Arena ilovasidagi boshliq parolini kiriting.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Muvaffaqiyatli autentifikatsiya
     const venueObj = {
-      id: matched?.business_id || 'biz_arena_sport',
-      name: matched?.business_name || 'Arena Sport Majmuasi',
-      phone: phone
+      id: matched.business_id,
+      name: matched.business_name || 'Arena Majmuasi',
+      phone: matched.phone || phone,
+      license_until: matched.license_until
     };
 
     localStorage.setItem('arena_boss_venue', JSON.stringify(venueObj));
@@ -723,7 +821,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     initDashboard();
 
   } catch (err) {
-    errorEl.textContent = "Ulanish xatosi: " + err.message;
+    errorEl.textContent = "Kirishda xatolik: " + err.message;
     errorEl.classList.remove('hidden');
   } finally {
     btn.disabled = false;
