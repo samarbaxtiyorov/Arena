@@ -30,17 +30,9 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows Release Executable
-        shell: pwsh
+        shell: cmd
         run: |
-          flutter build windows --release --verbose
-
-      - name: Upload Build Failure Logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build-failure-logs
-          path: |
-            build/windows/**/*.log
+          flutter build windows --release
 
       - name: Package Windows Binary
         shell: pwsh
