@@ -340,6 +340,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                 // Boshqa hisobga o'tish / Yangi hisob ochish
                 TextButton.icon(
                   onPressed: () {
+                    ref.read(authProvider.notifier).logout();
                     ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
                   },
                   icon: const Icon(Icons.switch_account_rounded,

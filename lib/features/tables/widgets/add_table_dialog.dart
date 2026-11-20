@@ -8,6 +8,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../data/local/app_database.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
@@ -87,6 +88,18 @@ class _AddTableDialogState extends ConsumerState<AddTableDialog> {
         const SnackBar(
           content: Text('Soatlik narxni to\'g\'ri kiriting!'),
           backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final auth = ref.read(authProvider);
+    if (auth.isCashier) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Kassirga maydon qo'shish yoki tahrirlash huquqi berilmagan! Faqat Boshliq bajara oladi."),
+          backgroundColor: Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
       );

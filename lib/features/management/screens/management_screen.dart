@@ -118,15 +118,15 @@ class ManagementScreen extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF064E3B),
+                                color: auth.isOwner ? const Color(0xFF064E3B) : const Color(0xFF78350F),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                auth.isOwner ? 'EGA' : 'KASSIR',
-                                style: const TextStyle(
+                                auth.isOwner ? 'EGA' : 'KASSIR (CHEKLANGAN)',
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF34D399),
+                                  color: auth.isOwner ? const Color(0xFF34D399) : const Color(0xFFFDE68A),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -196,6 +196,7 @@ class ManagementScreen extends ConsumerWidget {
               badgeColor: const Color(0xFFE0F2FE),
               badgeTextColor: const Color(0xFF0369A1),
               subtitle: "Kunlik tushum, xarajat, savdo...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -221,6 +222,7 @@ class ManagementScreen extends ConsumerWidget {
               badgeColor: const Color(0xFFDBEAFE),
               badgeTextColor: const Color(0xFF1D4ED8),
               subtitle: "Aqlli chiroqlar, to'lov kartasi, printer...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -243,6 +245,7 @@ class ManagementScreen extends ConsumerWidget {
               iconColor: const Color(0xFF059669),
               title: "Ombor va Mahsulotlar",
               subtitle: "Barning barcha tovarlari, nar...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -265,6 +268,7 @@ class ManagementScreen extends ConsumerWidget {
               iconColor: const Color(0xFFD97706),
               title: "Maydonlar va Stollar",
               subtitle: "Bilyard, futbol, karaoke, kino...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -287,6 +291,7 @@ class ManagementScreen extends ConsumerWidget {
               iconColor: const Color(0xFF9333EA),
               title: "Xodimlar va Kassirlar",
               subtitle: "Kassirlar ro'yxati, PIN-kodlar va...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -313,6 +318,7 @@ class ManagementScreen extends ConsumerWidget {
               badgeColor: const Color(0xFFD1FAE5),
               badgeTextColor: const Color(0xFF047857),
               subtitle: "Tariflar, muddatlar va TezCheck to'lov...",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
@@ -335,6 +341,7 @@ class ManagementScreen extends ConsumerWidget {
               iconColor: const Color(0xFF475569),
               title: "Xavfsizlik va Bulut Zaxirasi",
               subtitle: "Ma'lumotlar bazasi, SHA-256 va sinxronizatsiya",
+              isLocked: auth.isCashier,
               onTap: () {
                 _checkOwnerPermission(context, ref, auth, () {
                   _showSecurityDialog(context, authNotifier, auth, ref);
@@ -433,6 +440,7 @@ class ManagementScreen extends ConsumerWidget {
                                 style: TextStyle(fontSize: 12)),
                             onTap: () {
                               Navigator.pop(ctx);
+                              ref.read(authProvider.notifier).logout();
                               ref
                                   .read(businessAccountProvider.notifier)
                                   .logoutToAuthScreen();
@@ -594,6 +602,7 @@ class ManagementScreen extends ConsumerWidget {
     String? badge,
     Color? badgeColor,
     Color? badgeTextColor,
+    bool isLocked = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -634,7 +643,7 @@ class ManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            if (badge != null) ...[
+            if (badge != null && !isLocked) ...[
               const Gap(6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -663,10 +672,33 @@ class ManagementScreen extends ConsumerWidget {
             color: Color(0xFF64748B),
           ),
         ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Color(0xFF94A3B8),
-        ),
+        trailing: isLocked
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_rounded, color: Color(0xFFD97706), size: 14),
+                    Gap(4),
+                    Text(
+                      "Boshliq",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF94A3B8),
+              ),
       ),
     );
   }

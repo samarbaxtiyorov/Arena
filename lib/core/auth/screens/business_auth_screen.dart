@@ -843,19 +843,18 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
     );
 
     if (cashier != null) {
-      // 1. Akkauntni kassirning biznes muassasasiga ulaymiz
-      await ref
-          .read(businessAccountProvider.notifier)
-          .switchAccount(cashier.accountId);
-
-      // 2. Agar kassir hali PIN o'rnatmagan bo'lsa
+      // 1. Agar kassir hali PIN o'rnatmagan bo'lsa — avval PIN dialogini ko'rsatamiz
       if (!cashier.hasCustomPin) {
         if (mounted) {
           _showSetPinModal(cashier);
         }
       } else {
-        // Tizimga kirish
+        // 2. PIN mavjud bo'lsa: avval Kassir rolini o'rnatamiz, so'ng hisobga ulaymiz
         ref.read(authProvider.notifier).loginAsStaff(cashier);
+        await ref
+            .read(businessAccountProvider.notifier)
+            .switchAccount(cashier.accountId);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1016,18 +1015,27 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                         .read(staffListProvider.notifier)
                         .setCashierPin(staffId: cashier.id, newPin: p1);
 
+                    final updatedCashier = cashier.copyWith(pin: p1);
+
+                    // 1. Avval Kassir roli bilan tizimga kiritamiz
+                    ref
+                        .read(authProvider.notifier)
+                        .loginAsStaff(updatedCashier);
+
+                    // 2. So'ng hisobni almashtiramiz (GoRouter endi to'g'ri Kassir roli bilan ochadi)
+                    await ref
+                        .read(businessAccountProvider.notifier)
+                        .switchAccount(cashier.accountId);
+
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
                     }
-                    ref
-                        .read(authProvider.notifier)
-                        .loginAsStaff(cashier.copyWith(pin: p1));
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              "PIN-kod muvaffaqiyatli saqlandi! Xush kelibsiz, ${cashier.name}!"),
+                              "PIN-kod muvaffaqiyatli saqlandi! Xush kelibsiz, ${cashier.name}! Kassir rejimiga kirildi."),
                           backgroundColor: const Color(0xFF10B981),
                         ),
                       );

@@ -11,6 +11,7 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/auth/models/business_account.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/providers/business_account_provider.dart';
 import '../../../core/services/smart_light_service.dart';
 import '../../../core/theme/ui_scale_provider.dart';
@@ -1333,6 +1334,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
+                    ref.read(authProvider.notifier).logout();
                     ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
                     Navigator.pop(context);
                   },

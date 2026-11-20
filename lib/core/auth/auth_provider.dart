@@ -91,7 +91,12 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   void logout() {
-    state = state.copyWith(isAuthenticated: false);
+    state = const AuthState(
+      isAuthenticated: false,
+      role: UserRole.cashier,
+      userName: '',
+      phone: '',
+    );
   }
 
   void lock() {

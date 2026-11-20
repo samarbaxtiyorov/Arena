@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/ui_scale_provider.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
@@ -360,6 +361,17 @@ class TablesScreen extends ConsumerWidget {
                               const Gap(16),
                               ElevatedButton.icon(
                                 onPressed: () {
+                                  final auth = ref.read(authProvider);
+                                  if (auth.isCashier) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Kassirga maydon qo'shish huquqi berilmagan! Faqat Boshliq qo'sha oladi."),
+                                        backgroundColor: Color(0xFFEF4444),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   showDialog(
                                     context: context,
                                     builder: (_) => const AddTableDialog(),
