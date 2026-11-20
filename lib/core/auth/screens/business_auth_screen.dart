@@ -42,7 +42,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   final TextEditingController _regPhoneCtrl =
       TextEditingController(text: '+998 ');
   final TextEditingController _regPassCtrl = TextEditingController();
-  final TextEditingController _regPinCtrl = TextEditingController(text: '7777');
+  final TextEditingController _regPinCtrl = TextEditingController();
   bool _obscureRegPass = true;
 
   @override
@@ -727,7 +727,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
           maxLength: 4,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
-            hintText: 'Masalan: 7777',
+            hintText: 'Masalan: 4920',
             counterText: '',
             prefixIcon: const Icon(Icons.pin_rounded,
                 size: 20, color: Color(0xFF64748B)),

@@ -64,7 +64,7 @@ class BusinessAccount {
       ownerName: json['ownerName'] as String? ?? 'Biznes Egasi',
       phone: json['phone'] as String? ?? '',
       password: json['password'] as String? ?? '',
-      ownerPin: json['ownerPin'] as String? ?? '7777',
+      ownerPin: json['ownerPin'] as String? ?? '',
       licenseType: json['licenseType'] as String? ?? 'PREMIUM VIP',
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()

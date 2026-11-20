@@ -177,7 +177,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       ownerName: cleanOwner,
       phone: cleanPhone,
       password: SecurityHelper.hashPassword(cleanPass),
-      ownerPin: cleanPin.isNotEmpty ? cleanPin : '7777',
+      ownerPin: cleanPin,
       licenseType: 'PREMIUM VIP',
       createdAt: DateTime.now(),
     );
@@ -209,9 +209,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
         (a) =>
             (matchPhone(a.phone, cleanPhone) || a.phone == cleanPhone) &&
             (SecurityHelper.verifyPassword(cleanPass, a.password) ||
-                cleanPass == a.ownerPin ||
-                (a.password == '123' && cleanPass == '123') ||
-                cleanPass == '7777'),
+                (a.ownerPin.isNotEmpty && cleanPass == a.ownerPin)),
       );
 
       final prefs = await SharedPreferences.getInstance();

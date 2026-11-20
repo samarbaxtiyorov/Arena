@@ -220,7 +220,7 @@ class ManagementScreen extends ConsumerWidget {
               badgeTextColor: const Color(0xFF1D4ED8),
               subtitle: "Aqlli chiroqlar, to'lov kartasi, printer...",
               onTap: () {
-                _checkOwnerPermission(context, auth, () {
+                _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -242,7 +242,7 @@ class ManagementScreen extends ConsumerWidget {
               title: "Ombor va Mahsulotlar",
               subtitle: "Barning barcha tovarlari, nar...",
               onTap: () {
-                _checkOwnerPermission(context, auth, () {
+                _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -264,7 +264,7 @@ class ManagementScreen extends ConsumerWidget {
               title: "Maydonlar va Stollar",
               subtitle: "Bilyard, futbol, karaoke, kino...",
               onTap: () {
-                _checkOwnerPermission(context, auth, () {
+                _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -286,7 +286,7 @@ class ManagementScreen extends ConsumerWidget {
               title: "Xodimlar va Kassirlar",
               subtitle: "Kassirlar ro'yxati, PIN-kodlar va...",
               onTap: () {
-                _checkOwnerPermission(context, auth, () {
+                _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -312,7 +312,7 @@ class ManagementScreen extends ConsumerWidget {
               badgeTextColor: const Color(0xFF047857),
               subtitle: "Tariflar, muddatlar va TezCheck to'lov...",
               onTap: () {
-                _checkOwnerPermission(context, auth, () {
+                _checkOwnerPermission(context, ref, auth, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -396,33 +396,98 @@ class ManagementScreen extends ConsumerWidget {
 
   // Ruxsat tekshiruvi (faqat boshliq)
   void _checkOwnerPermission(
-      BuildContext context, AuthState auth, VoidCallback onAllowed) {
+      BuildContext context, WidgetRef ref, AuthState auth, VoidCallback onAllowed) {
     if (auth.isOwner) {
       onAllowed();
-    } else {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.lock_outline, color: Color(0xFFEF4444)),
-              Gap(8),
-              Text("Ruxsat Cheklangan"),
-            ],
-          ),
-          content: const Text(
-            "Ushbu bo'lim faqat Boshliq (Biznes egasi) uchun ochiq.\nIltimos, Ega PIN-kodi (7777) orqali kiring.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Tushunarli"),
+      return;
+    }
+
+    final pinCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF2563EB)),
+            Gap(8),
+            Text(
+              "Boshliq Ruxsati",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-      );
-    }
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Ushbu bo'lim faqat Boshliq (Biznes egasi) uchun mo'ljallangan.",
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+            const Gap(14),
+            const Text(
+              "Boshliq 4 xonali PIN-kodini kiriting:",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+            const Gap(6),
+            TextField(
+              controller: pinCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: "••••",
+                counterText: "",
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Bekor qilish",
+                style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final activeVenue =
+                  ref.read(businessAccountProvider).activeAccount;
+              final entered = pinCtrl.text.trim();
+              if (activeVenue != null &&
+                  entered.isNotEmpty &&
+                  entered == activeVenue.ownerPin) {
+                Navigator.pop(ctx);
+                onAllowed();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                        Text("Boshliq PIN-kodi noto'g'ri! Kirish rad etildi."),
+                    backgroundColor: Color(0xFFEF4444),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("Tasdiqlash"),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMenuCard({

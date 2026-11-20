@@ -47,11 +47,12 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
-  // PIN tekshirish: Dinamik xodimlar ro'yxatidan yoki zaxira 7777 / 1111
+  // PIN tekshirish: Faqat haqiqiy faol xodimlar ro'yxatidan (Hech qanday backdoor yo'q)
   bool verifyPin(String pin, {List<StaffMember>? staffList}) {
     if (staffList != null && staffList.isNotEmpty) {
       try {
-        final match = staffList.firstWhere((s) => s.pin == pin && s.isActive);
+        final match = staffList.firstWhere(
+            (s) => s.pin == pin && s.isActive && s.pin.trim().isNotEmpty);
         state = state.copyWith(
           isAuthenticated: true,
           role: match.isOwner ? UserRole.owner : UserRole.cashier,
@@ -60,22 +61,6 @@ class AuthNotifier extends Notifier<AuthState> {
         );
         return true;
       } catch (_) {}
-    }
-
-    if (pin == '7777') {
-      state = state.copyWith(
-        isAuthenticated: true,
-        role: UserRole.owner,
-        userName: 'Biznes egasi',
-      );
-      return true;
-    } else if (pin == '1111') {
-      state = state.copyWith(
-        isAuthenticated: true,
-        role: UserRole.cashier,
-        userName: 'Kassir Samar',
-      );
-      return true;
     }
     return false;
   }

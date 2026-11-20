@@ -72,7 +72,7 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
           name: activeAccount?.ownerName ?? 'Biznes Egasi',
           phone: activeAccount?.phone ?? '',
           role: StaffRole.owner,
-          pin: activeAccount?.ownerPin ?? '7777',
+          pin: activeAccount?.ownerPin ?? '',
           isActive: true,
           createdAt: DateTime.now(),
         ),
