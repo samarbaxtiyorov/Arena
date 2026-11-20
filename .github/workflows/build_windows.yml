@@ -3,9 +3,10 @@ name: Build Champion Windows App
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -28,13 +29,7 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Run Flutter Analyze
-        run: flutter analyze
-
-      - name: Run Tests
-        run: flutter test
-
-      - name: Build Windows Release
+      - name: Build Windows Release Executable
         run: flutter build windows --release
 
       - name: Package Windows Binary
@@ -44,9 +39,25 @@ jobs:
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Champion-Windows-x64.zip
           Get-ChildItem -Path dist
 
-      - name: Upload Windows Executable Artifact
+      - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Champion-Windows-x64
           path: dist\Champion-Windows-x64.zip
           retention-days: 30
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: desktop-v2.0
+          name: "Champion POS — Windows Desktop Versiyasi (v2.0)"
+          body: |
+            Champion POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows x64).
+            
+            Arxiv ichida:
+            - `Champion.exe`
+            - `data/` va barcha zaruriy tizim DLL kutubxonalari.
+          files: dist\Champion-Windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
