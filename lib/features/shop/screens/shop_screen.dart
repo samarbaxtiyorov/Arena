@@ -241,8 +241,8 @@ class ShopScreen extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                         sliver: SliverGrid(
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 220,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
                             childAspectRatio: 0.74,

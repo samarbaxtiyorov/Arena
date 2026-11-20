@@ -369,24 +369,48 @@ class TablesScreen extends ConsumerWidget {
                       )
                     : SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final table = filteredTables[index];
-                              // Shu stol uchun faol sessiyani topish
-                              final session = activeSessions
-                                  .where((s) => s.tableId == table.id)
-                                  .firstOrNull;
+                        sliver: MediaQuery.of(context).size.width >= 850
+                            ? SliverGrid(
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 480,
+                                  mainAxisExtent: 480,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final table = filteredTables[index];
+                                    final session = activeSessions
+                                        .where((s) => s.tableId == table.id)
+                                        .firstOrNull;
 
-                              return TableCard(
-                                table: table,
-                                activeSession: session,
-                                index: index + 1,
-                              );
-                            },
-                            childCount: filteredTables.length,
-                          ),
-                        ),
+                                    return TableCard(
+                                      table: table,
+                                      activeSession: session,
+                                      index: index + 1,
+                                    );
+                                  },
+                                  childCount: filteredTables.length,
+                                ),
+                              )
+                            : SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final table = filteredTables[index];
+                                    final session = activeSessions
+                                        .where((s) => s.tableId == table.id)
+                                        .firstOrNull;
+
+                                    return TableCard(
+                                      table: table,
+                                      activeSession: session,
+                                      index: index + 1,
+                                    );
+                                  },
+                                  childCount: filteredTables.length,
+                                ),
+                              ),
                       ),
 
                 const SliverToBoxAdapter(child: Gap(30)),
