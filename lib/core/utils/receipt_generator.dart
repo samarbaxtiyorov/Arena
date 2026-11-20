@@ -42,7 +42,7 @@ class ReceiptGenerator {
     required String paymentType,
     String? customerName,
     String? customNotes,
-    String headerTitle = 'ARENA POS',
+    String headerTitle = 'CHAMPION POS',
     String? footerMessage,
     int width = width58,
   }) {
@@ -152,6 +152,58 @@ class ReceiptGenerator {
     buffer.writeln(_divider(width58, '='));
     buffer.writeln(_center('Champion POS'));
     buffer.writeln(_divider(width58, '='));
+
+    return buffer.toString();
+  }
+
+  // Do'kon / Bar savdosi uchun POS cheki
+  static String forShopSale({
+    required List<dynamic> items,
+    required int totalAmount,
+    required String paymentType,
+    String? customerName,
+    String headerTitle = 'CHAMPION POS',
+    String? footerMessage,
+    int width = width58,
+  }) {
+    final buffer = StringBuffer();
+    final now = DateTime.now();
+    final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(now);
+    final orderId = 'SH-${now.millisecondsSinceEpoch.toString().substring(7)}';
+
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_center(headerTitle.toUpperCase(), width));
+    buffer.writeln(_center('Do\'kon & Bar Savdosi', width));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_row('Chek #:', orderId, width));
+    buffer.writeln(_row('Sana:', dateStr, width));
+    buffer.writeln(_row('Bo\'lim:', 'Bar / Do\'kon', width));
+    if (customerName != null && customerName.isNotEmpty) {
+      buffer.writeln(_row('Mijoz:', customerName, width));
+    }
+    buffer.writeln(_divider(width));
+    buffer.writeln(_center('XARIDLAR RO\'YXATI', width));
+
+    for (final item in items) {
+      final name = item.product?.name ?? item.name ?? 'Mahsulot';
+      final qty = item.quantity ?? 1;
+      final subtotal = item.subtotal ?? (item.price * qty);
+      buffer.writeln(_row('$name x$qty', Formatters.currency(subtotal), width));
+    }
+
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_row('JAMI TO\'LOV:', Formatters.currency(totalAmount), width));
+
+    final paymentName = paymentType == 'cash'
+        ? 'NAQD PUL'
+        : paymentType == 'card'
+            ? 'BANK KARTASI'
+            : 'NASIYA / QARZ';
+    buffer.writeln(_row('To\'lov turi:', paymentName, width));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_center(footerMessage ?? 'Xaridingiz uchun rahmat!', width));
+    buffer.writeln(_center('Champion POS • Chempionlar tanlovi', width));
+    buffer.writeln(_divider(width, '='));
 
     return buffer.toString();
   }

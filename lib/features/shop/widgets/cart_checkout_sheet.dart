@@ -7,11 +7,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/product_asset_helper.dart';
+import '../../../core/utils/receipt_generator.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../management/providers/business_settings_provider.dart';
@@ -51,41 +51,15 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
             customerId: _selectedCustomerId,
           );
 
-      final now = DateTime.now();
-      final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(now);
-      final buffer = StringBuffer();
-      buffer.writeln('================================');
-      buffer.writeln('           ARENA POS            ');
-      buffer.writeln('     Do\'kon / Bar Savdosi       ');
-      buffer.writeln('================================');
-      buffer.writeln('Sana: $dateStr');
-      if (_selectedCustomerName != null) {
-        buffer.writeln('Mijoz: $_selectedCustomerName');
-      }
-      buffer.writeln('--------------------------------');
-      for (final item in items) {
-        final lineName = '${item.product.name} x${item.quantity}';
-        final linePrice = formatSum(item.subtotal);
-        final pad = 32 - lineName.length - linePrice.length;
-        if (pad > 0) {
-          buffer.writeln('$lineName${" " * pad}$linePrice');
-        } else {
-          buffer.writeln('$lineName $linePrice');
-        }
-      }
-      buffer.writeln('--------------------------------');
-      buffer.writeln('JAMI TO\'LOV: ${formatSum(totalAmount)}');
-      final pTypeName = _paymentType == 'cash'
-          ? 'NAQD PUL'
-          : _paymentType == 'card'
-              ? 'BANK KARTASI'
-              : 'NASIYA / QARZ';
-      buffer.writeln('To\'lov turi: $pTypeName');
-      buffer.writeln('================================');
-      buffer.writeln('     Xaridingiz uchun rahmat!   ');
-      buffer.writeln('================================');
-
-      final receiptText = buffer.toString();
+      // Champion POS Kassa chekini generatsiya qilish
+      final receiptText = ReceiptGenerator.forShopSale(
+        items: items,
+        totalAmount: totalAmount,
+        paymentType: _paymentType,
+        customerName: _selectedCustomerName,
+        headerTitle: 'CHAMPION POS',
+        footerMessage: 'Xaridingiz uchun rahmat! Yana kutamiz!',
+      );
 
       if (mounted) {
         Navigator.of(context).pop(receiptText);
