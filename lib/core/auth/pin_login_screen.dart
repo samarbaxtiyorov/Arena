@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import '../../features/management/providers/staff_provider.dart';
 import 'auth_provider.dart';
+import 'providers/business_account_provider.dart';
 
 class PinLoginScreen extends ConsumerStatefulWidget {
   const PinLoginScreen({super.key});
@@ -50,7 +51,18 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   }
 
   void _verifyPin() {
+    final businessState = ref.read(businessAccountProvider);
+    final activeVenue = businessState.activeAccount;
     final staffList = ref.read(staffListProvider).value;
+
+    // 1. Agar Boshliqning shaxsiy PIN-kodi kiritilgan bo'lsa
+    if (activeVenue != null && _enteredPin == activeVenue.ownerPin) {
+      ref.read(authProvider.notifier).login();
+      ref.read(authProvider.notifier).switchRole(UserRole.owner);
+      return;
+    }
+
+    // 2. Agar kassirlardan birortasining PIN-kodi kiritilgan bo'lsa
     final success = ref.read(authProvider.notifier).verifyPin(_enteredPin, staffList: staffList);
     if (!success) {
       setState(() {
@@ -135,23 +147,36 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                 const Gap(24),
 
                 // Sarlavhalar
-                const Text(
-                  'Arena POS',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const Gap(6),
-                const Text(
-                  '4 xonali shaxsiy PIN-kodingizni kiriting',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
-                  ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final venue = ref.watch(businessAccountProvider).activeAccount;
+                    return Column(
+                      children: [
+                        Text(
+                          venue?.venueName ?? 'Arena POS',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const Gap(4),
+                        Text(
+                          venue != null
+                              ? "Boshliq: ${venue.ownerName} • Kirish PIN-kodi"
+                              : "4 xonali shaxsiy PIN-kodingizni kiriting",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 const Gap(36),
@@ -259,23 +284,28 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
 
                 const Gap(24),
 
-                // Boshqa hisob bilan kirish
-                TextButton(
+                // Boshqa hisobga o'tish / Yangi hisob ochish
+                TextButton.icon(
                   onPressed: () {
-                    // Demo yordamchi
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Boshliq PIN: 7777 | Kassir PIN: 1111"),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
+                    ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
                   },
-                  child: const Text(
-                    'Boshqa hisob bilan kirish',
+                  icon: const Icon(Icons.switch_account_rounded,
+                      size: 18, color: Color(0xFF2563EB)),
+                  label: const Text(
+                    "Boshqa hisobga o'tish / Yangi hisob",
                     style: TextStyle(
-                      color: Color(0xFF475569),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2563EB),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFDBEAFE)),
                     ),
                   ),
                 ),

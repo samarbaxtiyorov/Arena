@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/providers/business_account_provider.dart';
+import '../../../core/auth/models/business_account.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/utils/formatters.dart';
 import '../../kassa/providers/kassa_providers.dart';
@@ -23,6 +25,8 @@ class ManagementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final authNotifier = ref.read(authProvider.notifier);
+    final businessState = ref.watch(businessAccountProvider);
+    final activeVenue = businessState.activeAccount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -31,23 +35,48 @@ class ManagementScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             // ── Salom va Sarlavha ────────────────────────────
-            Text(
-              'Salom, ${auth.userName}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Gap(2),
-            const Text(
-              'Boshqaruv Markazi',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-                letterSpacing: -0.5,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Salom, ${auth.userName}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Gap(2),
+                      Text(
+                        activeVenue?.venueName ?? 'Boshqaruv Markazi',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton.filledTonal(
+                  onPressed: () => _confirmSwitchAccount(context, ref),
+                  icon: const Icon(Icons.switch_account_rounded, size: 20),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    foregroundColor: const Color(0xFF2563EB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  tooltip: "Boshqa hisobga o'tish",
+                ),
+              ],
             ),
 
             const Gap(16),
@@ -693,6 +722,8 @@ class ManagementScreen extends ConsumerWidget {
         builder: (context, ref, _) {
           final currentScale = ref.watch(uiScaleProvider);
           final scaleNotifier = ref.read(uiScaleProvider.notifier);
+          final businessState = ref.watch(businessAccountProvider);
+          final activeVenue = businessState.activeAccount;
 
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -711,6 +742,92 @@ class ManagementScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── AKKAUNT VA MAJMUANI BOSHQARISH ─────────
+                  const Text(
+                    "BIZNES VA AKKAUNT MA'LUMOTLARI",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF64748B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Gap(8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.stadium_rounded, size: 20, color: Color(0xFF2563EB)),
+                            const Gap(8),
+                            Expanded(
+                              child: Text(
+                                activeVenue?.venueName ?? 'Arena Majmuasi',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Gap(6),
+                        Text(
+                          "Boshliq: ${activeVenue?.ownerName ?? 'Ega'} • Tel: ${activeVenue?.phone ?? ''}",
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                        const Gap(10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _showEditVenueDialog(context, ref, activeVenue);
+                                },
+                                icon: const Icon(Icons.edit_outlined, size: 14),
+                                label: const Text("Tahrirlash", style: TextStyle(fontSize: 12)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ),
+                            const Gap(8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _confirmSwitchAccount(context, ref);
+                                },
+                                icon: const Icon(Icons.logout_rounded, size: 14),
+                                label: const Text("Chiqish", style: TextStyle(fontSize: 12)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFEE2E2),
+                                  foregroundColor: const Color(0xFFEF4444),
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Gap(16),
+                  const Divider(),
+                  const Gap(8),
+
                   const Text(
                     "EKRAN VA SHRIFT KATTALIGI",
                     style: TextStyle(
@@ -914,6 +1031,145 @@ class ManagementScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text("Yopish"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Boshqa Hisobga O'tishni Tasdiqlash ────────────────────
+  void _confirmSwitchAccount(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.switch_account_rounded, color: Color(0xFF2563EB)),
+            Gap(8),
+            Text("Boshqa Hisobga O'tish"),
+          ],
+        ),
+        content: const Text(
+          "Hozirgi poliya/arena hisobidan chiqib, boshqa hisobga o'tish yoki yangi hisob ochishni xohlaysizmi?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Bekor qilish"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Hisobdan Chiqish"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Majmua Ma'lumotlarini Tahrirlash Dialogi ──────────────
+  void _showEditVenueDialog(
+      BuildContext context, WidgetRef ref, BusinessAccount? venue) {
+    final venueCtrl =
+        TextEditingController(text: venue?.venueName ?? 'Arena Majmuasi');
+    final ownerCtrl =
+        TextEditingController(text: venue?.ownerName ?? 'Biznes Egasi');
+    final phoneCtrl = TextEditingController(text: venue?.phone ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note_rounded, color: Color(0xFF2563EB)),
+            Gap(8),
+            Text("Majmuani Tahrirlash"),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Poliya / Majmua Nomi",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              const Gap(6),
+              TextField(
+                controller: venueCtrl,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const Gap(14),
+              const Text("Boshliq Ismi",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              const Gap(6),
+              TextField(
+                controller: ownerCtrl,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const Gap(14),
+              const Text("Telefon Raqami",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              const Gap(6),
+              TextField(
+                controller: phoneCtrl,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Bekor qilish"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final v = venueCtrl.text.trim();
+              final o = ownerCtrl.text.trim();
+              final p = phoneCtrl.text.trim();
+
+              if (v.isNotEmpty && o.isNotEmpty) {
+                Navigator.pop(ctx);
+                await ref
+                    .read(businessAccountProvider.notifier)
+                    .updateAccountInfo(
+                      venueName: v,
+                      ownerName: o,
+                      phone: p,
+                    );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Saqlash"),
           ),
         ],
       ),
