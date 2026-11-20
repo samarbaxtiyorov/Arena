@@ -89,12 +89,12 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Champion Technologies" "\0"
-            VALUE "FileDescription", "Champion POS — Sport va O'yin Klublari Boshqaruv Tizimi" "\0"
+            VALUE "CompanyName", "Champion" "\0"
+            VALUE "FileDescription", "Champion POS Desktop" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Champion" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Samar Baxtiyorov. All rights reserved." "\0"
-            VALUE "OriginalFilename", "Champion.exe" "\0"
+            VALUE "InternalName", "arena" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Samar Baxtiyorov" "\0"
+            VALUE "OriginalFilename", "arena.exe" "\0"
             VALUE "ProductName", "Champion POS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
