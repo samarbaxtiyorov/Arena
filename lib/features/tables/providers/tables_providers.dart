@@ -10,6 +10,7 @@ import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_billing_helper.dart';
+import '../../../core/services/smart_light_service.dart';
 
 // Barcha faol stollar oqimi
 final tablesStreamProvider = StreamProvider<List<ClubTable>>((ref) {
@@ -72,6 +73,9 @@ class TablesController {
     );
 
     await _db.sessionsDao.insertSession(newSession);
+    try {
+      _ref.read(smartLightServiceProvider).turnOn(tableId);
+    } catch (_) {}
     _triggerSync();
   }
 
@@ -152,6 +156,10 @@ class TablesController {
       final newTotal = await _db.debtsDao.calculateTotalDebt(customerId);
       await _db.customersDao.updateTotalDebt(customerId, newTotal);
     }
+
+    try {
+      _ref.read(smartLightServiceProvider).turnOff(table.id, tableName: table.name);
+    } catch (_) {}
 
     _triggerSync();
   }

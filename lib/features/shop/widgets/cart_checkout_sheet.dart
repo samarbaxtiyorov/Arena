@@ -14,6 +14,8 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/utils/product_asset_helper.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../management/providers/business_settings_provider.dart';
+import '../../management/widgets/customer_payment_card_view.dart';
 import '../providers/shop_providers.dart';
 
 class CartCheckoutSheet extends ConsumerStatefulWidget {
@@ -387,6 +389,17 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                   ],
                 ),
 
+                // Plastik karta tanlanganda mijozga ko'rsatiladigan to'lov kartasi
+                if (_paymentType == 'card') ...[
+                  const Gap(12),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final settings = ref.watch(businessSettingsProvider);
+                      return CustomerPaymentCardView(settings: settings, compact: true);
+                    },
+                  ),
+                ],
+
                 // Qarz bo'lsa mijoz tanlash
                 if (_paymentType == 'debt') ...[
                   const Gap(10),
@@ -498,15 +511,17 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
                               color: Colors.white,
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle_outline_rounded,
+                              const Icon(Icons.check_circle_outline_rounded,
                                   size: 18),
-                              Gap(8),
+                              const Gap(8),
                               Text(
-                                'To\'lovni Tasdiqlash',
-                                style: TextStyle(
+                                _paymentType == 'card'
+                                    ? "To'lov qabul qilindi"
+                                    : "To'lovni Tasdiqlash",
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w900,
                                 ),

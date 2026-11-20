@@ -10,6 +10,8 @@ import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../data/local/app_database.dart';
+import '../../management/providers/business_settings_provider.dart';
+import '../../management/widgets/customer_payment_card_view.dart';
 import '../providers/nasiya_providers.dart';
 
 class MakePaymentDialog extends ConsumerStatefulWidget {
@@ -313,6 +315,17 @@ class _MakePaymentDialogState extends ConsumerState<MakePaymentDialog> {
                 ],
               ),
 
+              // Plastik karta tanlanganda mijozga ko'rsatiladigan to'lov kartasi
+              if (_paymentMethod == 'card') ...[
+                const Gap(12),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final settings = ref.watch(businessSettingsProvider);
+                    return CustomerPaymentCardView(settings: settings, compact: true);
+                  },
+                ),
+              ],
+
               const Gap(14),
 
               // Izoh
@@ -385,15 +398,17 @@ class _MakePaymentDialogState extends ConsumerState<MakePaymentDialog> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Row(
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle_outline_rounded,
+                                const Icon(Icons.check_circle_outline_rounded,
                                     size: 18),
-                                Gap(6),
+                                const Gap(6),
                                 Text(
-                                  'To\'lovni Qabul Qilish',
-                                  style: TextStyle(
+                                  _paymentMethod == 'card'
+                                      ? "To'lov qabul qilindi"
+                                      : 'To\'lovni Qabul Qilish',
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                   ),

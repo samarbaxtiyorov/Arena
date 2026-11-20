@@ -14,6 +14,8 @@ import '../../../core/utils/receipt_generator.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../kassa/widgets/receipt_preview_dialog.dart';
+import '../../management/providers/business_settings_provider.dart';
+import '../../management/widgets/customer_payment_card_view.dart';
 import '../providers/tables_providers.dart';
 
 class SessionFinishDialog extends ConsumerStatefulWidget {
@@ -655,6 +657,17 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                 ],
               ),
 
+              // Agar karta tanlansa: Mijozga ko'rsatiladigan to'lov kartasi
+              if (_paymentType == 'card') ...[
+                const Gap(14),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final settings = ref.watch(businessSettingsProvider);
+                    return CustomerPaymentCardView(settings: settings, compact: true);
+                  },
+                ),
+              ],
+
               // Agar nasiya tanlansa: Mijoz tanlash
               if (_paymentType == 'debt') ...[
                 const Gap(14),
@@ -790,7 +803,9 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                       label: Text(
                         _isLoading
                             ? "Saqlanmoqda..."
-                            : "To'lovni tasdiqlash",
+                            : (_paymentType == 'card'
+                                ? "To'lov qabul qilindi"
+                                : "To'lovni tasdiqlash"),
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,

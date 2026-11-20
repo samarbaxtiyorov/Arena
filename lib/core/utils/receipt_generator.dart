@@ -42,6 +42,9 @@ class ReceiptGenerator {
     required String paymentType,
     String? customerName,
     String? customNotes,
+    String headerTitle = 'ARENA POS',
+    String? footerMessage,
+    int width = width58,
   }) {
     final buffer = StringBuffer();
     final now = DateTime.now();
@@ -60,62 +63,61 @@ class ReceiptGenerator {
     final barItems = SessionBillingHelper.getBarItemsSummary(effectiveNotes);
     final splits = SessionBillingHelper.getSplits(effectiveNotes);
 
-    buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('ARENA POS'));
-    buffer.writeln(_center('Sport & O\'yin Markazi'));
-    buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_row('Chek #:', session.id.substring(0, 8).toUpperCase()));
-    buffer.writeln(_row('Sana:', dateStr));
-    buffer.writeln(_row('Maydon/Stol:', table.name));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_center(headerTitle.toUpperCase(), width));
+    buffer.writeln(_center('Sport & O\'yin Markazi', width));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_row('Chek #:', session.id.substring(0, 8).toUpperCase(), width));
+    buffer.writeln(_row('Sana:', dateStr, width));
+    buffer.writeln(_row('Maydon/Stol:', table.name, width));
     if (customerName != null && customerName.isNotEmpty) {
-      buffer.writeln(_row('Mijoz:', customerName));
+      buffer.writeln(_row('Mijoz:', customerName, width));
     }
-    buffer.writeln(_divider());
+    buffer.writeln(_divider(width));
 
-    buffer.writeln(_row('Boshlandi:', DateFormat('HH:mm').format(session.startedAt)));
-    buffer.writeln(_row('Tugatildi:', DateFormat('HH:mm').format(now)));
-    buffer.writeln(_row('Vaqt:', Formatters.timerString(duration)));
-    buffer.writeln(_row('Tarif:', '${table.pricePerHour ~/ 1000} ming/soat'));
-    buffer.writeln(_row('O\'yin narxi:', Formatters.currency(gameAmount)));
+    buffer.writeln(_row('Boshlandi:', DateFormat('HH:mm').format(session.startedAt), width));
+    buffer.writeln(_row('Tugatildi:', DateFormat('HH:mm').format(now), width));
+    buffer.writeln(_row('Vaqt:', Formatters.timerString(duration), width));
+    buffer.writeln(_row('Tarif:', '${table.pricePerHour ~/ 1000} ming/soat', width));
+    buffer.writeln(_row('O\'yin narxi:', Formatters.currency(gameAmount), width));
 
     // Partiyalar bo'yicha taqsimot (agar bo'lingan bo'lsa)
     if (splits.isNotEmpty) {
-      buffer.writeln(_divider());
-      buffer.writeln(_center('BO\'LINGAN PARTIYALAR'));
+      buffer.writeln(_divider(width));
+      buffer.writeln(_center('BO\'LINGAN PARTIYALAR', width));
       for (int i = 0; i < splits.length; i++) {
         final s = splits[i];
-        buffer.writeln(_row('${i + 1}. ${s.name}:', Formatters.currency(s.amount)));
+        buffer.writeln(_row('${i + 1}. ${s.name}:', Formatters.currency(s.amount), width));
       }
       final totalSplits = splits.fold(0, (sum, s) => sum + s.amount);
       if (gameAmount > totalSplits) {
-        buffer.writeln(_row('Qolgan vaqt:', Formatters.currency(gameAmount - totalSplits)));
+        buffer.writeln(_row('Qolgan vaqt:', Formatters.currency(gameAmount - totalSplits), width));
       }
     }
 
     // Bardan xaridlar (agar bor bo'lsa)
     if (barTotal > 0) {
-      buffer.writeln(_divider());
-      buffer.writeln(_center('BARDAN XARIDLAR'));
+      buffer.writeln(_divider(width));
+      buffer.writeln(_center('BARDAN XARIDLAR', width));
       for (final item in barItems) {
         buffer.writeln('  $item');
       }
-      buffer.writeln(_row('Bar jami:', '+${Formatters.currency(barTotal)}'));
+      buffer.writeln(_row('Bar jami:', '+${Formatters.currency(barTotal)}', width));
     }
 
-    buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_row('JAMI TO\'LOV:', Formatters.currency(finalAmount)));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_row('JAMI TO\'LOV:', Formatters.currency(finalAmount), width));
 
     final paymentName = paymentType == 'cash'
         ? 'NAQD PUL'
         : paymentType == 'card'
             ? 'BANK KARTASI'
             : 'NASIYA / QARZ';
-    buffer.writeln(_row('To\'lov turi:', paymentName));
-    buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('Xaridingiz uchun rahmat!'));
-    buffer.writeln(_center('Biznes Egasi: Samar'));
-    buffer.writeln(_center('Arena POS v2.0'));
-    buffer.writeln(_divider(width58, '='));
+    buffer.writeln(_row('To\'lov turi:', paymentName, width));
+    buffer.writeln(_divider(width, '='));
+    buffer.writeln(_center(footerMessage ?? 'Xaridingiz uchun rahmat! Yana kutamiz!', width));
+    buffer.writeln(_center('Arena POS v2.0', width));
+    buffer.writeln(_divider(width, '='));
 
     return buffer.toString();
   }
