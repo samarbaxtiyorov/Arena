@@ -55,6 +55,41 @@ class SmartLightService {
     }
   }
 
+  /// Qurilmaning aloqada ekanligini (Ping / Status) tekshirish
+  Future<Map<String, dynamic>> checkDeviceStatus({String? customIp}) async {
+    final ip = customIp ?? _settings.localRelayIp;
+    if (ip.trim().isEmpty) {
+      return {'online': false, 'message': 'IP manzil kiritilmagan'};
+    }
+
+    final cleanIp = ip.trim().replaceAll('http://', '').replaceAll('/', '');
+    final testUrls = [
+      Uri.parse('http://$cleanIp/status'),
+      Uri.parse('http://$cleanIp/ping'),
+      Uri.parse('http://$cleanIp/relay/1/on'), // Test ulanish
+    ];
+
+    for (final url in testUrls) {
+      try {
+        final res = await http.get(url).timeout(const Duration(milliseconds: 2000));
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          return {
+            'online': true,
+            'ip': cleanIp,
+            'message': 'ESP32 Wi-Fi Rele aloqada! (Status: ${res.statusCode})',
+            'data': res.body,
+          };
+        }
+      } catch (_) {}
+    }
+
+    return {
+      'online': false,
+      'ip': cleanIp,
+      'message': 'ESP32 bilan bog\'lanib bo\'lmadi. Wi-Fi va IP ni tekshiring.',
+    };
+  }
+
   /// 1. Lokal Wi-Fi Rele (ESP8266 / Tasmota / Shelly / Maxsus Mini plata)
   /// INTERNETSIZ HAM ISHLAYDI: Lokal Wi-Fi tarmog'i orqali to'g'ridan-to'g'ri so'rov yuboradi.
   Future<bool> _sendLocalRelayCommand({

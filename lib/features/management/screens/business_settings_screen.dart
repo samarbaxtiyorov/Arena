@@ -52,6 +52,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
 
   bool _isForceSyncing = false;
   bool _isTestingLight = false;
+  int _selectedTestChannel = 1;
   String? _testLightResult;
 
   @override
@@ -564,12 +565,98 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
               _buildTextField(
                 controller: _localRelayIpController,
                 label: "Mini Qurilma Lokal IP Manzili",
-                hint: "Masalan: 192.168.1.100 yoki 192.168.4.1",
+                hint: "Masalan: 192.168.4.1 yoki 192.168.1.100",
                 icon: Icons.router_rounded,
+                onChanged: (_) => setState(() {}),
+              ),
+              const Gap(8),
+
+              // Tezkor IP tanlash
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(Icons.wifi_tethering_rounded, size: 16, color: Color(0xFF2563EB)),
+                      label: const Text("Routersiz (192.168.4.1)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      backgroundColor: const Color(0xFFEFF6FF),
+                      onPressed: () {
+                        setState(() {
+                          _localRelayIpController.text = "192.168.4.1";
+                        });
+                      },
+                    ),
+                    const Gap(6),
+                    ActionChip(
+                      avatar: const Icon(Icons.router_rounded, size: 16, color: Color(0xFF059669)),
+                      label: const Text("Router 1 (192.168.1.100)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      backgroundColor: const Color(0xFFECFDF5),
+                      onPressed: () {
+                        setState(() {
+                          _localRelayIpController.text = "192.168.1.100";
+                        });
+                      },
+                    ),
+                    const Gap(6),
+                    ActionChip(
+                      avatar: const Icon(Icons.router_rounded, size: 16, color: Color(0xFFD97706)),
+                      label: const Text("Router 2 (192.168.0.100)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      backgroundColor: const Color(0xFFFFFBEB),
+                      onPressed: () {
+                        setState(() {
+                          _localRelayIpController.text = "192.168.0.100";
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const Gap(8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final ip = _localRelayIpController.text.trim();
+                        final res = await ref.read(smartLightServiceProvider).checkDeviceStatus(customIp: ip);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res['message'] as String),
+                              backgroundColor: res['online'] == true
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.sensors_rounded, size: 16),
+                      label: const Text("Aloqani Tekshirish (Ping)", style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2563EB),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                  const Gap(8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showWiringGuideDialog,
+                      icon: const Icon(Icons.cable_rounded, size: 16),
+                      label: const Text("Ulash Sxemasi", style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0F172A),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const Gap(6),
               const Text(
-                "💡 Bilyardxona/zaldagi Wi-Fi relay plata yoki ESP8266 mini modul routerga ulanganda berilgan IP. Internet o'chgan bo'lsa ham buyruqlar lokal tarmoq orqali uzatiladi.",
+                "💡 Bilyardxona/zaldagi ESP32 yoki Wi-Fi rele modul IP manzili. Router bo'lmasa '192.168.4.1' tanlang.",
                 style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.3),
               ),
             ] else ...[
@@ -683,26 +770,57 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
 
             // Test yoqish/o'chirish tugmalari
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Chiroqni Sinab Ko'rish (1-Kanal):",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF334155)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Chiroqni Sinab Ko'rish:",
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1E293B)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: DropdownButton<int>(
+                          value: _selectedTestChannel,
+                          isDense: true,
+                          underline: const SizedBox(),
+                          items: [1, 2, 3, 4].map((ch) {
+                            return DropdownMenuItem(
+                              value: ch,
+                              child: Text(
+                                "$ch-Stol Chirog'i",
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedTestChannel = val);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const Gap(8),
+                  const Gap(10),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isTestingLight ? null : () => _testLightCommand(1, true),
+                          onPressed: _isTestingLight ? null : () => _testLightCommand(_selectedTestChannel, true),
                           icon: const Icon(Icons.flash_on_rounded, size: 16),
-                          label: const Text("Yoqish"),
+                          label: Text("$_selectedTestChannel-Chiroqni Yoqish"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
@@ -713,7 +831,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
                       const Gap(10),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isTestingLight ? null : () => _testLightCommand(1, false),
+                          onPressed: _isTestingLight ? null : () => _testLightCommand(_selectedTestChannel, false),
                           icon: const Icon(Icons.flash_off_rounded, size: 16),
                           label: const Text("O'chirish"),
                           style: ElevatedButton.styleFrom(
@@ -742,6 +860,87 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  void _showWiringGuideDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.cable_rounded, color: Color(0xFF2563EB)),
+            Gap(8),
+            Text("Simlarni Ulash Sxemasi", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "ESP32 va 4-Kanalli Rele Modulini Bog'lash:",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const Gap(10),
+              _buildWiringRow("GND (Qora)", "GND", const Color(0xFF475569)),
+              _buildWiringRow("VIN / 5V (Qizil)", "VCC", const Color(0xFFDC2626)),
+              _buildWiringRow("GPIO 23 (D23)", "IN1 (1-Stol)", const Color(0xFF2563EB)),
+              _buildWiringRow("GPIO 22 (D22)", "IN2 (2-Stol)", const Color(0xFF059669)),
+              _buildWiringRow("GPIO 21 (D21)", "IN3 (3-Stol)", const Color(0xFFD97706)),
+              _buildWiringRow("GPIO 19 (D19)", "IN4 (4-Stol)", const Color(0xFF7C3AED)),
+              const Gap(14),
+              const Text(
+                "220V Chiroq Simlarini Ulash:",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const Gap(6),
+              const Text(
+                "Har bir relening 3 ta teshigi bor:\n"
+                "• [COM] - 220V faza simi ulanadi.\n"
+                "• [NO] - Lampochkaga ketadigan sim ulanadi.\n"
+                "• Quvvat: ESP32 ga oddiy telefon zaryadkasini tiqib qo'yasiz.",
+                style: TextStyle(fontSize: 11, color: Color(0xFF475569), height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+            child: const Text("Tushundim"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildWiringRow(String from, String to, Color dotColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
+              const Gap(8),
+              Text(from, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF94A3B8)),
+          Text(to, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2563EB))),
         ],
       ),
     );
