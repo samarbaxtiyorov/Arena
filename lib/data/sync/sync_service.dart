@@ -56,11 +56,6 @@ class SyncService {
         await (_db.delete(_db.customers)..where((tbl) => tbl.id.equals(cId))).go();
       }
 
-      // Demo maydon/stollarni tozalash (faqat 1..5 demo ID lar)
-      for (final tId in ['1', '2', '3', '4', '5']) {
-        await (_db.delete(_db.clubTables)..where((tbl) => tbl.id.equals(tId))).go();
-      }
-
       // Yetim qolgan qarzlarni tozalash (agar customer_id mavjud bo'lmasa)
       try {
         final allCustomers = await _db.customersDao.select(_db.customers).get();
