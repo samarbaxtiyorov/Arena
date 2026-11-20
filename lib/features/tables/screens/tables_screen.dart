@@ -189,6 +189,17 @@ class TablesScreen extends ConsumerWidget {
                             );
                           },
                         ),
+                        IconButton(
+                          tooltip: 'Ekranni qulflash (PIN)',
+                          icon: const Icon(
+                            Icons.lock_outline_rounded,
+                            color: Color(0xFF64748B),
+                            size: 22,
+                          ),
+                          onPressed: () {
+                            ref.read(authProvider.notifier).lock();
+                          },
+                        ),
                       ],
                     ),
                   ),

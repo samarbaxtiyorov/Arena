@@ -335,7 +335,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                   icon: const Icon(Icons.switch_account_rounded,
                       size: 18, color: Color(0xFF2563EB)),
                   label: const Text(
-                    "Boshqa hisobga o'tish / Yangi hisob",
+                    "Boshqa hisobga o'tish / Parol bilan kirish",
                     style: TextStyle(
                       color: Color(0xFF2563EB),
                       fontSize: 13,

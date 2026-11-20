@@ -16,7 +16,7 @@ class AuthState {
   final String licenseType; // 'VIP', 'PRO', 'START'
 
   const AuthState({
-    this.isAuthenticated = true, // Standart kiritilgan
+    this.isAuthenticated = false, // Bank ilovalari kabi: har doim PIN so'raladi
     this.role = UserRole.owner,
     this.userName = 'Biznes egasi',
     this.phone = '+998 90 000 00 01',

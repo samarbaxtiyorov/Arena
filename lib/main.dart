@@ -61,16 +61,17 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      // Ilovadan chiqib ketilganda yoki ekran o'chirilganda darhol xavfsizlik blokirovkasi
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      // Ilovadan chiqib ketilganda yoki ekran o'chirilganda darhol xavfsizlik blokirovkasi (Bank ilovalari kabi)
       _lockApp();
     }
   }
 
   void _resetInactivityTimer() {
     _inactivityTimer?.cancel();
-    // 1 daqiqa (60 soniya) tegilmasa avtomatik blokirovkaga tushadi
-    _inactivityTimer = Timer(const Duration(minutes: 1), () {
+    // 3 daqiqa tegilmasa avtomatik blokirovkaga tushadi
+    _inactivityTimer = Timer(const Duration(minutes: 3), () {
       _lockApp();
     });
   }
