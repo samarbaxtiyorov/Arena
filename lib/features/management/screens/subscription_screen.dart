@@ -2,6 +2,7 @@
 // Arena — Obuna va Litsenziya Sahifasi
 // Har bir stol/maydon uchun 100 000 so'm/oy
 // TezCheck.uz (Click, Payme, Uzum) to'lov integratsiyasi
+// Litsenziya cheklovi va ruxsat berilgan stollar nazorati
 // ============================================
 
 import 'dart:async';
@@ -16,6 +17,7 @@ import '../../../core/auth/providers/business_account_provider.dart';
 import '../../../core/services/tezcheck_payment_service.dart';
 import '../../../core/utils/formatters.dart';
 import '../../tables/providers/tables_providers.dart';
+import '../models/subscription_model.dart';
 import '../providers/subscription_provider.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,7 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   int _selectedMonths = 1; // 1, 3, 6, 12
+  int? _customTablesCount;
   bool _isCreatingBill = false;
 
   @override
@@ -35,14 +38,18 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final businessState = ref.watch(businessAccountProvider);
     final activeVenue = businessState.activeAccount;
 
-    // Stollar sonini hisoblash
+    // Hozirgi mavjud stollar soni
     final tablesAsync = ref.watch(tablesStreamProvider);
-    final tablesCount = tablesAsync.value?.length ?? 1;
-    final effectiveTables = tablesCount > 0 ? tablesCount : 1;
+    final existingTablesCount = tablesAsync.value?.length ?? 1;
+    final minTables = existingTablesCount > 0 ? existingTablesCount : 1;
+
+    // Litsenziyalanayotgan stollar soni (mavjud stollardan kam bo'lolmaydi)
+    final selectedTables = _customTablesCount ??
+        (sub.licensedTablesCount > minTables ? sub.licensedTablesCount : minTables);
 
     // Tanlangan muddat narxi
     final finalCost = SubscriptionNotifier.calculateAmount(
-      tablesCount: effectiveTables,
+      tablesCount: selectedTables,
       months: _selectedMonths,
     );
 
@@ -74,12 +81,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── 1. Hozirgi Litsenziya Holati Kartasi ──────────
-            _buildCurrentStatusCard(sub, expiryStr, effectiveTables),
+            _buildCurrentStatusCard(sub, expiryStr, minTables),
 
-            const Gap(20),
+            const Gap(16),
 
-            // ── 2. Tarif Formulari Tushuntirishi ──────────────
-            _buildPricingFormulaBanner(effectiveTables),
+            // ── 2. Stollar Soni Nazorati va Tarif Formulari ───
+            _buildTablesSelectorCard(minTables, selectedTables),
 
             const Gap(20),
 
@@ -98,7 +105,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanOption(
               months: 1,
               title: "1 Oylik Standart",
-              tablesCount: effectiveTables,
+              tablesCount: selectedTables,
               discountText: null,
               isBest: false,
             ),
@@ -106,7 +113,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanOption(
               months: 3,
               title: "3 Oylik Reja",
-              tablesCount: effectiveTables,
+              tablesCount: selectedTables,
               discountText: "5% CHEGIRMA",
               isBest: false,
             ),
@@ -114,7 +121,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanOption(
               months: 6,
               title: "6 Oylik Mavsumiy",
-              tablesCount: effectiveTables,
+              tablesCount: selectedTables,
               discountText: "10% CHEGIRMA",
               isBest: false,
             ),
@@ -122,7 +129,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanOption(
               months: 12,
               title: "1 Yillik VIP Obuna",
-              tablesCount: effectiveTables,
+              tablesCount: selectedTables,
               discountText: "20% SUPER CHEGIRMA",
               isBest: true,
             ),
@@ -143,6 +150,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     : () => _initiatePayment(
                           amountSom: finalCost,
                           months: _selectedMonths,
+                          tablesToLicense: selectedTables,
                           venueName: activeVenue?.venueName ?? 'Arena Majmuasi',
                           venueId: activeVenue?.id ?? 'default',
                         ),
@@ -189,7 +197,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
   // ── 1. Hozirgi Litsenziya Holati ───────────────────────────
   Widget _buildCurrentStatusCard(
-      dynamic sub, String expiryStr, int tablesCount) {
+      SubscriptionModel sub, String expiryStr, int existingTables) {
     final isExpired = sub.isExpired;
     final days = sub.daysRemaining;
 
@@ -288,11 +296,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Faol maydon/stollar soni: $tablesCount ta",
+                "Litsenziyada ruxsat: ${sub.licensedTablesCount} ta stol",
                 style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               Text(
-                "Oyiga: ${formatSum(tablesCount * 100000)}",
+                "Hozir mavjud: $existingTables ta",
                 style: const TextStyle(
                   color: Color(0xFF67E8F9),
                   fontSize: 13,
@@ -306,43 +314,97 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     );
   }
 
-  // ── 2. Tarif Formulari Tushuntirishi ───────────────────────
-  Widget _buildPricingFormulaBanner(int tablesCount) {
+  // ── 2. Stollar Soni Nazorati va Tarif Formulari ───
+  Widget _buildTablesSelectorCard(int minTables, int selectedTables) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF2563EB),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.calculate_rounded, color: Colors.white, size: 20),
-          ),
-          const Gap(12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Shaffof Tarif: Har bir stol = 100 000 so'm/oy",
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E3A8A),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Litsenziyalanadigan Stollar Soni:",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                   ),
+                  Gap(2),
+                  Text(
+                    "Har bir stol uchun 100 000 so'm/oy",
+                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+              // Counter: [ - ] 5 ta [ + ]
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                const Gap(4),
-                Text(
-                  "Sizda $tablesCount ta stol mavjud. Bazaviy oylik to'lov: $tablesCount × 100 000 = ${formatSum(tablesCount * 100000)}. Uzoqroq muddatga to'lasangiz, 20% gacha tejab qolasiz!",
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF3B82F6), height: 1.4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_rounded, size: 18),
+                      onPressed: selectedTables > minTables
+                          ? () {
+                              setState(() {
+                                _customTablesCount = selectedTables - 1;
+                              });
+                            }
+                          : null,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        "$selectedTables ta",
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_rounded, size: 18, color: Color(0xFF2563EB)),
+                      onPressed: () {
+                        setState(() {
+                          _customTablesCount = selectedTables + 1;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Gap(10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFF2563EB)),
+                const Gap(6),
+                Expanded(
+                  child: Text(
+                    "Sizda hozir $minTables ta stol bor. Dasturda faqat to'langan $selectedTables tagacha stol ishlaydi.",
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF1D4ED8), fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
@@ -352,7 +414,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     );
   }
 
-  // ── 3. Tarif Rejalari Kartasi ──────────────────────────────
+  // ── 3. Tarif Rejalari Kartasi (Overlap bug 100% tuzatildi) ──
   Widget _buildPlanOption({
     required int months,
     required String title,
@@ -370,7 +432,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -382,13 +444,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               ? [
                   BoxShadow(
                     color: const Color(0xFF2563EB).withOpacity(0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ]
               : null,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(
               isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
@@ -400,18 +463,18 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF0F172A),
-                        ),
-                      ),
-                      if (discountText != null) ...[
-                        const Gap(8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const Gap(4),
+                  if (discountText != null) ...[
+                    Row(
+                      children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -421,36 +484,47 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           child: Text(
                             discountText,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.w800,
                               color: isBest ? const Color(0xFFB45309) : const Color(0xFF047857),
                             ),
                           ),
                         ),
+                        if (saved > 0) ...[
+                          const Gap(6),
+                          Expanded(
+                            child: Text(
+                              "Tejash: ${formatSum(saved)}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF10B981),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  const Gap(4),
-                  Text(
-                    saved > 0
-                        ? "Tejamkorlik: ${formatSum(saved)}"
-                        : "$months oylik to'liq cheklovlarsiz litsenziya",
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: saved > 0 ? const Color(0xFF10B981) : const Color(0xFF64748B),
-                      fontWeight: saved > 0 ? FontWeight.bold : FontWeight.normal,
                     ),
-                  ),
+                  ] else ...[
+                    Text(
+                      "$months oylik to'liq litsenziya",
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
                 ],
               ),
             ),
+            const Gap(8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   formatSum(cost),
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                     color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF0F172A),
                   ),
@@ -459,7 +533,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                   Text(
                     formatSum(regularCost),
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: Color(0xFF94A3B8),
                       decoration: TextDecoration.lineThrough,
                     ),
@@ -517,6 +591,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Future<void> _initiatePayment({
     required int amountSom,
     required int months,
+    required int tablesToLicense,
     required String venueName,
     required String venueId,
   }) async {
@@ -525,7 +600,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     try {
       final paymentService = ref.read(tezCheckPaymentServiceProvider);
       final orderRef = 'arena-sub-$venueId-${DateTime.now().millisecondsSinceEpoch}';
-      final title = "Arena POS $months oylik litsenziya ($venueName)";
+      final title = "Arena POS $months oy / $tablesToLicense ta stol ($venueName)";
 
       final result = await paymentService.createSubscriptionBill(
         amountSom: amountSom,
@@ -536,8 +611,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (!mounted) return;
 
       if (result != null) {
-        // To'lov oynasini ochish
-        _showPaymentModal(result: result, months: months, amountSom: amountSom);
+        _showPaymentModal(
+          result: result,
+          months: months,
+          amountSom: amountSom,
+          tablesToLicense: tablesToLicense,
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -566,6 +645,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     required TezCheckBillResult result,
     required int months,
     required int amountSom,
+    required int tablesToLicense,
   }) {
     showModalBottomSheet(
       context: context,
@@ -575,6 +655,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         result: result,
         months: months,
         amountSom: amountSom,
+        tablesToLicense: tablesToLicense,
         onSuccess: () {
           Navigator.pop(ctx);
           setState(() {});
@@ -589,12 +670,14 @@ class _TezCheckPaymentModal extends ConsumerStatefulWidget {
   final TezCheckBillResult result;
   final int months;
   final int amountSom;
+  final int tablesToLicense;
   final VoidCallback onSuccess;
 
   const _TezCheckPaymentModal({
     required this.result,
     required this.months,
     required this.amountSom,
+    required this.tablesToLicense,
     required this.onSuccess,
   });
 
@@ -634,11 +717,12 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
       if (status.isPaid) {
         _autoCheckTimer?.cancel();
 
-        // Litsenziyani uzaytirish!
+        // Litsenziyani uzaytirish va ruxsat berilgan stollar sonini qayd etish!
         await ref.read(subscriptionProvider.notifier).extendSubscription(
               months: widget.months,
               paidAmount: widget.amountSom,
               reference: widget.result.reference,
+              licensedTablesCount: widget.tablesToLicense,
             );
 
         if (mounted) {
@@ -655,7 +739,7 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
                 ],
               ),
               content: Text(
-                "Tabriklaymiz! Sizning Arena POS litsenziyangiz ${widget.months} oyga muvaffaqiyatli uzaytirildi. Barcha modullar cheklovlarsiz ishlaydi.",
+                "Tabriklaymiz! Sizning Arena POS litsenziyangiz ${widget.months} oyga (${widget.tablesToLicense} ta stol uchun) muvaffaqiyatli uzaytirildi. Barcha modullar cheklovlarsiz ishlaydi.",
                 style: const TextStyle(fontSize: 14, height: 1.4),
               ),
               actions: [
@@ -685,6 +769,35 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
       }
     } finally {
       if (mounted) setState(() => _isChecking = false);
+    }
+  }
+
+  Future<void> _openPaymentUrl() async {
+    final rawUrl = widget.result.paymentUrl.trim();
+    debugPrint("🌐 [TezCheck] Ochilayotgan havola: $rawUrl");
+    final uri = Uri.parse(rawUrl);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint("❌ [TezCheck] Brauzer xatosi: $e");
+      // Agar brauzer ochilmasa, havolani darhol clipboardga nusxalab beramiz va xabar qilamiz
+      Clipboard.setData(ClipboardData(text: rawUrl));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("To'lov havolasi nusxalandi! Iltimos, brauzerda oching."),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -733,7 +846,7 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
           ),
           const Gap(16),
 
-          // Summa bloki
+          // Summa va Stollar soni bloki
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -747,7 +860,10 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("To'lanadigan summa:", style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    Text(
+                      "${widget.tablesToLicense} ta stol uchun to'lov:",
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
                     const Gap(2),
                     Text(
                       formatSum(widget.amountSom),
@@ -776,12 +892,7 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () async {
-                final uri = Uri.parse(widget.result.paymentUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
+              onPressed: _openPaymentUrl,
               icon: const Icon(Icons.open_in_browser_rounded, size: 20),
               label: const Text(
                 "Click / Payme / Uzum orqali To'lash",

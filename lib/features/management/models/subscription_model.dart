@@ -5,6 +5,7 @@ class SubscriptionModel {
   final String planName;
   final DateTime expiryDate;
   final int pricePerTablePerMonth;
+  final int licensedTablesCount; // Litsenziya bo'yicha ruxsat berilgan stollar soni
   final DateTime? lastPaymentDate;
   final int? lastPaymentAmount;
   final String? lastPaymentReference;
@@ -14,6 +15,7 @@ class SubscriptionModel {
     this.planName = 'Arena Professional',
     required this.expiryDate,
     this.pricePerTablePerMonth = 100000,
+    this.licensedTablesCount = 5,
     this.lastPaymentDate,
     this.lastPaymentAmount,
     this.lastPaymentReference,
@@ -33,6 +35,7 @@ class SubscriptionModel {
     String? planName,
     DateTime? expiryDate,
     int? pricePerTablePerMonth,
+    int? licensedTablesCount,
     DateTime? lastPaymentDate,
     int? lastPaymentAmount,
     String? lastPaymentReference,
@@ -42,6 +45,7 @@ class SubscriptionModel {
       planName: planName ?? this.planName,
       expiryDate: expiryDate ?? this.expiryDate,
       pricePerTablePerMonth: pricePerTablePerMonth ?? this.pricePerTablePerMonth,
+      licensedTablesCount: licensedTablesCount ?? this.licensedTablesCount,
       lastPaymentDate: lastPaymentDate ?? this.lastPaymentDate,
       lastPaymentAmount: lastPaymentAmount ?? this.lastPaymentAmount,
       lastPaymentReference: lastPaymentReference ?? this.lastPaymentReference,
@@ -54,6 +58,7 @@ class SubscriptionModel {
       'planName': planName,
       'expiryDate': expiryDate.toIso8601String(),
       'pricePerTablePerMonth': pricePerTablePerMonth,
+      'licensedTablesCount': licensedTablesCount,
       'lastPaymentDate': lastPaymentDate?.toIso8601String(),
       'lastPaymentAmount': lastPaymentAmount,
       'lastPaymentReference': lastPaymentReference,
@@ -69,6 +74,7 @@ class SubscriptionModel {
               DateTime.now().add(const Duration(days: 30))
           : DateTime.now().add(const Duration(days: 30)),
       pricePerTablePerMonth: (map['pricePerTablePerMonth'] as num?)?.toInt() ?? 100000,
+      licensedTablesCount: (map['licensedTablesCount'] as num?)?.toInt() ?? 5,
       lastPaymentDate: map['lastPaymentDate'] != null
           ? DateTime.tryParse(map['lastPaymentDate'] as String)
           : null,

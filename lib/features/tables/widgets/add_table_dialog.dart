@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../data/local/app_database.dart';
+import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 
 class AddTableDialog extends ConsumerStatefulWidget {
@@ -90,6 +91,24 @@ class _AddTableDialogState extends ConsumerState<AddTableDialog> {
         ),
       );
       return;
+    }
+
+    if (!_isEditing) {
+      final currentTables = ref.read(tablesStreamProvider).value ?? [];
+      final sub = ref.read(subscriptionProvider);
+      if (currentTables.length >= sub.licensedTablesCount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "⚠️ Litsenziya cheklovi!\nSizning tarifingiz ${sub.licensedTablesCount} ta stol uchun to'langan. Yangi stol qo'shish uchun 'Obuna va Litsenziya' bo'limidan litsenziyangizni yangilang!",
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);

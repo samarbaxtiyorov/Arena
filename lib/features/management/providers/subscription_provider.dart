@@ -48,6 +48,7 @@ class SubscriptionNotifier extends Notifier<SubscriptionModel> {
     required int months,
     required int paidAmount,
     required String reference,
+    int? licensedTablesCount,
   }) async {
     final now = DateTime.now();
     final currentExpiry = state.expiryDate;
@@ -56,6 +57,7 @@ class SubscriptionNotifier extends Notifier<SubscriptionModel> {
 
     final updated = state.copyWith(
       expiryDate: newExpiry,
+      licensedTablesCount: licensedTablesCount ?? state.licensedTablesCount,
       lastPaymentDate: now,
       lastPaymentAmount: paidAmount,
       lastPaymentReference: reference,
