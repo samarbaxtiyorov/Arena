@@ -735,27 +735,55 @@ function checkAuth() {
   document.getElementById('auth-modal').classList.remove('hidden');
 }
 
-// Kirish formasi (Qat'iy xavfsizlik — har qanday raqam bilan kirish taqiqlangan!)
+// Kirish formasi (Login va Parol asosida qat'iy tekshiruv)
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const phone = document.getElementById('login-phone').value.trim();
-  const pass = document.getElementById('login-password').value.trim();
+  const usernameInput = document.getElementById('login-username') || document.getElementById('login-phone');
+  const rawLogin = (usernameInput?.value || '').trim();
+  const pass = (document.getElementById('login-password')?.value || '').trim();
   const errorEl = document.getElementById('login-error');
   const btn = document.getElementById('btn-submit-login');
 
-  if (!phone || !pass) {
-    errorEl.textContent = "Telefon raqami va parolni to'liq kiriting!";
+  if (!rawLogin || !pass) {
+    errorEl.textContent = "Login va parolni to'liq kiriting!";
     errorEl.classList.remove('hidden');
     return;
   }
 
-  const cleanPhone = phone.replace(/\D/g, '');
-  if (cleanPhone.length < 7) {
-    errorEl.textContent = "Telefon raqami juda qisqa! Raqamni to'liq kiriting.";
+  // 1. Login qoidalari (kamida 6 ta harf/raqam, probellarsiz, nuqta/vergullarsiz)
+  if (rawLogin.includes(' ')) {
+    errorEl.textContent = "Loginda bo'sh joy (probel) bo'lishi mumkin emas!";
     errorEl.classList.remove('hidden');
     return;
   }
-  const last9 = cleanPhone.slice(-9);
+
+  if (rawLogin.includes('.') || rawLogin.includes(',') || rawLogin.includes(';') || rawLogin.includes(':')) {
+    errorEl.textContent = "Loginda nuqta, vergul yoki boshqa belgilar bo'lishi mumkin emas!";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  if (rawLogin.length < 6) {
+    errorEl.textContent = "Login kamida 6 ta belgidan iborat bo'lishi shart!";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const validRegex = /^[a-zA-Z0-9_]{6,32}$/;
+  if (!validRegex.test(rawLogin)) {
+    errorEl.textContent = "Login faqat lotin harflari va raqamlardan iborat bo'lishi kerak!";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  // 2. Parol qoidalari (kamida 8 ta belgi)
+  if (pass.length < 8) {
+    errorEl.textContent = "Akkaunt paroli kamida 8 ta belgidan iborat bo'lishi shart!";
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const cleanLogin = rawLogin.toLowerCase();
 
   btn.disabled = true;
   btn.innerHTML = '<span>Tekshirilmoqda...</span>';
@@ -772,19 +800,16 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     }
 
     if (!accounts || accounts.length === 0) {
-      errorEl.textContent = "Bulutli bazada hali birorta ham muassasa ro'yxatdan o'tmagan! Iltimos, avval Arena ilovasida muassasangizni ro'yxatdan o'tkazing.";
+      errorEl.textContent = "Bulutli bazada hali birorta ham muassasa ro'yxatdan o'tmagan! Iltimos, avval Arena ilovasida hisob yarating.";
       errorEl.classList.remove('hidden');
       return;
     }
 
-    // Telefon raqam bo'yicha qat'iy qidirish (oxirgi 9 raqam orqali moslik)
-    const matched = accounts.find(a => {
-      const aPhone = (a.phone || '').replace(/\D/g, '');
-      return aPhone.endsWith(last9) || cleanPhone.endsWith(aPhone.slice(-9));
-    });
+    // Login bo'yicha qat'iy qidirish (Supabase PK ustuni: 'phone')
+    const matched = accounts.find(a => (a.phone || '').trim().toLowerCase() === cleanLogin);
 
     if (!matched) {
-      errorEl.textContent = "Bunday telefon raqamli muassasa mavjud emas! Iltimos, Arena ilovasida ro'yxatdan o'tgan raqamni kiriting.";
+      errorEl.textContent = "Bunday loginli muassasa hisobi topilmadi! Iltimos, Arena ilovasida ro'yxatdan o'tgan to'g'ri loginni kiriting.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -799,7 +824,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     // Parolni qat'iy tekshirish
     const isValidPass = await verifyBossPassword(pass, matched.pin_hash);
     if (!isValidPass) {
-      errorEl.textContent = "Parol noto'g'ri! Iltimos, Arena ilovasidagi boshliq parolini kiriting.";
+      errorEl.textContent = "Parol noto'g'ri! Iltimos, Arena ilovasidagi boshliq parolingizni kiriting.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -808,7 +833,8 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     const venueObj = {
       id: matched.business_id,
       name: matched.business_name || 'Arena Majmuasi',
-      phone: matched.phone || phone,
+      login: cleanLogin,
+      phone: matched.phone || cleanLogin,
       license_until: matched.license_until
     };
 

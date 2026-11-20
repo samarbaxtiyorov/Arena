@@ -1,6 +1,6 @@
 // ============================================
 // Arena — Biznes / Muassasa Akkauntlari Provideri
-// Multi-tenant boshqaruv: har bir klub egasi o'z hisobiga ega
+// Multi-tenant boshqaruv: Login va Parol asosida
 // ============================================
 
 import 'dart:convert';
@@ -13,9 +13,9 @@ import '../../constants/app_constants.dart';
 import '../../utils/security_helper.dart';
 import '../models/business_account.dart';
 
-const String _accountsPrefKey = 'arena_business_accounts_v3';
-const String _activeAccountIdPrefKey = 'arena_active_account_id_v3';
-const String _isLoggedOutPrefKey = 'arena_business_logged_out_v3';
+const String _accountsPrefKey = 'arena_business_accounts_v4';
+const String _activeAccountIdPrefKey = 'arena_active_account_id_v4';
+const String _isLoggedOutPrefKey = 'arena_business_logged_out_v4';
 
 final defaultInitialAccounts = const <BusinessAccount>[];
 
@@ -57,9 +57,78 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     return const BusinessAccountState(isLoading: true);
   }
 
+  // ── 1. Validatsiya Qoidalari ──────────────────────────────
+
+  /// Eski telefon formatlarini solishtirish (Backward-compatibility)
+  static bool matchPhone(String p1, String p2) {
+    if (p1.trim().toLowerCase() == p2.trim().toLowerCase()) return true;
+    String d1 = p1.replaceAll(RegExp(r'\D'), '');
+    String d2 = p2.replaceAll(RegExp(r'\D'), '');
+    if (d1.isEmpty || d2.isEmpty) return false;
+    if (d1 == d2) return true;
+    if (d1.startsWith('998') && d1.length > 9) d1 = d1.substring(3);
+    if (d2.startsWith('998') && d2.length > 9) d2 = d2.substring(3);
+    if (d1 == d2) return true;
+    final minLen = d1.length < d2.length ? d1.length : d2.length;
+    if (minLen >= 7) {
+      if (d1.substring(d1.length - minLen) == d2.substring(d2.length - minLen)) return true;
+    }
+    return false;
+  }
+
+  /// Login validatsiyasi:
+  /// - Kamida 6 ta belgi
+  /// - Probel (bo'sh joy) bo'lishi mumkin emas
+  /// - Nuqta, vergul yoki boshqa tinish belgilari bo'lishi mumkin emas
+  /// - Faqat lotin harflari, raqamlar va pastki chiziq (_)
+  static String? validateLogin(String login) {
+    final clean = login.trim();
+    if (clean.isEmpty) {
+      return "Iltimos, loginni kiriting!";
+    }
+    if (clean.contains(' ')) {
+      return "Loginda probel (bo'sh joy) bo'lishi mumkin emas!";
+    }
+    if (clean.contains('.') || clean.contains(',') || clean.contains(';') || clean.contains(':')) {
+      return "Loginda nuqta, vergul yoki boshqa tinish belgilari bo'lishi mumkin emas!";
+    }
+    if (clean.length < 6) {
+      return "Login kamida 6 ta belgidan iborat bo'lishi kerak!";
+    }
+    final validRegex = RegExp(r'^[a-zA-Z0-9_]{6,32}$');
+    if (!validRegex.hasMatch(clean)) {
+      return "Login faqat lotin harflari va raqamlardan iborat bo'lishi kerak (masalan: arena01, jasmina)";
+    }
+    return null;
+  }
+
+  /// Akkaunt paroli validatsiyasi:
+  /// - Kamida 8 ta belgidan kam bo'lmasligi kerak
+  static String? validatePassword(String password) {
+    final clean = password.trim();
+    if (clean.isEmpty) {
+      return "Iltimos, akkaunt parolini kiriting!";
+    }
+    if (clean.length < 8) {
+      return "Akkaunt paroli kamida 8 ta belgidan iborat bo'lishi shart!";
+    }
+    return null;
+  }
+
+  // ── 2. Mahalliy Xotirani Boshqarish ──────────────────────
+
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final rawAccounts = prefs.getString(_accountsPrefKey);
+    
+    // Eski v3 pref key'dan v4 ga xavfsiz ko'chirish
+    String? rawAccounts = prefs.getString(_accountsPrefKey);
+    if (rawAccounts == null || rawAccounts.trim().isEmpty) {
+      final legacyAccounts = prefs.getString('arena_business_accounts_v3');
+      if (legacyAccounts != null && legacyAccounts.trim().isNotEmpty) {
+        rawAccounts = legacyAccounts;
+      }
+    }
+
     final isLoggedOut = prefs.getBool(_isLoggedOutPrefKey) ?? false;
     final activeId = prefs.getString(_activeAccountIdPrefKey);
 
@@ -104,38 +173,12 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     await prefs.setString(_accountsPrefKey, str);
   }
 
-  static bool matchPhone(String p1, String p2) {
-    if (p1.trim().toLowerCase() == p2.trim().toLowerCase()) return true;
-    String d1 = p1.replaceAll(RegExp(r'\D'), '');
-    String d2 = p2.replaceAll(RegExp(r'\D'), '');
-    if (d1.isEmpty || d2.isEmpty) return false;
-    if (d1 == d2) return true;
+  // ── 3. Supabase Bulutli Bazasidan Qidirish ───────────────
 
-    // 998 davlat kodini tozalash
-    if (d1.startsWith('998') && d1.length > 9) {
-      d1 = d1.substring(3);
-    }
-    if (d2.startsWith('998') && d2.length > 9) {
-      d2 = d2.substring(3);
-    }
-
-    if (d1 == d2) return true;
-
-    // Agar biri ikkinchisining ichida to'liq bo'lsa yoki oxirgi 7-9 xonasi teng bo'lsa
-    final minLen = d1.length < d2.length ? d1.length : d2.length;
-    if (minLen >= 7) {
-      final sub1 = d1.substring(d1.length - minLen);
-      final sub2 = d2.substring(d2.length - minLen);
-      if (sub1 == sub2) return true;
-    }
-
-    return false;
-  }
-
-  /// Supabase bulutli bazasidan telefon orqali akkauntni qidirish
-  static Future<Map<String, dynamic>?> _fetchCloudAccount(String phone) async {
-    final cleanPhone = phone.trim();
-    final digitsOnly = cleanPhone.replaceAll(RegExp(r'\D'), '');
+  /// Supabase bulutidan login (yoki eski telefon) bo'yicha qidirish
+  static Future<Map<String, dynamic>?> _fetchCloudAccount(String login) async {
+    final cleanLogin = login.trim().toLowerCase();
+    if (cleanLogin.isEmpty) return null;
 
     final headers = {
       'apikey': AppConstants.supabaseAnonKey,
@@ -143,34 +186,25 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       'Content-Type': 'application/json',
     };
 
-    final phoneVariants = <String>{
-      cleanPhone,
-      if (digitsOnly.isNotEmpty) digitsOnly,
-      if (digitsOnly.startsWith('998')) digitsOnly.substring(3),
-      if (!cleanPhone.startsWith('+') && digitsOnly.length == 9) '+998$digitsOnly',
-      if (cleanPhone.startsWith('+998')) cleanPhone.substring(4).replaceAll(' ', ''),
-    };
-
-    for (final variant in phoneVariants) {
-      try {
-        final encoded = Uri.encodeComponent(variant);
-        final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=eq.$encoded&limit=1');
-        final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
-        if (res.statusCode == 200) {
-          final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
-          if (list.isNotEmpty) return list.first;
-        }
-      } catch (_) {}
-    }
+    try {
+      final encoded = Uri.encodeComponent(cleanLogin);
+      // Supabase cloud_accounts jadvali PK ustuni: 'phone'
+      final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=ilike.$encoded&limit=1');
+      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
+        if (list.isNotEmpty) return list.first;
+      }
+    } catch (_) {}
 
     try {
-      final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?select=*&limit=50');
+      final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?select=*&limit=100');
       final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
         for (final row in list) {
-          final p = row['phone']?.toString() ?? '';
-          if (matchPhone(p, cleanPhone)) {
+          final p = row['phone']?.toString().trim().toLowerCase() ?? '';
+          if (p == cleanLogin) {
             return row;
           }
         }
@@ -180,31 +214,42 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     return null;
   }
 
+  // ── 4. Yangi Akkaunt Ro'yxatdan O'tkazish ─────────────────
+
   Future<bool> registerAccount({
     required String venueName,
     required String ownerName,
-    required String phone,
+    String? login,
+    String? phone, // backward compatibility
     required String password,
     required String ownerPin,
   }) async {
-    final cleanPhone = phone.trim();
+    final rawLogin = (login != null && login.trim().isNotEmpty) ? login : (phone ?? '');
+    final cleanLogin = rawLogin.trim().toLowerCase();
     final cleanVenue = venueName.trim();
     final cleanOwner = ownerName.trim();
     final cleanPass = password.trim();
     final cleanPin = ownerPin.trim();
 
+    // Validatsiya
+    final loginErr = validateLogin(cleanLogin);
+    if (loginErr != null) return false;
+
+    final passErr = validatePassword(cleanPass);
+    if (passErr != null) return false;
+
     final currentAccounts = List<BusinessAccount>.from(state.accounts);
 
     // 1. Mahalliy ro'yxatda bor-yo'qligini tekshirish
-    if (currentAccounts.any((a) => matchPhone(a.phone, cleanPhone))) {
-      return false; // Telefon raqami allaqachon mavjud
+    if (currentAccounts.any((a) => a.login.trim().toLowerCase() == cleanLogin)) {
+      return false; // Login allaqachon mavjud
     }
 
     // 2. Bulutli bazada (Supabase Cloud) bor-yo'qligini tekshirish
     try {
-      final cloudMatch = await _fetchCloudAccount(cleanPhone);
+      final cloudMatch = await _fetchCloudAccount(cleanLogin);
       if (cloudMatch != null) {
-        return false; // Bulutda bu telefon raqam allaqachon mavjud!
+        return false; // Bulutda bu login allaqachon band!
       }
     } catch (_) {}
 
@@ -212,7 +257,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       id: const Uuid().v4(),
       venueName: cleanVenue,
       ownerName: cleanOwner,
-      phone: cleanPhone,
+      login: cleanLogin,
       password: SecurityHelper.hashPassword(cleanPass),
       ownerPin: cleanPin,
       licenseType: 'PREMIUM VIP',
@@ -232,7 +277,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
         cloudUrl,
         headers: headers,
         body: jsonEncode({
-          'phone': cleanPhone,
+          'phone': cleanLogin, // Supabase PK ustunida login saqlanadi
           'pin_hash': SecurityHelper.hashPassword(cleanPass),
           'business_id': newAcc.id,
           'business_name': cleanVenue,
@@ -269,18 +314,24 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     return true;
   }
 
+  // ── 5. Tizimga Kirish (Login) ─────────────────────────────
+
   Future<bool> loginAccount({
-    required String phone,
+    String? login,
+    String? phone, // backward compatibility
     required String password,
   }) async {
-    final cleanPhone = phone.trim();
+    final rawLogin = (login != null && login.trim().isNotEmpty) ? login : (phone ?? '');
+    final cleanLogin = rawLogin.trim().toLowerCase();
     final cleanPass = password.trim();
+
+    if (cleanLogin.isEmpty || cleanPass.isEmpty) return false;
 
     // 1. Mahalliy SharedPreferences'dan qidirish
     try {
       final match = state.accounts.firstWhere(
         (a) =>
-            (matchPhone(a.phone, cleanPhone) || a.phone == cleanPhone) &&
+            a.login.trim().toLowerCase() == cleanLogin &&
             (SecurityHelper.verifyPassword(cleanPass, a.password) ||
                 (a.ownerPin.isNotEmpty && cleanPass == a.ownerPin)),
       );
@@ -298,9 +349,9 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       // Mahalliy hisoblarda topilmadi — Bulutdan qidiramiz!
     }
 
-    // 2. Bulutli bazadan (Supabase Cloud) qidirish (Boshqa telefondan kirilganda)
+    // 2. Bulutli bazadan (Supabase Cloud) qidirish (Boshqa telefondan/qurilmadan kirilganda)
     try {
-      final cloudAccount = await _fetchCloudAccount(cleanPhone);
+      final cloudAccount = await _fetchCloudAccount(cleanLogin);
       if (cloudAccount != null) {
         final pinHash = cloudAccount['pin_hash']?.toString() ?? '';
         final isBlocked = cloudAccount['is_blocked'] as bool? ?? false;
@@ -309,7 +360,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
           return false;
         }
 
-        // Parolni tekshirish (tuzlangan yoki oddiy xesh)
+        // Parolni tekshirish (tuzlangan yoki oddiy SHA-256 xesh)
         if (pinHash.isEmpty || SecurityHelper.verifyPassword(cleanPass, pinHash)) {
           final venueName = cloudAccount['business_name']?.toString() ?? 'Arena Sport';
           final busId = cloudAccount['business_id']?.toString() ?? const Uuid().v4();
@@ -319,7 +370,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
             id: busId,
             venueName: venueName,
             ownerName: 'Boshliq',
-            phone: cleanPhone,
+            login: cleanLogin,
             password: SecurityHelper.hashPassword(cleanPass),
             ownerPin: cleanPass.length == 4 ? cleanPass : '0000',
             licenseType: 'PREMIUM VIP',
@@ -345,7 +396,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
           }
           final subJson = jsonEncode({
             'venueId': importedAcc.id,
-            'planName': isTrial ? '3 Kunlik Bepul Sinov' : 'Arena Standart',
+            'planName': isTrial ? '3 Kunlik Bepul Sinov' : 'Premium VIP',
             'expiryDate': expiry.toIso8601String(),
             'pricePerTablePerMonth': 100000,
             'licensedTablesCount': 10,
@@ -392,16 +443,21 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
   Future<void> updateAccountInfo({
     required String venueName,
     required String ownerName,
-    required String phone,
+    String? login,
+    String? phone,
     String? newPassword,
     String? newOwnerPin,
   }) async {
     if (state.activeAccount == null) return;
     final current = state.activeAccount!;
+    final targetLogin = (login != null && login.trim().isNotEmpty)
+        ? login.trim().toLowerCase()
+        : (phone != null && phone.trim().isNotEmpty ? phone.trim().toLowerCase() : current.login);
+
     final updatedAcc = current.copyWith(
       venueName: venueName.trim(),
       ownerName: ownerName.trim(),
-      phone: phone.trim(),
+      login: targetLogin,
       password: (newPassword != null && newPassword.trim().isNotEmpty)
           ? SecurityHelper.hashPassword(newPassword)
           : current.password,

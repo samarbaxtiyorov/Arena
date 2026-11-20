@@ -24,11 +24,9 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   bool _isLoginTab = true;
   bool _isCashierLogin = false; // Boshliq yoki Kassir rejimi
 
-  // Boshliq Login Controllerlari
-  final TextEditingController _loginPhoneCtrl =
-      TextEditingController(text: '+998 ');
-  final TextEditingController _loginPassCtrl =
-      TextEditingController();
+  // Boshliq Login Controllerlari (Sof login, kamida 6 ta belgi, probelsiz)
+  final TextEditingController _loginUsernameCtrl = TextEditingController();
+  final TextEditingController _loginPassCtrl = TextEditingController();
   bool _obscureLoginPass = true;
 
   // Kassir Login Controllerlari
@@ -39,21 +37,20 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   // Ro'yxatdan o'tish Controllerlari
   final TextEditingController _regVenueCtrl = TextEditingController();
   final TextEditingController _regOwnerCtrl = TextEditingController();
-  final TextEditingController _regPhoneCtrl =
-      TextEditingController(text: '+998 ');
+  final TextEditingController _regUsernameCtrl = TextEditingController();
   final TextEditingController _regPassCtrl = TextEditingController();
   final TextEditingController _regPinCtrl = TextEditingController();
   bool _obscureRegPass = true;
 
   @override
   void dispose() {
-    _loginPhoneCtrl.dispose();
+    _loginUsernameCtrl.dispose();
     _loginPassCtrl.dispose();
     _cashierLoginCtrl.dispose();
     _cashierPassCtrl.dispose();
     _regVenueCtrl.dispose();
     _regOwnerCtrl.dispose();
-    _regPhoneCtrl.dispose();
+    _regUsernameCtrl.dispose();
     _regPassCtrl.dispose();
     _regPinCtrl.dispose();
     super.dispose();
@@ -372,20 +369,29 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
         if (!_isCashierLogin) ...[
           // ── BOSHLIQ FORMASI ────────────────────────────────
-          const Text(
-            'Telefon Raqami / Login',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155)),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Boshliq Logini *',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155)),
+              ),
+              Text(
+                'Kamida 6 ta harf/raqam',
+                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              ),
+            ],
           ),
           const Gap(6),
           TextField(
-            controller: _loginPhoneCtrl,
-            keyboardType: TextInputType.phone,
+            controller: _loginUsernameCtrl,
+            keyboardType: TextInputType.text,
             decoration: InputDecoration(
-              hintText: '+998 90 123 45 67',
-              prefixIcon: const Icon(Icons.phone_outlined,
+              hintText: 'Masalan: arena01, jasmina',
+              prefixIcon: const Icon(Icons.alternate_email_rounded,
                   size: 20, color: Color(0xFF64748B)),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
@@ -400,19 +406,28 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
           const Gap(14),
 
-          const Text(
-            'Akkaunt Paroli',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155)),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Akkaunt Paroli *',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155)),
+              ),
+              Text(
+                'Kamida 8 ta belgi',
+                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              ),
+            ],
           ),
           const Gap(6),
           TextField(
             controller: _loginPassCtrl,
             obscureText: _obscureLoginPass,
             decoration: InputDecoration(
-              hintText: 'Parolingizni kiriting',
+              hintText: 'Kamida 8 ta belgi',
               prefixIcon: const Icon(Icons.lock_outline_rounded,
                   size: 20, color: Color(0xFF64748B)),
               suffixIcon: IconButton(
@@ -642,21 +657,35 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
         const Gap(14),
 
-        // Telefon
+        // Login (Foydalanuvchi nomi)
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Boshliq Logini (Foydalanuvchi nomi) *',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155)),
+            ),
+            Text(
+              'Kamida 6 ta harf/raqam',
+              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+            ),
+          ],
+        ),
+        const Gap(4),
         const Text(
-          'Telefon Raqami (Login) *',
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155)),
+          'Probel (bo\'sh joy), nuqta va vergullarsiz bo\'lishi shart',
+          style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
         ),
         const Gap(6),
         TextField(
-          controller: _regPhoneCtrl,
-          keyboardType: TextInputType.phone,
+          controller: _regUsernameCtrl,
+          keyboardType: TextInputType.text,
           decoration: InputDecoration(
-            hintText: '+998 90 123 45 67',
-            prefixIcon: const Icon(Icons.phone_outlined,
+            hintText: 'Masalan: arenaboss, jasmina',
+            prefixIcon: const Icon(Icons.alternate_email_rounded,
                 size: 20, color: Color(0xFF64748B)),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
@@ -672,19 +701,28 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         const Gap(14),
 
         // Parol
-        const Text(
-          'Yangi Akkaunt Paroli *',
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155)),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Yangi Akkaunt Paroli *',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155)),
+            ),
+            Text(
+              'Kamida 8 ta belgi',
+              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+            ),
+          ],
         ),
         const Gap(6),
         TextField(
           controller: _regPassCtrl,
           obscureText: _obscureRegPass,
           decoration: InputDecoration(
-            hintText: 'Kamida 4-6 ta belgi',
+            hintText: 'Kamida 8 ta belgi',
             prefixIcon: const Icon(Icons.lock_outline_rounded,
                 size: 20, color: Color(0xFF64748B)),
             suffixIcon: IconButton(
@@ -777,14 +815,28 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
   // ── Login Amalini Bajarish ────────────────────────────────
   Future<void> _handleLogin() async {
-    final phone = _loginPhoneCtrl.text.trim();
+    final login = _loginUsernameCtrl.text.trim();
     final pass = _loginPassCtrl.text.trim();
 
-    if (phone.isEmpty || pass.isEmpty) {
+    // 1. Login validatsiyasi
+    final loginErr = BusinessAccountNotifier.validateLogin(login);
+    if (loginErr != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Iltimos, telefon va parolni kiriting!"),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(loginErr),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    // 2. Parol validatsiyasi (kamida 8 ta belgi)
+    final passErr = BusinessAccountNotifier.validatePassword(pass);
+    if (passErr != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(passErr),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -792,7 +844,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
     final success = await ref
         .read(businessAccountProvider.notifier)
-        .loginAccount(phone: phone, password: pass);
+        .loginAccount(login: login, password: pass);
 
     if (success) {
       final active = ref.read(businessAccountProvider).activeAccount;
@@ -814,7 +866,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Telefon raqami yoki parol noto'g'ri!"),
+            content: Text("Bunday login yoki parol noto'g'ri!"),
             backgroundColor: Color(0xFFEF4444),
           ),
         );
@@ -1065,11 +1117,11 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   Future<void> _handleRegister() async {
     final venue = _regVenueCtrl.text.trim();
     final owner = _regOwnerCtrl.text.trim();
-    final phone = _regPhoneCtrl.text.trim();
+    final login = _regUsernameCtrl.text.trim();
     final pass = _regPassCtrl.text.trim();
     final pin = _regPinCtrl.text.trim();
 
-    if (venue.isEmpty || owner.isEmpty || phone.isEmpty || pass.isEmpty) {
+    if (venue.isEmpty || owner.isEmpty || login.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Iltimos, barcha maydonlarni to'ldiring!"),
@@ -1079,7 +1131,31 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
       return;
     }
 
-    if (pin.length != 4) {
+    // 1. Login validatsiyasi (kamida 6 ta harf/raqam, probel va belgilarsiz)
+    final loginErr = BusinessAccountNotifier.validateLogin(login);
+    if (loginErr != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loginErr),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    // 2. Parol validatsiyasi (kamida 8 ta belgi)
+    final passErr = BusinessAccountNotifier.validatePassword(pass);
+    if (passErr != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(passErr),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    if (pin.length != 4 || int.tryParse(pin) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Kirish PIN-kodi roppa-rosa 4 ta raqam bo'lishi shart!"),
@@ -1094,7 +1170,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         .registerAccount(
           venueName: venue,
           ownerName: owner,
-          phone: phone,
+          login: login,
           password: pass,
           ownerPin: pin,
         );
@@ -1120,7 +1196,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                "Ushbu telefon raqami allaqachon ro'yxatdan o'tgan! Boshqa raqam kiriting."),
+                "Ushbu login allaqachon band! Iltimos, boshqa login tanlang."),
             backgroundColor: Color(0xFFEF4444),
           ),
         );

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:arena/core/auth/models/business_account.dart';
+import 'package:arena/core/auth/providers/business_account_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -53,6 +54,31 @@ void main() {
       expect(updated.venueName, equals('Chempion Arena'));
       expect(updated.ownerName, equals('Alisher Baxtiyorov'));
       expect(updated.phone, equals('+998 91 111 22 33'));
+    });
+
+    test('Login validation strictly enforces: >= 6 chars, no spaces, no dots/commas', () {
+      // Xato holatlar
+      expect(BusinessAccountNotifier.validateLogin(''), isNotNull);
+      expect(BusinessAccountNotifier.validateLogin('jas'), isNotNull); // < 6
+      expect(BusinessAccountNotifier.validateLogin('jas mina'), isNotNull); // bo'sh joy
+      expect(BusinessAccountNotifier.validateLogin('jasmina.01'), isNotNull); // nuqta
+      expect(BusinessAccountNotifier.validateLogin('jasmina,01'), isNotNull); // vergul
+      expect(BusinessAccountNotifier.validateLogin('jasmina!@#'), isNotNull); // maxsus belgi
+
+      // To'g'ri holatlar
+      expect(BusinessAccountNotifier.validateLogin('jasmina'), isNull);
+      expect(BusinessAccountNotifier.validateLogin('arena01'), isNull);
+      expect(BusinessAccountNotifier.validateLogin('boss_2026'), isNull);
+      expect(BusinessAccountNotifier.validateLogin('samar_baxtiyorov'), isNull);
+    });
+
+    test('Password validation strictly enforces: >= 8 chars', () {
+      expect(BusinessAccountNotifier.validatePassword(''), isNotNull);
+      expect(BusinessAccountNotifier.validatePassword('1234567'), isNotNull); // 7 ta belgi
+      expect(BusinessAccountNotifier.validatePassword('pass123'), isNotNull); // 7 ta belgi
+
+      expect(BusinessAccountNotifier.validatePassword('12345678'), isNull); // 8 ta belgi
+      expect(BusinessAccountNotifier.validatePassword('arena_secure_2026'), isNull);
     });
   });
 }

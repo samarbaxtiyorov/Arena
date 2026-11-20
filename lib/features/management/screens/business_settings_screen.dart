@@ -1307,7 +1307,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    "Boshliq: ${activeVenue?.ownerName ?? 'Ega'} • Tel: ${activeVenue?.phone ?? ''}",
+                    "Boshliq: ${activeVenue?.ownerName ?? 'Ega'} • Login: ${activeVenue?.login ?? ''}",
                     style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                 ],
@@ -1358,7 +1358,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
     if (activeVenue == null) return;
     final nameCtrl = TextEditingController(text: activeVenue.venueName);
     final ownerCtrl = TextEditingController(text: activeVenue.ownerName);
-    final phoneCtrl = TextEditingController(text: activeVenue.phone);
+    final loginCtrl = TextEditingController(text: activeVenue.login);
     final passCtrl = TextEditingController();
 
     showDialog(
@@ -1381,15 +1381,20 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
               ),
               const Gap(10),
               TextField(
-                controller: phoneCtrl,
-                decoration: const InputDecoration(labelText: "Telefon", prefixIcon: Icon(Icons.phone_rounded)),
+                controller: loginCtrl,
+                decoration: const InputDecoration(
+                  labelText: "Boshliq Logini",
+                  helperText: "Kamida 6 ta belgi, probelsiz",
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                ),
               ),
               const Gap(10),
               TextField(
                 controller: passCtrl,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  labelText: "Yangi parol (o'zgartirish ixtiyoriy)",
+                  labelText: "Yangi parol (ixtiyoriy)",
+                  helperText: "Kamida 8 ta belgi",
                   prefixIcon: Icon(Icons.lock_rounded),
                 ),
               ),
@@ -1400,11 +1405,28 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Bekor qilish")),
           ElevatedButton(
             onPressed: () async {
+              final newLogin = loginCtrl.text.trim();
+              final newPass = passCtrl.text.trim();
+
+              final loginErr = BusinessAccountNotifier.validateLogin(newLogin);
+              if (loginErr != null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loginErr), backgroundColor: const Color(0xFFEF4444)));
+                return;
+              }
+
+              if (newPass.isNotEmpty) {
+                final passErr = BusinessAccountNotifier.validatePassword(newPass);
+                if (passErr != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(passErr), backgroundColor: const Color(0xFFEF4444)));
+                  return;
+                }
+              }
+
               await ref.read(businessAccountProvider.notifier).updateAccountInfo(
                 venueName: nameCtrl.text.trim(),
                 ownerName: ownerCtrl.text.trim(),
-                phone: phoneCtrl.text.trim(),
-                newPassword: passCtrl.text.trim().isNotEmpty ? passCtrl.text.trim() : null,
+                login: newLogin,
+                newPassword: newPass.isNotEmpty ? newPass : null,
               );
               if (ctx.mounted) Navigator.pop(ctx);
             },
