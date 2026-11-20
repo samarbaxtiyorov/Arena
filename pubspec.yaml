@@ -26,7 +26,6 @@ dependencies:
   # ── Offline Baza (SQLite / Drift) ───────────────
   drift: ^2.21.0
   drift_flutter: ^0.3.1
-  sqlite3_flutter_libs: ^0.6.0
   path_provider: ^2.1.5
   path: ^1.9.0
 
