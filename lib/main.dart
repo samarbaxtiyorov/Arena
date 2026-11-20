@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/ui_scale_provider.dart';
 import 'core/router/app_router.dart';
 import 'data/repositories/database_providers.dart';
+import 'data/sync/sync_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +85,12 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
 
   @override
   Widget build(BuildContext context) {
+    // Har safar faol akkaunt almashganda yangi sync xizmatini ishga tushirish
+    ref.listen<SyncService>(syncServiceProvider, (previous, next) {
+      previous?.stopSync();
+      next.startPeriodicSync();
+    });
+
     final router = ref.watch(appRouterProvider);
     final uiScale = ref.watch(uiScaleProvider);
 

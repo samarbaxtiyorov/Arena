@@ -1,6 +1,8 @@
 // ============================================
 // Arena — SyncService
 // Offline → Supabase 2 tomonlama sinxronizatsiya
+// Multi-tenant: har bir biznes ma'lumotlari faqat
+// o'z business_id si doirasida sinxronlanadi
 // ============================================
 
 import 'dart:async';
@@ -12,11 +14,12 @@ import '../remote/supabase_remote.dart';
 class SyncService {
   final AppDatabase    _db;
   final SupabaseRemote _remote;
+  final bool           isLoggedOut;
 
   Timer? _timer;
   bool   _isSyncing = false;
 
-  SyncService(this._db, this._remote);
+  SyncService(this._db, this._remote, {this.isLoggedOut = false});
 
   // Davriy sinxronizatsiyani boshlash
   void startPeriodicSync({Duration interval = const Duration(minutes: 2)}) {
@@ -28,9 +31,57 @@ class SyncService {
 
   void stopSync() => _timer?.cancel();
 
+  // ── Begona biznes ma'lumotlarini tozalash ────
+  Future<void> cleanForeignDataIfNeeded() async {
+    // Agar bu boshqa yangi/mustaqil biznes hisobi bo'lsa (masalan Jasmina),
+    // lekin avvalgi cheklovsiz sinxronizatsiyada biz_arena_sport demo qarzlari
+    // uning SQLite bazasiga tushib qolgan bo'lsa, ularni tozalab tashlaymiz
+    if (_remote.businessId != 'biz_arena_sport') {
+      const foreignCustomerIds = {
+        'cust_001',
+        'customer-412b9442-b89a-47b6-aa0f-2d5cd79a4951',
+        'customer-63158f5b-a3f1-455f-8459-c284898b7d21',
+        'customer-84d2bd8c-6439-4add-a8d9-a9e7d362850d',
+        'customer-3f049772-6e85-4949-962d-013f837a410f',
+        'customer-e0b3b8c7-a3e7-4a20-a817-768b4ae821fc',
+        'customer-d905bd42-660a-4b41-a509-3b90d5445ba2',
+        'customer-3a11d464-91d5-4daa-952d-1673209d5492',
+        'customer-87939912-8080-46b8-a583-4c822d9bcad8',
+        'customer-e949cf36-b0ca-45b3-9d5b-cf7afe6be1c2',
+        'customer-0fd43124-e6db-4e55-aff4-1248e28f9d37',
+      };
+
+      for (final cId in foreignCustomerIds) {
+        await (_db.delete(_db.debts)..where((tbl) => tbl.customerId.equals(cId))).go();
+        await (_db.delete(_db.customers)..where((tbl) => tbl.id.equals(cId))).go();
+      }
+
+      // Demo maydon/stollarni tozalash (faqat 1..5 demo ID lar)
+      for (final tId in ['1', '2', '3', '4', '5']) {
+        await (_db.delete(_db.clubTables)..where((tbl) => tbl.id.equals(tId))).go();
+      }
+
+      // Yetim qolgan qarzlarni tozalash (agar customer_id mavjud bo'lmasa)
+      try {
+        final allCustomers = await _db.customersDao.select(_db.customers).get();
+        final validCustomerIds = allCustomers.map((c) => c.id).toSet();
+        final allDebts = await _db.debtsDao.select(_db.debts).get();
+        for (final d in allDebts) {
+          if (!validCustomerIds.contains(d.customerId)) {
+            await (_db.delete(_db.debts)..where((tbl) => tbl.id.equals(d.id))).go();
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
   // ── To'liq sinxronizatsiya ───────────────────
   Future<SyncResult> syncAll() async {
+    if (isLoggedOut) return SyncResult.skipped();
     if (_isSyncing) return SyncResult.skipped();
+
+    // 0. Begona biznes ma'lumotlari keshini tozalash (hatto oflayn bo'lsa ham lokal bazadan tozalaydi)
+    await cleanForeignDataIfNeeded();
 
     // Internet bor-yo'qligini tekshir
     final connectivity = await Connectivity().checkConnectivity();
@@ -54,7 +105,7 @@ class SyncService {
       pushed += await _pushDebts(errors);
       pushed += await _pushProducts(errors);
 
-      // 2. SUPABASE → LOCAL (pull — tables, customers, debts, products)
+      // 2. SUPABASE → LOCAL (pull — faqat shu business_id ga tegishli ma'lumotlar)
       pulled += await _pullTables(errors);
       pulled += await _pullCustomers(errors);
       pulled += await _pullDebts(errors);
@@ -153,6 +204,11 @@ class SyncService {
     try {
       final rows = await _remote.fetchTables();
       for (final row in rows) {
+        final createdStr = row['created_at'] as String?;
+        final updatedStr = row['updated_at'] as String?;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+
         await _db.clubTablesDao.insertTable(ClubTablesCompanion.insert(
           id: row['id'] as String,
           name: row['name'] as String,
@@ -162,8 +218,8 @@ class SyncService {
           isActive: Value(row['is_active'] as bool? ?? true),
           sortOrder: Value((row['sort_order'] as num?)?.toInt() ?? 0),
           isSynced: const Value(true),
-          createdAt: Value(DateTime.parse(row['created_at'] as String)),
-          updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
+          createdAt: Value(createdAt ?? DateTime.now()),
+          updatedAt: Value(updatedAt ?? createdAt ?? DateTime.now()),
         ));
       }
       return rows.length;
@@ -174,22 +230,26 @@ class SyncService {
   }
 
   // ── PULL: customers (Supabase → SQLite) ──────
-  // Supabase ustunlari: note ('notes' emas), is_active YO'Q
   Future<int> _pullCustomers(List<String> errors) async {
     try {
       final rows = await _remote.fetchCustomers();
       for (final row in rows) {
         final noteValue = row['note'] as String? ?? row['notes'] as String?;
+        final createdStr = row['created_at'] as String?;
+        final updatedStr = row['updated_at'] as String?;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+
         await _db.customersDao.insertCustomer(CustomersCompanion.insert(
           id:        row['id'] as String,
           name:      row['name'] as String,
           phone:     Value(row['phone'] as String?),
           notes:     Value(noteValue),
           totalDebt: Value((row['total_debt'] as num?)?.toInt() ?? 0),
-          isActive:  const Value(true), // Supabase'da yo'q, lokal aktiv
+          isActive:  const Value(true),
           isSynced:  const Value(true),
-          createdAt: Value(DateTime.parse(row['created_at'] as String)),
-          updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
+          createdAt: Value(createdAt ?? DateTime.now()),
+          updatedAt: Value(updatedAt ?? createdAt ?? DateTime.now()),
         ));
       }
       return rows.length;
@@ -200,14 +260,17 @@ class SyncService {
   }
 
   // ── PULL: debts (Supabase → SQLite) ──────────
-  // Supabase ustunlari: remaining_amount, customer_name, customer_phone
-  // session_id va type YO'Q
   Future<int> _pullDebts(List<String> errors) async {
     try {
       final rows = await _remote.fetchDebts();
       for (final row in rows) {
         final rawAmount = (row['amount'] as num?)?.toInt() ??
             ((row['remaining_amount'] as num?)?.toInt() ?? 0);
+        final createdStr = row['created_at'] as String?;
+        final updatedStr = row['updated_at'] as String?;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
+
         await _db.debtsDao.insertDebt(DebtsCompanion.insert(
           id: row['id'] as String,
           customerId: row['customer_id'] as String,
@@ -216,8 +279,8 @@ class SyncService {
           description: Value(row['description'] as String?),
           sessionId: const Value(null),
           isSynced: const Value(true),
-          createdAt: Value(DateTime.parse(row['created_at'] as String)),
-          updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
+          createdAt: Value(createdAt ?? DateTime.now()),
+          updatedAt: Value(updatedAt ?? createdAt ?? DateTime.now()),
         ));
       }
       return rows.length;
@@ -228,7 +291,6 @@ class SyncService {
   }
 
   // ── PULL: products (Supabase → SQLite) ───────
-  // Supabase ustunlari: sale_price ('price' emas), stock_quantity ('stock' emas)
   Future<int> _pullProducts(List<String> errors) async {
     try {
       final rows = await _remote.fetchProducts();
@@ -237,6 +299,10 @@ class SyncService {
             ((row['price'] as num?)?.toInt() ?? 0);
         final stockVal = (row['stock_quantity'] as num?)?.toInt() ??
             ((row['stock'] as num?)?.toInt() ?? 0);
+        final createdStr = row['created_at'] as String?;
+        final updatedStr = row['updated_at'] as String?;
+        final createdAt = createdStr != null ? DateTime.tryParse(createdStr) : null;
+        final updatedAt = updatedStr != null ? DateTime.tryParse(updatedStr) : null;
 
         await _db.productsDao.insertProduct(ProductsCompanion.insert(
           id:       row['id'] as String,
@@ -247,8 +313,8 @@ class SyncService {
           category: Value(row['category'] as String?),
           isActive: Value(row['is_active'] as bool? ?? true),
           isSynced: const Value(true),
-          createdAt: Value(DateTime.parse(row['created_at'] as String)),
-          updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
+          createdAt: Value(createdAt ?? DateTime.now()),
+          updatedAt: Value(updatedAt ?? createdAt ?? DateTime.now()),
         ));
       }
       return rows.length;
@@ -258,51 +324,49 @@ class SyncService {
     }
   }
 
-  // ── Map converterlar (Supabase sxemasiga to'liq moslangan) ──
+  // ── Map converterlar (Supabase multi-tenant sxemasiga to'liq moslangan) ──
 
-  // club_tables: price_per_hour emas -> hourly_rate, type emas -> kind
   Map<String, dynamic> _tableToMap(ClubTable t) => {
     'id':          t.id,
+    'business_id': _remote.businessId,
     'name':        t.name,
     'kind':        t.type,
     'hourly_rate': t.pricePerHour,
     'is_active':   t.isActive,
     'sort_order':  t.sortOrder,
     'created_at':  t.createdAt.toIso8601String(),
-    'updated_at':  t.updatedAt.toIso8601String(),
   };
 
   Map<String, dynamic> _sessionToMap(Session s) => {
-    'id':           s.id,
-    'table_id':     s.tableId,
-    'started_at':   s.startedAt.toIso8601String(),
-    'ended_at':     s.endedAt?.toIso8601String(),
-    'duration_min': s.durationMin,
-    'total_amount': s.totalAmount,
-    'status':       s.status,
-    'customer_id':  s.customerId,
-    'payment_type': s.paymentType,
-    'notes':        s.notes,
-    'created_at':   s.createdAt.toIso8601String(),
-    'updated_at':   s.updatedAt.toIso8601String(),
+    'id':               s.id,
+    'business_id':      _remote.businessId,
+    'table_id':         s.tableId,
+    'started_at':       s.startedAt.toIso8601String(),
+    'ended_at':         s.endedAt?.toIso8601String(),
+    'duration_seconds': s.durationMin * 60,
+    'total_amount':     s.totalAmount,
+    'status':           s.status,
+    'customer_id':      s.customerId,
+    'payment_method':   s.paymentType,
+    'created_at':       s.createdAt.toIso8601String(),
   };
 
-  // customers: notes emas -> note, is_active YO'Q
   Map<String, dynamic> _customerToMap(Customer c) => {
-    'id':         c.id,
-    'name':       c.name,
-    'phone':      c.phone,
-    'note':       c.notes,
-    'total_debt': c.totalDebt,
-    'created_at': c.createdAt.toIso8601String(),
-    'updated_at': c.updatedAt.toIso8601String(),
+    'id':          c.id,
+    'business_id': _remote.businessId,
+    'name':        c.name,
+    'phone':       c.phone,
+    'note':        c.notes,
+    'total_debt':  c.totalDebt,
+    'created_at':  c.createdAt.toIso8601String(),
+    'updated_at':  c.updatedAt.toIso8601String(),
   };
 
-  // debts: session_id va type YO'Q; remaining_amount, customer_name, customer_phone bor
   Future<Map<String, dynamic>> _debtToMap(Debt d) async {
     final customer = await _db.customersDao.getCustomerById(d.customerId);
     return {
       'id':               d.id,
+      'business_id':      _remote.businessId,
       'customer_id':      d.customerId,
       'customer_name':    customer?.name,
       'customer_phone':   customer?.phone,
@@ -314,17 +378,15 @@ class SyncService {
     };
   }
 
-  // products: price emas -> sale_price, stock emas -> stock_quantity
   Map<String, dynamic> _productToMap(Product p) => {
     'id':             p.id,
+    'business_id':    _remote.businessId,
     'name':           p.name,
-    'barcode':        p.barcode,
     'sale_price':     p.price,
     'stock_quantity': p.stock,
     'category':       p.category,
     'is_active':      p.isActive,
     'created_at':     p.createdAt.toIso8601String(),
-    'updated_at':     p.updatedAt.toIso8601String(),
   };
 }
 
