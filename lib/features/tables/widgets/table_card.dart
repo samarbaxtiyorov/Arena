@@ -543,7 +543,7 @@ class _TableCardState extends ConsumerState<TableCard> {
                           );
                           return;
                         }
-                        controller.startSession(widget.table.id);
+                        _confirmAndStartSession(context, controller);
                       },
                       icon: Icon(btnIcon, size: uiScale == UiScale.small ? 18 : 20),
                       label: Text(
@@ -570,6 +570,127 @@ class _TableCardState extends ConsumerState<TableCard> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmAndStartSession(
+    BuildContext context,
+    TablesController controller,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1FAE5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Color(0xFF059669),
+                size: 24,
+              ),
+            ),
+            const Gap(10),
+            const Expanded(
+              child: Text(
+                "O'yinni Tasdiqlash",
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "${widget.table.name} uchun o'yin vaqti va hisoblagich boshlanadi.",
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF334155),
+                height: 1.35,
+              ),
+            ),
+            const Gap(12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.speed_rounded, size: 20, color: Color(0xFF2563EB)),
+                  const Gap(10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Belgilangan Tarif:",
+                          style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        ),
+                        Text(
+                          "${formatSum(widget.table.pricePerHour)} / soat",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Gap(10),
+            const Text(
+              "ℹ️ Agar adashib bosilgan bo'lsa, 1 daqiqa ichida to'xtatilsa 0 so'm hisoblanadi.",
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF64748B),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: const Text("Bekor qilish", style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.check_rounded, size: 18),
+            label: const Text("Boshlash", style: TextStyle(fontWeight: FontWeight.w800)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      controller.startSession(widget.table.id);
+    }
   }
 
   void _showLicenseAlert(BuildContext context, String reason) {

@@ -129,8 +129,8 @@ class TablesController {
         ? "${table.name} to'lovi: O'yin (${formatSum(gamePart)}) + Bar (${formatSum(barTotal)})"
         : "${table.name} sessiya to'lovi ($paymentType)";
 
-    // 2. To'lov turiga qarab kassa yoki qarzga yozish
-    if (paymentType == 'cash' || paymentType == 'card') {
+    // 2. To'lov turiga qarab kassa yoki qarzga yozish (agar summa > 0 bo'lsa)
+    if ((paymentType == 'cash' || paymentType == 'card') && finalAmount > 0) {
       // Kassaga kirim
       await _db.cashRecordsDao.insertRecord(CashRecordsCompanion.insert(
         id: _uuid.v4(),
@@ -143,7 +143,7 @@ class TablesController {
         createdAt: Value(now),
         isSynced: const Value(false),
       ));
-    } else if (paymentType == 'debt' && customerId != null) {
+    } else if (paymentType == 'debt' && customerId != null && finalAmount > 0) {
       // Nasiya daftariga qarz qo'shish
       await _db.debtsDao.insertDebt(DebtsCompanion.insert(
         id: _uuid.v4(),

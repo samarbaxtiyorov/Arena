@@ -6,13 +6,21 @@ void main() {
     test('calculateGameAmount handles small and large durations accurately', () {
       final now = DateTime.now();
       
-      // 5 seconds -> minimum 1000 so'm
+      // 5 seconds (< 60s imtiyozli/adashib bosilgan vaqt) -> 0 so'm
       final amountShort = SessionBillingHelper.calculateGameAmount(
         startedAt: now.subtract(const Duration(seconds: 5)),
         endedAt: now,
         pricePerHour: 60000,
       );
-      expect(amountShort, 1000);
+      expect(amountShort, 0);
+
+      // 90 seconds (> 60s) at 60,000/hr -> 1 500 so'm
+      final amount90Sec = SessionBillingHelper.calculateGameAmount(
+        startedAt: now.subtract(const Duration(seconds: 90)),
+        endedAt: now,
+        pricePerHour: 60000,
+      );
+      expect(amount90Sec, 1500);
 
       // 30 minutes at 60,000/hr -> 30,000 so'm
       final amountHalfHour = SessionBillingHelper.calculateGameAmount(

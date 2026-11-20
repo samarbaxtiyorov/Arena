@@ -65,8 +65,8 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
     // 3. Jami hisob
     _exactTotal = _gameAmount + _barAmount;
 
-    // 500 so'mga chiroyli yaxlitlangan standart to'lov
-    final roundedTotal = ((_exactTotal + 499) ~/ 500) * 500;
+    // 500 so'mga chiroyli yaxlitlangan standart to'lov (agar 0 bo'lsa 0)
+    final roundedTotal = _exactTotal == 0 ? 0 : (((_exactTotal + 499) ~/ 500) * 500);
     _amountController = TextEditingController(text: roundedTotal.toString());
   }
 
@@ -350,6 +350,35 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                         ),
                       ],
                     ),
+
+                    // 1 daqiqadan kam (adashib bosilgan) vaqt xabarnomasi
+                    if (_duration.inSeconds < 60) ...[
+                      const Gap(8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.timer_outlined, size: 15, color: Color(0xFFD97706)),
+                            Gap(6),
+                            Expanded(
+                              child: Text(
+                                "1 daqiqadan kam o'yin: adashib boshlangan bo'lsa to'lov 0 so'm!",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF92400E),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // Bar buyurtmalari (agar mavjud bo'lsa)
                     if (_barAmount > 0) ...[

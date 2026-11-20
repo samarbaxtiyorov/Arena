@@ -24,6 +24,8 @@ class BusinessAuthScreen extends ConsumerStatefulWidget {
 class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   bool _isLoginTab = true;
   bool _isCashierLogin = false; // Boshliq yoki Kassir rejimi
+  bool _isLoading = false;
+  String _loadingMessage = '';
 
   // Boshliq Login Controllerlari (Sof login, kamida 6 ta belgi, probelsiz)
   final TextEditingController _loginUsernameCtrl = TextEditingController();
@@ -63,9 +65,11 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
@@ -230,7 +234,69 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
           ),
         ),
       ),
-    );
+      if (_isLoading)
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.55),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const ChampionLogo(size: 64, borderRadius: 18),
+                    const Gap(20),
+                    const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3.2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFFEAB308)),
+                      ),
+                    ),
+                    const Gap(16),
+                    Text(
+                      _loadingMessage.isNotEmpty
+                          ? _loadingMessage
+                          : "Champion tizimiga ulanmoqda...",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Gap(6),
+                    const Text(
+                      "Iltimos, biroz kuting...",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+);
   }
 
   // ── 1. Tizimga Kirish Formasi ─────────────────────────────
@@ -436,7 +502,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: _handleLogin,
+              onPressed: _isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
@@ -445,17 +511,41 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.login_rounded, size: 20),
-                  Gap(8),
-                  Text(
-                    'Boshliq Sifatida Kirish',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
+              child: _isLoading
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Gap(12),
+                        Text(
+                          'Tekshirilmoqda, kuting...',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.login_rounded, size: 20),
+                        Gap(8),
+                        Text(
+                          'Boshliq Sifatida Kirish',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ] else ...[
@@ -531,7 +621,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: _handleCashierLogin,
+              onPressed: _isLoading ? null : _handleCashierLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
@@ -540,17 +630,41 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.point_of_sale_rounded, size: 20),
-                  Gap(8),
-                  Text(
-                    'Kassir Sifatida Kirish',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
+              child: _isLoading
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Gap(12),
+                        Text(
+                          'Tekshirilmoqda, kuting...',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.point_of_sale_rounded, size: 20),
+                        Gap(8),
+                        Text(
+                          'Kassir Sifatida Kirish',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -764,7 +878,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: _handleRegister,
+            onPressed: _isLoading ? null : _handleRegister,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
@@ -773,17 +887,41 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline_rounded, size: 20),
-                Gap(8),
-                Text(
-                  'Hisobni Yaratish va Kirish',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
+            child: _isLoading
+                ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Gap(12),
+                      Text(
+                        'Hisob yaratilmoqda, kuting...',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, size: 20),
+                      Gap(8),
+                      Text(
+                        'Hisobni Yaratish va Kirish',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ],
@@ -819,34 +957,45 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
       return;
     }
 
-    final success = await ref
-        .read(businessAccountProvider.notifier)
-        .loginAccount(login: login, password: pass);
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = "Boshliq hisobi tekshirilmoqda...";
+    });
 
-    if (success) {
-      final active = ref.read(businessAccountProvider).activeAccount;
-      if (active != null) {
-        ref.read(authProvider.notifier).loginAsOwner(
-              ownerName: active.ownerName,
-              phone: active.phone,
-            );
+    try {
+      final success = await ref
+          .read(businessAccountProvider.notifier)
+          .loginAccount(login: login, password: pass);
+
+      if (success) {
+        final active = ref.read(businessAccountProvider).activeAccount;
+        if (active != null) {
+          ref.read(authProvider.notifier).loginAsOwner(
+                ownerName: active.ownerName,
+                phone: active.phone,
+              );
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("${active?.venueName ?? 'Hisob'}ga muvaffaqiyatli kirildi!"),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Bunday login yoki parol noto'g'ri!"),
+              backgroundColor: Color(0xFFEF4444),
+            ),
+          );
+        }
       }
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("${active?.venueName ?? 'Hisob'}ga muvaffaqiyatli kirildi!"),
-            backgroundColor: const Color(0xFF10B981),
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Bunday login yoki parol noto'g'ri!"),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -866,43 +1015,54 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
       return;
     }
 
-    final cashier = await StaffListNotifier.findCashierByCredentials(
-      login: login,
-      password: pass,
-    );
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = "Kassir hisobi tekshirilmoqda...";
+    });
 
-    if (cashier != null) {
-      // 1. Agar kassir hali PIN o'rnatmagan bo'lsa — avval PIN dialogini ko'rsatamiz
-      if (!cashier.hasCustomPin) {
-        if (mounted) {
-          _showSetPinModal(cashier);
+    try {
+      final cashier = await StaffListNotifier.findCashierByCredentials(
+        login: login,
+        password: pass,
+      );
+
+      if (cashier != null) {
+        // 1. Agar kassir hali PIN o'rnatmagan bo'lsa — avval PIN dialogini ko'rsatamiz
+        if (!cashier.hasCustomPin) {
+          if (mounted) {
+            _showSetPinModal(cashier);
+          }
+        } else {
+          // 2. PIN mavjud bo'lsa: avval Kassir rolini o'rnatamiz, so'ng hisobga ulaymiz
+          ref.read(authProvider.notifier).loginAsStaff(cashier);
+          await ref
+              .read(businessAccountProvider.notifier)
+              .switchAccount(cashier.accountId);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    "Xush kelibsiz, ${cashier.name}! Kassir rejimiga kirildi."),
+                backgroundColor: const Color(0xFF10B981),
+              ),
+            );
+          }
         }
       } else {
-        // 2. PIN mavjud bo'lsa: avval Kassir rolini o'rnatamiz, so'ng hisobga ulaymiz
-        ref.read(authProvider.notifier).loginAsStaff(cashier);
-        await ref
-            .read(businessAccountProvider.notifier)
-            .switchAccount(cashier.accountId);
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  "Xush kelibsiz, ${cashier.name}! Kassir rejimiga kirildi."),
-              backgroundColor: const Color(0xFF10B981),
+            const SnackBar(
+              content:
+                  Text("Kassir logini yoki paroli noto'g'ri! Boshliqdan aniqlang."),
+              backgroundColor: Color(0xFFEF4444),
             ),
           );
         }
       }
-    } else {
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text("Kassir logini yoki paroli noto'g'ri! Boshliqdan aniqlang."),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -1142,41 +1302,52 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
       return;
     }
 
-    final success = await ref
-        .read(businessAccountProvider.notifier)
-        .registerAccount(
-          venueName: venue,
-          ownerName: owner,
-          login: login,
-          password: pass,
-          ownerPin: pin,
-        );
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = "Yangi $venue hisobi yaratilmoqda...\nChampion bulutiga ulanmoqda...";
+    });
 
-    if (success) {
-      final active = ref.read(businessAccountProvider).activeAccount;
-      if (active != null) {
-        ref.read(authProvider.notifier).loginAsOwner(
-              ownerName: active.ownerName,
-              phone: active.phone,
-            );
+    try {
+      final success = await ref
+          .read(businessAccountProvider.notifier)
+          .registerAccount(
+            venueName: venue,
+            ownerName: owner,
+            login: login,
+            password: pass,
+            ownerPin: pin,
+          );
+
+      if (success) {
+        final active = ref.read(businessAccountProvider).activeAccount;
+        if (active != null) {
+          ref.read(authProvider.notifier).loginAsOwner(
+                ownerName: active.ownerName,
+                phone: active.phone,
+              );
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("$venue hisobi yaratildi va tizimga kirildi!"),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  "Ushbu login allaqachon band! Iltimos, boshqa login tanlang."),
+              backgroundColor: Color(0xFFEF4444),
+            ),
+          );
+        }
       }
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("$venue hisobi yaratildi va tizimga kirildi!"),
-            backgroundColor: const Color(0xFF10B981),
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                "Ushbu login allaqachon band! Iltimos, boshqa login tanlang."),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
+        setState(() => _isLoading = false);
       }
     }
   }

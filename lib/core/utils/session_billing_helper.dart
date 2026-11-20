@@ -57,7 +57,8 @@ class SessionSplitItem {
 
 class SessionBillingHelper {
   /// O'yin summasini vaqt va soatlik stavka bo'yicha hisoblash
-  /// Minimal hisob: 1 000 so'm (boshlang'ich minimal to'lov)
+  /// 60 soniyadan kam (tasodifan/adashib boshlangan o'yinlar) uchun: 0 so'm (imtiyozli bepul bekor qilish)
+  /// 60 soniyadan keyin: daqiqabay hisob, kamida 1 000 so'm
   static int calculateGameAmount({
     required DateTime startedAt,
     DateTime? endedAt,
@@ -66,8 +67,10 @@ class SessionBillingHelper {
     final finishTime = endedAt ?? DateTime.now();
     final duration = finishTime.difference(startedAt);
 
-    if (duration.isNegative || duration.inSeconds < 5) {
-      return 1000;
+    // Agar o'yin adashib/tasodifan boshlanib 60 soniya (1 daqiqa) ichida to'xtatilsa,
+    // ortiqcha 1 000 so'm hisoblanmaydi (0 so'm imtiyozli vaqt).
+    if (duration.isNegative || duration.inSeconds < 60) {
+      return 0;
     }
 
     // Daqiqabay hisob
@@ -75,7 +78,7 @@ class SessionBillingHelper {
     final ratePerSecond = pricePerHour / 3600.0;
     final calculated = (totalSeconds * ratePerSecond).round();
 
-    // Kamida 1 000 so'm
+    // 1 daqiqadan oshgandan so'ng kamida 1 000 so'm
     return calculated > 1000 ? calculated : 1000;
   }
 
