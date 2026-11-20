@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 
 import '../auth_provider.dart';
 import '../providers/business_account_provider.dart';
+import '../../widgets/champion_logo.dart';
 import '../../../features/management/models/staff_member.dart';
 import '../../../features/management/providers/staff_provider.dart';
 
@@ -72,37 +73,13 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // ── Logotip va Brend Sarlavhasi ──────────────
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withOpacity(0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.sports_soccer_rounded,
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-                  ),
+                  // ── Champion Oltin Logotipi ─────────────────
+                  const ChampionLogo(size: 72, borderRadius: 20),
 
                   const Gap(16),
 
                   const Text(
-                    'Arena POS',
+                    'Champion POS',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -112,7 +89,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                   ),
                   const Gap(4),
                   const Text(
-                    'Sport zallari va o\'yin majmualari boshqaruv tizimi',
+                    'Sport maydonlari va o\'yin klublari boshqaruv tizimi',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -240,7 +217,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
                   // Pastki ma'lumot
                   const Text(
-                    'Arena POS • Versiya 1.0 • O\'zbekiston',
+                    'Champion POS • Versiya 2.0 • O\'zbekiston',
                     style: TextStyle(
                       fontSize: 11,
                       color: Color(0xFF94A3B8),

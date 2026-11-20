@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Arena — Boshliq Jonli Dashboard</title>
+  <title>Champion — Boshliq Jonli Dashboard</title>
   
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E<text y=%2226%22 font-size=%2226%22>⚡</text></svg>">
+  <link rel="icon" href="champion_logo.png">
   
   <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -55,13 +55,11 @@
         
         <!-- Chap: Logo va Muassasa nomi -->
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <i data-lucide="activity" class="w-5 h-5 text-white"></i>
-          </div>
+          <img src="champion_logo.png" alt="Champion Logo" class="w-10 h-10 rounded-xl shadow-lg shadow-amber-500/20 object-cover border border-amber-500/30">
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-                ARENA <span class="text-blue-500 font-extrabold text-xs px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20">BOSS</span>
+                CHAMPION <span class="text-amber-400 font-extrabold text-xs px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20">BOSS</span>
               </h1>
             </div>
             <p id="venue-name-display" class="text-xs text-slate-400 font-medium truncate max-w-[180px] sm:max-w-xs">
@@ -347,11 +345,9 @@
     <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-800 shadow-2xl relative animate-enter">
       
       <div class="text-center mb-6">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-blue-500/25">
-          <i data-lucide="shield-check" class="w-7 h-7 text-white"></i>
-        </div>
-        <h3 class="text-xl font-black text-white">Boshliq Tizimiga Kirish</h3>
-        <p class="text-xs text-slate-400 mt-1">Arena login va parolingizni kiritib, dashboardga kiring</p>
+        <img src="champion_logo.png" alt="Champion Logo" class="w-16 h-16 rounded-2xl mx-auto mb-3 shadow-xl shadow-amber-500/25 border border-amber-500/40 object-cover">
+        <h3 class="text-xl font-black text-white">Champion Tizimiga Kirish</h3>
+        <p class="text-xs text-slate-400 mt-1">Champion login va parolingizni kiritib, dashboardga kiring</p>
       </div>
 
       <form id="login-form" class="space-y-4">

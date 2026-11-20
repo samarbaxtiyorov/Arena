@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/providers/business_account_provider.dart';
+import '../../../core/widgets/champion_logo.dart';
 import '../../../data/repositories/database_providers.dart';
 import 'analytics_screen.dart';
 import 'business_settings_screen.dart';
@@ -76,28 +77,30 @@ class ManagementScreen extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  // Dumaloq avatar (B harfi, ko'k nur)
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [Color(0xFF60A5FA), Color(0xFF1D4ED8)],
-                        center: Alignment(0, -0.2),
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        auth.isOwner ? 'B' : 'K',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                  // Champion Logotipi (Boshliq uchun) yoki Kassir avatari
+                  auth.isOwner
+                      ? const ChampionLogo(size: 58, borderRadius: 16)
+                      : Container(
+                          width: 58,
+                          height: 58,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [Color(0xFF60A5FA), Color(0xFF1D4ED8)],
+                              center: Alignment(0, -0.2),
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'K',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                   const Gap(16),
                   Expanded(
                     child: Column(
@@ -155,7 +158,7 @@ class ManagementScreen extends ConsumerWidget {
                             ),
                             const Gap(6),
                             const Text(
-                              'Arena POS • Barcha modullar faol',
+                              'Champion POS • Barcha modullar faol',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF10B981),

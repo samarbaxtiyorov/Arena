@@ -1,5 +1,5 @@
 // =========================================================
-// Arena Boss Dashboard — Application Core Engine
+// Champion Boss Dashboard — Application Core Engine
 // Realtime WebSockets, Live Timers, Dynamic Charts & Audits
 // =========================================================
 
@@ -800,7 +800,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     }
 
     if (!accounts || accounts.length === 0) {
-      errorEl.textContent = "Bulutli bazada hali birorta ham muassasa ro'yxatdan o'tmagan! Iltimos, avval Arena ilovasida hisob yarating.";
+      errorEl.textContent = "Bulutli bazada hali birorta ham muassasa ro'yxatdan o'tmagan! Iltimos, avval Champion ilovasida hisob yarating.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -809,7 +809,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     const matched = accounts.find(a => (a.phone || '').trim().toLowerCase() === cleanLogin);
 
     if (!matched) {
-      errorEl.textContent = "Bunday loginli muassasa hisobi topilmadi! Iltimos, Arena ilovasida ro'yxatdan o'tgan to'g'ri loginni kiriting.";
+      errorEl.textContent = "Bunday loginli muassasa hisobi topilmadi! Iltimos, Champion ilovasida ro'yxatdan o'tgan to'g'ri loginni kiriting.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -824,7 +824,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     // Parolni qat'iy tekshirish
     const isValidPass = await verifyBossPassword(pass, matched.pin_hash);
     if (!isValidPass) {
-      errorEl.textContent = "Parol noto'g'ri! Iltimos, Arena ilovasidagi boshliq parolingizni kiriting.";
+      errorEl.textContent = "Parol noto'g'ri! Iltimos, Champion ilovasidagi boshliq parolingizni kiriting.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -832,7 +832,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     // Muvaffaqiyatli autentifikatsiya
     const venueObj = {
       id: matched.business_id,
-      name: matched.business_name || 'Arena Majmuasi',
+      name: matched.business_name || 'Champion Majmuasi',
       login: cleanLogin,
       phone: matched.phone || cleanLogin,
       license_until: matched.license_until

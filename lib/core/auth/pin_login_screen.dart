@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import '../../features/management/providers/staff_provider.dart';
+import '../widgets/champion_logo.dart';
 import 'auth_provider.dart';
 import 'providers/business_account_provider.dart';
 
@@ -167,19 +168,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFDBEAFE),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.sports_soccer_rounded,
-                          color: Color(0xFF2563EB),
-                          size: 24,
-                        ),
-                      ),
+                      const ChampionLogo(size: 44, borderRadius: 12),
                       Container(
                         width: 40,
                         height: 40,
@@ -206,7 +195,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                     return Column(
                       children: [
                         Text(
-                          venue?.venueName ?? 'Arena POS',
+                          venue?.venueName ?? 'Champion POS',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 24,

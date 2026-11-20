@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/widgets/champion_logo.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
@@ -95,43 +96,10 @@ class TablesScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     child: Row(
                       children: [
-                        // 8-ball real surati (Desktopdagi billiard_logo.jpg)
-                        Container(
-                          width: uiScale.headerAvatarSize,
-                          height: uiScale.headerAvatarSize,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF2563EB),
-                              width: 2.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/billiard_logo.jpg',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
-                                color: const Color(0xFF0F172A),
-                                child: const Center(
-                                  child: Text(
-                                    '8',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        // Champion Oltin Logotipi
+                        ChampionLogo(
+                          size: uiScale.headerAvatarSize,
+                          borderRadius: uiScale.headerAvatarSize / 2,
                         ),
                         const Gap(12),
 

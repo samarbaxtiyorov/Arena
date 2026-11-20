@@ -116,7 +116,7 @@ class ReceiptGenerator {
     buffer.writeln(_row('To\'lov turi:', paymentName, width));
     buffer.writeln(_divider(width, '='));
     buffer.writeln(_center(footerMessage ?? 'Xaridingiz uchun rahmat! Yana kutamiz!', width));
-    buffer.writeln(_center('Arena POS v2.0', width));
+    buffer.writeln(_center('Champion POS v2.0', width));
     buffer.writeln(_divider(width, '='));
 
     return buffer.toString();
@@ -131,7 +131,7 @@ class ReceiptGenerator {
     final isIncome = record.type == 'income';
 
     buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('ARENA POS'));
+    buffer.writeln(_center('CHAMPION POS'));
     buffer.writeln(_center(isIncome ? 'KASSA TO\'LOV CHEKI' : 'CHIQIM ORDERI'));
     buffer.writeln(_divider(width58, '='));
     buffer.writeln(_row('Order #:', record.id.substring(0, 8).toUpperCase()));
@@ -150,7 +150,7 @@ class ReceiptGenerator {
 
     buffer.writeln(_row('SUMMA:', Formatters.currency(record.amount)));
     buffer.writeln(_divider(width58, '='));
-    buffer.writeln(_center('Arena POS'));
+    buffer.writeln(_center('Champion POS'));
     buffer.writeln(_divider(width58, '='));
 
     return buffer.toString();

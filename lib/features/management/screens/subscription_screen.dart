@@ -610,7 +610,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     try {
       final paymentService = ref.read(tezCheckPaymentServiceProvider);
       final orderRef = 'arena-sub-$venueId-${DateTime.now().millisecondsSinceEpoch}';
-      final title = "Arena POS $months oy / $tablesToLicense ta stol ($venueName)";
+      final title = "Champion POS $months oy / $tablesToLicense ta stol ($venueName)";
 
       final result = await paymentService.createSubscriptionBill(
         amountSom: amountSom,
@@ -749,7 +749,7 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
                 ],
               ),
               content: Text(
-                "Tabriklaymiz! Sizning Arena POS litsenziyangiz ${widget.months} oyga (${widget.tablesToLicense} ta stol uchun) muvaffaqiyatli uzaytirildi. Barcha modullar cheklovlarsiz ishlaydi.",
+                "Tabriklaymiz! Sizning Champion POS litsenziyangiz ${widget.months} oyga (${widget.tablesToLicense} ta stol uchun) muvaffaqiyatli uzaytirildi. Barcha modullar cheklovlarsiz ishlaydi.",
                 style: const TextStyle(fontSize: 14, height: 1.4),
               ),
               actions: [
