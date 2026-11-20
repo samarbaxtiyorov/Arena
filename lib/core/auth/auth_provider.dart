@@ -4,6 +4,7 @@
 // ============================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/management/models/staff_member.dart';
 
 enum UserRole { owner, cashier }
 
@@ -46,8 +47,21 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
-  // PIN tekshirish: 7777 - Ega, 1111 - Kassir
-  bool verifyPin(String pin) {
+  // PIN tekshirish: Dinamik xodimlar ro'yxatidan yoki zaxira 7777 / 1111
+  bool verifyPin(String pin, {List<StaffMember>? staffList}) {
+    if (staffList != null && staffList.isNotEmpty) {
+      try {
+        final match = staffList.firstWhere((s) => s.pin == pin && s.isActive);
+        state = state.copyWith(
+          isAuthenticated: true,
+          role: match.isOwner ? UserRole.owner : UserRole.cashier,
+          userName: match.name,
+          phone: match.phone,
+        );
+        return true;
+      } catch (_) {}
+    }
+
     if (pin == '7777') {
       state = state.copyWith(
         isAuthenticated: true,
@@ -64,6 +78,15 @@ class AuthNotifier extends Notifier<AuthState> {
       return true;
     }
     return false;
+  }
+
+  void loginAsStaff(StaffMember staff) {
+    state = state.copyWith(
+      isAuthenticated: true,
+      role: staff.isOwner ? UserRole.owner : UserRole.cashier,
+      userName: staff.name,
+      phone: staff.phone,
+    );
   }
 
   void switchRole(UserRole role) {
@@ -83,3 +106,4 @@ class AuthNotifier extends Notifier<AuthState> {
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+

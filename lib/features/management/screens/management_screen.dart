@@ -13,6 +13,7 @@ import '../../../core/utils/formatters.dart';
 import '../../kassa/providers/kassa_providers.dart';
 import 'analytics_screen.dart';
 import 'manage_products_screen.dart';
+import 'manage_staff_screen.dart';
 import 'manage_tables_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
@@ -270,10 +271,15 @@ class ManagementScreen extends ConsumerWidget {
               iconBg: const Color(0xFFF3E8FF),
               iconColor: const Color(0xFF9333EA),
               title: "Xodimlar va Kassirlar",
-              subtitle: "Kassirlar ro'yxati, ruxsatlar va...",
+              subtitle: "Kassirlar ro'yxati, PIN-kodlar va...",
               onTap: () {
                 _checkOwnerPermission(context, auth, () {
-                  _showStaffDialog(context, authNotifier);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ManageStaffScreen(),
+                    ),
+                  );
                 });
               },
             ),
@@ -861,58 +867,6 @@ class ManagementScreen extends ConsumerWidget {
     );
   }
 
-  // ── Xodimlar va Kassirlar Dialogi ─────────────────────────
-  void _showStaffDialog(BuildContext context, AuthNotifier authNotifier) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Xodimlar va Kassirlar"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF2563EB),
-                child: Text("B", style: TextStyle(color: Colors.white)),
-              ),
-              title: const Text("Biznes egasi (EGA)"),
-              subtitle: const Text("PIN: 7777 • Cheksiz ruxsat"),
-              trailing: ElevatedButton(
-                onPressed: () {
-                  authNotifier.switchRole(UserRole.owner);
-                  Navigator.pop(ctx);
-                },
-                child: const Text("Tanlash"),
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF9333EA),
-                child: Text("K", style: TextStyle(color: Colors.white)),
-              ),
-              title: const Text("Kassir Samar (KASSIR)"),
-              subtitle: const Text("PIN: 1111 • Faqat savdo va kassa"),
-              trailing: ElevatedButton(
-                onPressed: () {
-                  authNotifier.switchRole(UserRole.cashier);
-                  Navigator.pop(ctx);
-                },
-                child: const Text("Tanlash"),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Yopish"),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── Moliyaviy Hisobotlar Dialogi ──────────────────────────
   void _showFinancialReportDialog(BuildContext context, WidgetRef ref) {

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import '../../features/management/providers/staff_provider.dart';
 import 'auth_provider.dart';
 
 class PinLoginScreen extends ConsumerStatefulWidget {
@@ -49,10 +50,11 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   }
 
   void _verifyPin() {
-    final success = ref.read(authProvider.notifier).verifyPin(_enteredPin);
+    final staffList = ref.read(staffListProvider).value;
+    final success = ref.read(authProvider.notifier).verifyPin(_enteredPin, staffList: staffList);
     if (!success) {
       setState(() {
-        _errorMessage = "Noto'g'ri PIN-kod! (Ega: 7777, Kassir: 1111)";
+        _errorMessage = "Noto'g'ri PIN-kod!";
         _enteredPin = '';
       });
     }
@@ -134,7 +136,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
 
                 // Sarlavhalar
                 const Text(
-                  'Poliya Demo',
+                  'Arena POS',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w900,

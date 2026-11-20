@@ -1,0 +1,217 @@
+// ============================================
+// Arena — Xodimlar va Kassirlar Provideri
+// SharedPreferences orqali xodimlar va ularning PIN-kodlarini saqlash
+// ============================================
+
+import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+import '../models/staff_member.dart';
+
+const String _staffPrefKey = 'arena_staff_members_v1';
+
+final defaultStaffList = [
+  StaffMember(
+    id: 'owner-1',
+    name: 'Biznes egasi (EGA)',
+    phone: '+998 90 000 00 01',
+    role: StaffRole.owner,
+    pin: '7777',
+    isActive: true,
+    createdAt: DateTime(2026, 1, 1),
+  ),
+  StaffMember(
+    id: 'cashier-1',
+    name: 'Kassir Samar',
+    phone: '+998 90 123 45 67',
+    role: StaffRole.cashier,
+    pin: '1111',
+    isActive: true,
+    createdAt: DateTime(2026, 1, 1),
+  ),
+];
+
+class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
+  @override
+  Future<List<StaffMember>> build() async {
+    return _loadStaff();
+  }
+
+  Future<List<StaffMember>> _loadStaff() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_staffPrefKey);
+    if (raw == null || raw.trim().isEmpty) {
+      await _saveList(defaultStaffList);
+      return defaultStaffList;
+    }
+
+    try {
+      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+      final list = decoded
+          .map((item) => StaffMember.fromJson(item as Map<String, dynamic>))
+          .toList();
+      if (list.isEmpty) {
+        await _saveList(defaultStaffList);
+        return defaultStaffList;
+      }
+      return list;
+    } catch (_) {
+      await _saveList(defaultStaffList);
+      return defaultStaffList;
+    }
+  }
+
+  Future<void> _saveList(List<StaffMember> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = jsonEncode(list.map((e) => e.toJson()).toList());
+    await prefs.setString(_staffPrefKey, jsonStr);
+  }
+
+  Future<bool> addStaff({
+    required String name,
+    required String phone,
+    required StaffRole role,
+    required String pin,
+  }) async {
+    final currentList = state.value ?? [];
+
+    // PIN 4 xonali ekanini va band emasligini tekshirish
+    if (pin.length != 4) return false;
+    if (currentList.any((s) => s.pin == pin)) {
+      return false; // Ushbu PIN allaqachon mavjud
+    }
+
+    final newMember = StaffMember(
+      id: const Uuid().v4(),
+      name: name.trim(),
+      phone: phone.trim(),
+      role: role,
+      pin: pin.trim(),
+      isActive: true,
+      createdAt: DateTime.now(),
+    );
+
+    final updated = [...currentList, newMember];
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
+  Future<bool> updateStaff(StaffMember member) async {
+    final currentList = state.value ?? [];
+
+    // Agar PIN o'zgargan bo'lsa, boshqa xodim bilan to'qnashmasligini tekshirish
+    final conflict =
+        currentList.any((s) => s.id != member.id && s.pin == member.pin);
+    if (conflict) return false;
+
+    final updated =
+        currentList.map((s) => s.id == member.id ? member : s).toList();
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
+  Future<bool> updatePin({required String id, required String newPin}) async {
+    if (newPin.length != 4) return false;
+    final currentList = state.value ?? [];
+
+    // Boshqa xodimda bu PIN bormi?
+    final conflict = currentList.any((s) => s.id != id && s.pin == newPin);
+    if (conflict) return false;
+
+    final updated = currentList.map((s) {
+      if (s.id == id) {
+        return s.copyWith(pin: newPin);
+      }
+      return s;
+    }).toList();
+
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
+  Future<bool> deleteStaff(String id) async {
+    final currentList = state.value ?? [];
+    final target = currentList.firstWhere((s) => s.id == id,
+        orElse: () => currentList.first);
+
+    // Xavfsizlik: Tizimda kamida bitta Boshliq bo'lishi shart
+    if (target.isOwner) {
+      final ownersCount = currentList.where((s) => s.isOwner).length;
+      if (ownersCount <= 1) return false;
+    }
+
+    final updated = currentList.where((s) => s.id != id).toList();
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
+  Future<void> toggleActive(String id) async {
+    final currentList = state.value ?? [];
+    final updated = currentList.map((s) {
+      if (s.id == id) {
+        return s.copyWith(isActive: !s.isActive);
+      }
+      return s;
+    }).toList();
+    state = AsyncData(updated);
+    await _saveList(updated);
+  }
+
+  StaffMember? findByPin(String pin) {
+    final list = state.value ?? defaultStaffList;
+    try {
+      return list.firstWhere((s) => s.pin == pin && s.isActive);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+final staffListProvider =
+    AsyncNotifierProvider<StaffListNotifier, List<StaffMember>>(
+        StaffListNotifier.new);
+
+// Qidiruv va Filtr provayderlari
+class StaffSearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void setQuery(String q) => state = q;
+}
+
+final staffSearchQueryProvider =
+    NotifierProvider<StaffSearchQueryNotifier, String>(
+        StaffSearchQueryNotifier.new);
+
+class StaffRoleFilterNotifier extends Notifier<StaffRole?> {
+  @override
+  StaffRole? build() => null;
+  void setFilter(StaffRole? f) => state = f;
+}
+
+final staffRoleFilterProvider =
+    NotifierProvider<StaffRoleFilterNotifier, StaffRole?>(
+        StaffRoleFilterNotifier.new);
+
+final filteredStaffProvider = Provider<List<StaffMember>>((ref) {
+  final staffAsync = ref.watch(staffListProvider);
+  final list = staffAsync.value ?? [];
+  final query = ref.watch(staffSearchQueryProvider).toLowerCase().trim();
+  final roleFilter = ref.watch(staffRoleFilterProvider);
+
+  return list.where((s) {
+    if (roleFilter != null && s.role != roleFilter) return false;
+    if (query.isNotEmpty) {
+      final nameMatches = s.name.toLowerCase().contains(query);
+      final phoneMatches = s.phone.toLowerCase().contains(query);
+      final pinMatches = s.pin.contains(query);
+      return nameMatches || phoneMatches || pinMatches;
+    }
+    return true;
+  }).toList();
+});
