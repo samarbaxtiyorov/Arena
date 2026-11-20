@@ -10,6 +10,8 @@ import 'package:gap/gap.dart';
 
 import '../auth_provider.dart';
 import '../providers/business_account_provider.dart';
+import '../../../features/management/models/staff_member.dart';
+import '../../../features/management/providers/staff_provider.dart';
 
 class BusinessAuthScreen extends ConsumerStatefulWidget {
   const BusinessAuthScreen({super.key});
@@ -20,13 +22,19 @@ class BusinessAuthScreen extends ConsumerStatefulWidget {
 
 class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   bool _isLoginTab = true;
+  bool _isCashierLogin = false; // Boshliq yoki Kassir rejimi
 
-  // Login Controllerlari
+  // Boshliq Login Controllerlari
   final TextEditingController _loginPhoneCtrl =
       TextEditingController(text: '+998 ');
   final TextEditingController _loginPassCtrl =
       TextEditingController();
   bool _obscureLoginPass = true;
+
+  // Kassir Login Controllerlari
+  final TextEditingController _cashierLoginCtrl = TextEditingController();
+  final TextEditingController _cashierPassCtrl = TextEditingController();
+  bool _obscureCashierPass = true;
 
   // Ro'yxatdan o'tish Controllerlari
   final TextEditingController _regVenueCtrl = TextEditingController();
@@ -41,6 +49,8 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
   void dispose() {
     _loginPhoneCtrl.dispose();
     _loginPassCtrl.dispose();
+    _cashierLoginCtrl.dispose();
+    _cashierPassCtrl.dispose();
     _regVenueCtrl.dispose();
     _regOwnerCtrl.dispose();
     _regPhoneCtrl.dispose();
@@ -263,109 +273,295 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
           ),
         ),
         const Gap(4),
-        const Text(
-          'Telefon raqami va parolni kiriting',
-          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+        Text(
+          _isCashierLogin
+              ? 'Boshliq bergan login va parolni kiriting'
+              : 'Telefon raqami va parolni kiriting',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
         ),
-        const Gap(18),
+        const Gap(16),
 
-        // Telefon
-        const Text(
-          'Telefon Raqami / Login',
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155)),
-        ),
-        const Gap(6),
-        TextField(
-          controller: _loginPhoneCtrl,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            hintText: '+998 90 123 45 67',
-            prefixIcon: const Icon(Icons.phone_outlined,
-                size: 20, color: Color(0xFF64748B)),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
+        // ── Rol Tanlash (Boshliq vs Kassir) ───────────────────
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-
-        const Gap(14),
-
-        // Parol
-        const Text(
-          'Akkaunt Paroli',
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155)),
-        ),
-        const Gap(6),
-        TextField(
-          controller: _loginPassCtrl,
-          obscureText: _obscureLoginPass,
-          decoration: InputDecoration(
-            hintText: 'Parolingizni kiriting',
-            prefixIcon: const Icon(Icons.lock_outline_rounded,
-                size: 20, color: Color(0xFF64748B)),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureLoginPass
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                size: 20,
-                color: const Color(0xFF64748B),
-              ),
-              onPressed: () {
-                setState(() => _obscureLoginPass = !_obscureLoginPass);
-              },
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-          ),
-        ),
-
-        const Gap(22),
-
-        // Kirish Tugmasi
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: _handleLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.login_rounded, size: 20),
-                Gap(8),
-                Text(
-                  'Boshliq Sifatida Kirish',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _isCashierLogin = false),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          !_isCashierLogin ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: !_isCashierLogin
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '🏢 Boshliq (Ega)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: !_isCashierLogin
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: !_isCashierLogin
+                              ? const Color(0xFF1E40AF)
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _isCashierLogin = true),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          _isCashierLogin ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: _isCashierLogin
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '👨‍💼 Kassir',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: _isCashierLogin
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: _isCashierLogin
+                              ? const Color(0xFF047857)
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+
+        const Gap(16),
+
+        if (!_isCashierLogin) ...[
+          // ── BOSHLIQ FORMASI ────────────────────────────────
+          const Text(
+            'Telefon Raqami / Login',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155)),
+          ),
+          const Gap(6),
+          TextField(
+            controller: _loginPhoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              hintText: '+998 90 123 45 67',
+              prefixIcon: const Icon(Icons.phone_outlined,
+                  size: 20, color: Color(0xFF64748B)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+          ),
+
+          const Gap(14),
+
+          const Text(
+            'Akkaunt Paroli',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155)),
+          ),
+          const Gap(6),
+          TextField(
+            controller: _loginPassCtrl,
+            obscureText: _obscureLoginPass,
+            decoration: InputDecoration(
+              hintText: 'Parolingizni kiriting',
+              prefixIcon: const Icon(Icons.lock_outline_rounded,
+                  size: 20, color: Color(0xFF64748B)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureLoginPass
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 20,
+                  color: const Color(0xFF64748B),
+                ),
+                onPressed: () {
+                  setState(() => _obscureLoginPass = !_obscureLoginPass);
+                },
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+          ),
+
+          const Gap(22),
+
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _handleLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.login_rounded, size: 20),
+                  Gap(8),
+                  Text(
+                    'Boshliq Sifatida Kirish',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          // ── KASSIR FORMASI ─────────────────────────────────
+          const Text(
+            'Kassir Logini *',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155)),
+          ),
+          const Gap(6),
+          TextField(
+            controller: _cashierLoginCtrl,
+            decoration: InputDecoration(
+              hintText: 'Masalan: kassir1 yoki rustam',
+              prefixIcon: const Icon(Icons.badge_outlined,
+                  size: 20, color: Color(0xFF059669)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+          ),
+
+          const Gap(14),
+
+          const Text(
+            'Kassir Paroli *',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155)),
+          ),
+          const Gap(6),
+          TextField(
+            controller: _cashierPassCtrl,
+            obscureText: _obscureCashierPass,
+            decoration: InputDecoration(
+              hintText: 'Boshliq bergan parolni kiriting',
+              prefixIcon: const Icon(Icons.password_rounded,
+                  size: 20, color: Color(0xFF059669)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureCashierPass
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 20,
+                  color: const Color(0xFF64748B),
+                ),
+                onPressed: () {
+                  setState(() => _obscureCashierPass = !_obscureCashierPass);
+                },
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+          ),
+
+          const Gap(22),
+
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _handleCashierLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.point_of_sale_rounded, size: 20),
+                  Gap(8),
+                  Text(
+                    'Kassir Sifatida Kirish',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -624,6 +820,237 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
         );
       }
     }
+  }
+
+  // ── Kassir Sifatida Kirish Amalini Bajarish ───────────────
+  Future<void> _handleCashierLogin() async {
+    final login = _cashierLoginCtrl.text.trim();
+    final pass = _cashierPassCtrl.text.trim();
+
+    if (login.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Iltimos, kassir logini va parolini kiriting!"),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    final cashier = await StaffListNotifier.findCashierByCredentials(
+      login: login,
+      password: pass,
+    );
+
+    if (cashier != null) {
+      // 1. Akkauntni kassirning biznes muassasasiga ulaymiz
+      await ref
+          .read(businessAccountProvider.notifier)
+          .switchAccount(cashier.accountId);
+
+      // 2. Agar kassir hali PIN o'rnatmagan bo'lsa
+      if (!cashier.hasCustomPin) {
+        if (mounted) {
+          _showSetPinModal(cashier);
+        }
+      } else {
+        // Tizimga kirish
+        ref.read(authProvider.notifier).loginAsStaff(cashier);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  "Xush kelibsiz, ${cashier.name}! Kassir rejimiga kirildi."),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text("Kassir logini yoki paroli noto'g'ri! Boshliqdan aniqlang."),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Kassir Uchun Shaxsiy PIN O'rnatish Modali ─────────────
+  void _showSetPinModal(StaffMember cashier) {
+    final pin1Ctrl = TextEditingController();
+    final pin2Ctrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: EdgeInsets.only(
+            top: 24,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD1FAE5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.pin_rounded,
+                        color: Color(0xFF059669), size: 24),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Xush kelibsiz, ${cashier.name}!",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                        const Text(
+                          "O'zingiz uchun 4 xonali shaxsiy PIN-kod o'rnating",
+                          style:
+                              TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(18),
+              const Text(
+                "Yangi 4 xonali PIN *",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              const Gap(6),
+              TextField(
+                controller: pin1Ctrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  hintText: "Masalan: 2580",
+                  counterText: "",
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                ),
+              ),
+              const Gap(12),
+              const Text(
+                "PIN-kodni tasdiqlang *",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              const Gap(6),
+              TextField(
+                controller: pin2Ctrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  hintText: "PIN-kodni qayta kiriting",
+                  counterText: "",
+                  prefixIcon: const Icon(Icons.lock_reset_rounded, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                ),
+              ),
+              const Gap(20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final p1 = pin1Ctrl.text.trim();
+                    final p2 = pin2Ctrl.text.trim();
+                    if (p1.length != 4 || p2.length != 4) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text("PIN-kod 4 ta raqam bo'lishi shart!"),
+                          backgroundColor: Color(0xFFEF4444),
+                        ),
+                      );
+                      return;
+                    }
+                    if (p1 != p2) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text("PIN-kodlar bir-biriga mos kelmadi!"),
+                          backgroundColor: Color(0xFFEF4444),
+                        ),
+                      );
+                      return;
+                    }
+
+                    await ref
+                        .read(staffListProvider.notifier)
+                        .setCashierPin(staffId: cashier.id, newPin: p1);
+
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                    ref
+                        .read(authProvider.notifier)
+                        .loginAsStaff(cashier.copyWith(pin: p1));
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              "PIN-kod muvaffaqiyatli saqlandi! Xush kelibsiz, ${cashier.name}!"),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "PIN-kodni Saqlash va Kirish",
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // ── Ro'yxatdan O'tish Amalini Bajarish ────────────────────

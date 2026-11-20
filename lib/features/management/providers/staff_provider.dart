@@ -9,12 +9,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/auth/providers/business_account_provider.dart';
+import '../../../core/utils/security_helper.dart';
 import '../models/staff_member.dart';
 
 final defaultStaffList = [
   StaffMember(
     id: 'owner-1',
+    accountId: 'samar-arena',
     name: 'Biznes egasi (EGA)',
+    login: 'owner',
+    password: '123',
     phone: '+998 90 000 00 01',
     role: StaffRole.owner,
     pin: '7777',
@@ -23,7 +27,10 @@ final defaultStaffList = [
   ),
   StaffMember(
     id: 'cashier-1',
+    accountId: 'samar-arena',
     name: 'Kassir Samar',
+    login: 'kassir1',
+    password: '123',
     phone: '+998 90 123 45 67',
     role: StaffRole.cashier,
     pin: '1111',
@@ -99,22 +106,89 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
     await prefs.setString(_currentKey, jsonStr);
   }
 
+  Future<bool> addCashier({
+    required String name,
+    required String login,
+    required String password,
+    String? phone,
+  }) async {
+    final currentList = state.value ?? [];
+    final cleanLogin = login.trim().toLowerCase();
+    final cleanPass = password.trim();
+
+    if (cleanLogin.isEmpty || cleanPass.isEmpty || name.trim().isEmpty) {
+      return false;
+    }
+
+    if (currentList.any((s) => s.login.toLowerCase() == cleanLogin)) {
+      return false; // Ushbu login allaqachon mavjud
+    }
+
+    final activeAccount = ref.read(businessAccountProvider).activeAccount;
+    final accountId = activeAccount?.id ?? 'samar-arena';
+
+    final newMember = StaffMember(
+      id: const Uuid().v4(),
+      accountId: accountId,
+      name: name.trim(),
+      login: cleanLogin,
+      password: cleanPass,
+      phone: phone?.trim() ?? '',
+      role: StaffRole.cashier,
+      pin: '', // Kassir o'zi birinchi kirishda PIN o'rnatadi
+      isActive: true,
+      createdAt: DateTime.now(),
+    );
+
+    final updated = [...currentList, newMember];
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
+  Future<bool> setCashierPin({
+    required String staffId,
+    required String newPin,
+  }) async {
+    final cleanPin = newPin.trim();
+    if (cleanPin.length != 4) return false;
+
+    final currentList = state.value ?? [];
+    final updated = currentList.map((s) {
+      if (s.id == staffId) {
+        return s.copyWith(pin: cleanPin);
+      }
+      return s;
+    }).toList();
+
+    state = AsyncData(updated);
+    await _saveList(updated);
+    return true;
+  }
+
   Future<bool> addStaff({
     required String name,
     required String phone,
     required StaffRole role,
     required String pin,
+    String? login,
+    String? password,
   }) async {
     final currentList = state.value ?? [];
+    final activeAccount = ref.read(businessAccountProvider).activeAccount;
+    final accountId = activeAccount?.id ?? 'samar-arena';
 
-    if (pin.length != 4) return false;
-    if (currentList.any((s) => s.pin == pin)) {
+    if (pin.isNotEmpty && pin.length != 4) return false;
+    if (pin.isNotEmpty && currentList.any((s) => s.pin == pin)) {
       return false; // Ushbu PIN allaqachon mavjud
     }
 
     final newMember = StaffMember(
       id: const Uuid().v4(),
+      accountId: accountId,
       name: name.trim(),
+      login: login?.trim().toLowerCase() ?? '',
+      password: password?.trim() ?? '',
       phone: phone.trim(),
       role: role,
       pin: pin.trim(),
@@ -187,6 +261,58 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
     }).toList();
     state = AsyncData(updated);
     await _saveList(updated);
+  }
+
+  /// Global yoki barcha muassasalar bo'yicha login va parol orqali kassirni topish
+  static Future<StaffMember?> findCashierByCredentials({
+    required String login,
+    required String password,
+  }) async {
+    final cleanLogin = login.trim().toLowerCase();
+    final cleanPass = password.trim();
+    if (cleanLogin.isEmpty || cleanPass.isEmpty) return null;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. Barcha biznes akkauntlar ro'yxatini olamiz
+    final rawAccounts = prefs.getString('arena_business_accounts_v2');
+    List<String> accountIds = ['samar-arena', 'default'];
+    if (rawAccounts != null && rawAccounts.isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawAccounts);
+        for (final a in decoded) {
+          if (a is Map && a['id'] != null) {
+            accountIds.add(a['id'].toString());
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Har bir muassasaning xodimlar ro'yxatidan kassirni qidiramiz
+    for (final accId in accountIds.toSet()) {
+      final rawStaff = prefs.getString('arena_staff_members_$accId');
+      List<StaffMember> list = [];
+      if (rawStaff != null && rawStaff.isNotEmpty) {
+        try {
+          final List<dynamic> decoded = jsonDecode(rawStaff);
+          list = decoded
+              .map((j) => StaffMember.fromJson(j as Map<String, dynamic>))
+              .toList();
+        } catch (_) {}
+      } else if (accId == 'samar-arena') {
+        list = defaultStaffList;
+      }
+
+      for (final staff in list) {
+        if (staff.isCashier &&
+            staff.login.trim().toLowerCase() == cleanLogin &&
+            (staff.password == cleanPass ||
+                SecurityHelper.verifyPassword(cleanPass, staff.password))) {
+          return staff.copyWith(accountId: accId);
+        }
+      }
+    }
+    return null;
   }
 
   StaffMember? findByPin(String pin) {

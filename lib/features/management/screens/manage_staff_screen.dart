@@ -852,6 +852,8 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
   void _showAddStaffDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController(text: '+998 ');
+    final loginCtrl = TextEditingController();
+    final passCtrl = TextEditingController(text: '123456');
     final pinCtrl = TextEditingController();
     StaffRole selectedRole = StaffRole.cashier;
 
@@ -861,6 +863,8 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
+          final isCashier = selectedRole == StaffRole.cashier;
+
           return Container(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -888,74 +892,26 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                     ),
                   ),
                   const Gap(16),
-                  const Text(
-                    "Yangi Xodim / Kassir Qo'shish",
-                    style: TextStyle(
+                  Text(
+                    isCashier
+                        ? "Yangi Kassir Qo'shish (Login & Parol)"
+                        : "Yangi Boshliq / Rahbar Qo'shish",
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF0F172A),
                     ),
                   ),
-                  const Text(
-                    "Kassir ismi, telefoni va 4 xonali shaxsiy PIN-kodi",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  Text(
+                    isCashier
+                        ? "Kassirga login va parol berasiz, u o'z telefonida ilovaga kiradi"
+                        : "Boshliq ismi, telefoni va 4 xonali shaxsiy PIN-kodi",
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
-                  const Gap(20),
+                  const Gap(18),
 
-                  // Ismi
-                  const Text("Xodim Ismi va Familiyasi *",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155))),
-                  const Gap(6),
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: InputDecoration(
-                      hintText: "Masalan: Kassir Jasur",
-                      prefixIcon: const Icon(Icons.person_outline_rounded,
-                          size: 20, color: Color(0xFF64748B)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                  ),
-
-                  const Gap(14),
-
-                  // Telefon raqami
-                  const Text("Telefon Raqami",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155))),
-                  const Gap(6),
-                  TextField(
-                    controller: phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      hintText: "+998 90 123 45 67",
-                      prefixIcon: const Icon(Icons.phone_outlined,
-                          size: 20, color: Color(0xFF64748B)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                  ),
-
-                  const Gap(14),
-
-                  // Roli
+                  // Xodim Roli
                   const Text("Xodim Roli",
                       style: TextStyle(
                           fontSize: 12,
@@ -994,7 +950,7 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                                         : const Color(0xFF64748B)),
                                 const Gap(4),
                                 Text(
-                                  "Kassir",
+                                  "Kassir (Login/Parol)",
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
@@ -1056,40 +1012,175 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                     ],
                   ),
 
-                  const Gap(16),
+                  const Gap(14),
 
-                  // PIN-kod (4 xonali)
-                  const Row(
-                    children: [
-                      Text("Kirish PIN-kodi (4 ta raqam) *",
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155))),
-                      Gap(6),
-                      Text("(Faqat raqamlar)",
-                          style: TextStyle(
-                              fontSize: 11, color: Color(0xFF94A3B8))),
-                    ],
-                  ),
+                  // Ismi
+                  const Text("Xodim Ismi va Familiyasi *",
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155))),
                   const Gap(6),
                   TextField(
-                    controller: pinCtrl,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                    ),
+                    controller: nameCtrl,
                     decoration: InputDecoration(
-                      hintText: "4 xonali PIN",
-                      prefixIcon: const Icon(Icons.lock_outline_rounded,
+                      hintText: "Masalan: Rustam Baxtiyorov",
+                      prefixIcon: const Icon(Icons.person_outline_rounded,
                           size: 20, color: Color(0xFF64748B)),
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
-                      counterText: '',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+
+                  const Gap(14),
+
+                  if (isCashier) ...[
+                    // Kassir Logini
+                    const Text("Kassir Logini *",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: loginCtrl,
+                      decoration: InputDecoration(
+                        hintText: "Masalan: rustam_kassir",
+                        prefixIcon: const Icon(Icons.badge_outlined,
+                            size: 20, color: Color(0xFF9333EA)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+
+                    const Gap(14),
+
+                    // Kassir Paroli
+                    const Text("Dastlabki Parol *",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: passCtrl,
+                      decoration: InputDecoration(
+                        hintText: "Masalan: 123456",
+                        prefixIcon: const Icon(Icons.password_rounded,
+                            size: 20, color: Color(0xFF9333EA)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+
+                    const Gap(12),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE9D5FF)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded,
+                              color: Color(0xFF7E22CE), size: 20),
+                          Gap(10),
+                          Expanded(
+                            child: Text(
+                              "Kassir o'z telefonida ushbu login va parol bilan kirgach, o'ziga 4 xonali PIN-kod o'rnatib oladi.",
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: Color(0xFF6B21A8),
+                                  height: 1.35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    // Boshliq PIN-kodi
+                    const Row(
+                      children: [
+                        Text("Boshliq Kirish PIN-kodi (4 ta raqam) *",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF334155))),
+                        Gap(6),
+                        Text("(Faqat raqamlar)",
+                            style: TextStyle(
+                                fontSize: 11, color: Color(0xFF94A3B8))),
+                      ],
+                    ),
+                    const Gap(6),
+                    TextField(
+                      controller: pinCtrl,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 4,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "4 xonali PIN",
+                        prefixIcon: const Icon(Icons.lock_outline_rounded,
+                            size: 20, color: Color(0xFF64748B)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        counterText: '',
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const Gap(14),
+
+                  // Telefon raqami
+                  const Text("Telefon Raqami (Ixtiyoriy)",
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155))),
+                  const Gap(6),
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: "+998 90 123 45 67",
+                      prefixIcon: const Icon(Icons.phone_outlined,
+                          size: 20, color: Color(0xFF64748B)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
@@ -1111,6 +1202,8 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                         final messenger = ScaffoldMessenger.of(context);
                         final name = nameCtrl.text.trim();
                         final phone = phoneCtrl.text.trim();
+                        final login = loginCtrl.text.trim();
+                        final pass = passCtrl.text.trim();
                         final pin = pinCtrl.text.trim();
 
                         if (name.isEmpty) {
@@ -1122,55 +1215,103 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                           );
                           return;
                         }
-                        if (pin.length != 4) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  "PIN-kod roppa-rosa 4 ta raqamdan iborat bo'lishi shart!"),
-                              backgroundColor: Color(0xFFEF4444),
-                            ),
-                          );
-                          return;
-                        }
 
-                        final success = await ref
-                            .read(staffListProvider.notifier)
-                            .addStaff(
-                              name: name,
-                              phone: phone,
-                              role: selectedRole,
-                              pin: pin,
+                        if (isCashier) {
+                          if (login.isEmpty || pass.isEmpty) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "Iltimos, kassir logini va parolini kiriting!"),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
                             );
+                            return;
+                          }
 
-                        if (success) {
-                          navigator.pop();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  "$name muvaffaqiyatli qo'shildi! PIN-kod: $pin"),
-                              backgroundColor: const Color(0xFF10B981),
-                            ),
-                          );
+                          final success = await ref
+                              .read(staffListProvider.notifier)
+                              .addCashier(
+                                name: name,
+                                login: login,
+                                password: pass,
+                                phone: phone,
+                              );
+
+                          if (success) {
+                            navigator.pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    "Kassir $name muvaffaqiyatli qo'shildi!\nLogin: $login | Parol: $pass"),
+                                backgroundColor: const Color(0xFF10B981),
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "Ushbu login band! Boshqa login tanlang."),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                          }
                         } else {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  "Bu PIN-kod boshqa xodimda mavjud! Boshqa PIN tanlang."),
-                              backgroundColor: Color(0xFFEF4444),
-                            ),
-                          );
+                          // Boshliq
+                          if (pin.length != 4) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "PIN-kod roppa-rosa 4 ta raqam bo'lishi shart!"),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final success = await ref
+                              .read(staffListProvider.notifier)
+                              .addStaff(
+                                name: name,
+                                phone: phone,
+                                role: selectedRole,
+                                pin: pin,
+                              );
+
+                          if (success) {
+                            navigator.pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    "$name muvaffaqiyatli qo'shildi! PIN: $pin"),
+                                backgroundColor: const Color(0xFF10B981),
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text("Bu PIN-kod band! Boshqa tanlang."),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
+                        backgroundColor: isCashier
+                            ? const Color(0xFF7E22CE)
+                            : const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        "Xodimni Saqlash",
-                        style: TextStyle(
+                      child: Text(
+                        isCashier
+                            ? "Kassirni Saqlash"
+                            : "Boshliqni Saqlash",
+                        style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w800),
                       ),
                     ),

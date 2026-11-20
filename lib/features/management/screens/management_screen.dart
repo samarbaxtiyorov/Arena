@@ -9,9 +9,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/providers/business_account_provider.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../data/repositories/database_providers.dart';
-import '../../kassa/providers/kassa_providers.dart';
 import 'analytics_screen.dart';
 import 'business_settings_screen.dart';
 import 'manage_products_screen.dart';
@@ -301,20 +299,6 @@ class ManagementScreen extends ConsumerWidget {
 
             const Gap(10),
 
-            // ── 6. Tarix va Moliyaviy Hisobotlar ─────────────
-            _buildMenuCard(
-              context: context,
-              icon: Icons.history_rounded,
-              iconBg: const Color(0xFFFCE7F3),
-              iconColor: const Color(0xFFDB2777),
-              title: "Tarix va Moliyaviy Hisobotlar",
-              subtitle: "Sotuvlar arxivi, tushumlar va...",
-              onTap: () {
-                _showFinancialReportDialog(context, ref);
-              },
-            ),
-
-            const Gap(10),
 
             // ── 7. Obuna va Litsenziya ────────────────────────
             _buildMenuCard(
@@ -529,57 +513,6 @@ class ManagementScreen extends ConsumerWidget {
     );
   }
 
-  // ── Moliyaviy Hisobotlar Dialogi ──────────────────────────
-  void _showFinancialReportDialog(BuildContext context, WidgetRef ref) {
-    final cashAsync = ref.watch(allCashRecordsProvider);
-    final records = cashAsync.value ?? [];
-
-    int income = 0;
-    int expense = 0;
-    for (final r in records) {
-      if (r.type == 'income') income += r.amount.toInt();
-      if (r.type == 'expense') expense += r.amount.toInt();
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.history_rounded, color: Color(0xFFDB2777)),
-            Gap(8),
-            Text("Moliyaviy Hisobot"),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Jami Kirim: ${formatSum(income)}",
-                style: const TextStyle(
-                    color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-            const Gap(6),
-            Text("Jami Chiqim: ${formatSum(expense)}",
-                style: const TextStyle(
-                    color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
-            const Gap(6),
-            Text("Sof Foyda: ${formatSum(income - expense)}",
-                style: const TextStyle(
-                    color: Color(0xFF2563EB), fontWeight: FontWeight.w900)),
-            const Gap(12),
-            Text("Kassa operatsiyalari soni: ${records.length} ta"),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Yopish"),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── Xavfsizlik va Bulut Paneli ───────────────────────────
   void _showSecurityDialog(

@@ -109,6 +109,10 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isAuthenticated: false);
   }
 
+  void lock() {
+    state = state.copyWith(isAuthenticated: false);
+  }
+
   void login() {
     state = state.copyWith(isAuthenticated: true);
   }
