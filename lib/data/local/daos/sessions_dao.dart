@@ -22,6 +22,13 @@ class SessionsDao extends DatabaseAccessor<AppDatabase>
         ..limit(1))
           .watchSingleOrNull();
 
+  Future<Session?> getActiveSessionForTable(String tableId) =>
+      (select(sessions)
+        ..where((s) =>
+            s.tableId.equals(tableId) & s.status.equals('active'))
+        ..limit(1))
+          .getSingleOrNull();
+
   // Stol uchun barcha sessiyalar (oxirgi 50 ta)
   Future<List<Session>> getSessionsForTable(String tableId) =>
       (select(sessions)

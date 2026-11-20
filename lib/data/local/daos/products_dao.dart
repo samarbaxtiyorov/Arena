@@ -34,10 +34,12 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   Future<void> decreaseStock(String id, int quantity) async {
     final product = await (select(products)
         ..where((p) => p.id.equals(id)))
-        .getSingle();
+        .getSingleOrNull();
+    if (product == null) return;
+    final newStock = product.stock >= quantity ? product.stock - quantity : 0;
     await (update(products)..where((p) => p.id.equals(id)))
         .write(ProductsCompanion(
-          stock:     Value(product.stock - quantity),
+          stock:     Value(newStock),
           updatedAt: Value(DateTime.now()),
           isSynced:  const Value(false),
         ));

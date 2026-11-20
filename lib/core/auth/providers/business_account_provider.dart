@@ -13,32 +13,11 @@ import '../../constants/app_constants.dart';
 import '../../utils/security_helper.dart';
 import '../models/business_account.dart';
 
-const String _accountsPrefKey = 'arena_business_accounts_v2';
-const String _activeAccountIdPrefKey = 'arena_active_account_id_v2';
-const String _isLoggedOutPrefKey = 'arena_business_logged_out_v2';
+const String _accountsPrefKey = 'arena_business_accounts_v3';
+const String _activeAccountIdPrefKey = 'arena_active_account_id_v3';
+const String _isLoggedOutPrefKey = 'arena_business_logged_out_v3';
 
-final defaultInitialAccounts = [
-  BusinessAccount(
-    id: 'samar-arena',
-    venueName: 'Arena Sport Majmuasi',
-    ownerName: 'Samar Baxtiyorov',
-    phone: '+998 90 000 00 01',
-    password: '123',
-    ownerPin: '7777',
-    licenseType: 'PREMIUM VIP',
-    createdAt: DateTime(2026, 1, 1),
-  ),
-  BusinessAccount(
-    id: 'alisher-arena',
-    venueName: 'Chempion Arena',
-    ownerName: 'Alisher Baxtiyorov',
-    phone: '+998 91 000 00 02',
-    password: '123',
-    ownerPin: '8888',
-    licenseType: 'PREMIUM VIP',
-    createdAt: DateTime(2026, 1, 1),
-  ),
-];
+final defaultInitialAccounts = const <BusinessAccount>[];
 
 class BusinessAccountState {
   final List<BusinessAccount> accounts;

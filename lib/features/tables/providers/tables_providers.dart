@@ -209,9 +209,14 @@ class TablesController {
   }
 
   // Stol / zonani o'chirish (faolsizlantirish)
-  Future<void> deleteTable(String tableId) async {
+  Future<bool> deleteTable(String tableId) async {
+    final active = await _db.sessionsDao.getActiveSessionForTable(tableId);
+    if (active != null) {
+      return false; // Faol o'yin ketayotgan stolni o'chirish taqiqlangan!
+    }
     await _db.clubTablesDao.deactivateTable(tableId);
     _triggerSync();
+    return true;
   }
 
   void _triggerSync() {
