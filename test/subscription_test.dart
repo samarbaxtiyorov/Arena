@@ -33,24 +33,33 @@ void main() {
       expect(cost12m, 4800000);
     });
 
-    test('SubscriptionModel serialization and expiry logic', () {
+    test('SubscriptionModel trial and expiry logic', () {
       final now = DateTime.now();
-      final futureDate = now.add(const Duration(days: 45));
-      final sub = SubscriptionModel(
-        venueId: 'venue-123',
+      final futureDate = now.add(const Duration(days: 3));
+      final trialSub = SubscriptionModel(
+        venueId: 'trial-venue',
         expiryDate: futureDate,
-        pricePerTablePerMonth: 100000,
+        isTrial: true,
+        licensedTablesCount: 10,
       );
 
-      expect(sub.isExpired, isFalse);
-      expect(sub.daysRemaining >= 44, isTrue);
+      expect(trialSub.isTrial, isTrue);
+      expect(trialSub.isTrialActive, isTrue);
+      expect(trialSub.isExpired, isFalse);
+      expect(trialSub.statusBadge, 'SINOV DAVRI');
 
-      final jsonStr = sub.toJson();
+      // Muddati o'tgan holat
+      final pastDate = now.subtract(const Duration(days: 1));
+      final expiredSub = trialSub.copyWith(expiryDate: pastDate);
+      expect(expiredSub.isExpired, isTrue);
+      expect(expiredSub.isTrialActive, isFalse);
+      expect(expiredSub.statusBadge, "MUDDATI O'TGAN");
+
+      // Serialization
+      final jsonStr = trialSub.toJson();
       final restored = SubscriptionModel.fromJson(jsonStr);
-
-      expect(restored.venueId, 'venue-123');
-      expect(restored.pricePerTablePerMonth, 100000);
-      expect(restored.isExpired, isFalse);
+      expect(restored.isTrial, isTrue);
+      expect(restored.licensedTablesCount, 10);
     });
   });
 }

@@ -7,9 +7,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/repositories/database_providers.dart';
+import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
 import '../widgets/table_category_chips.dart';
@@ -28,6 +30,7 @@ class TablesScreen extends ConsumerWidget {
 
     final activeSessions = activeSessionsAsync.value ?? [];
     final allTables = allTablesAsync.value ?? [];
+    final sub = ref.watch(subscriptionProvider);
 
     final activeCount = activeSessions.where((s) => s.status == 'active').length;
     final idleCount = (allTables.length - activeCount).clamp(0, 999);
@@ -221,6 +224,79 @@ class TablesScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+                // ── Litsenziya / Sinov Davri Holati Banneri ─────────
+                if (sub.isExpired)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFF87171)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+                            const Gap(10),
+                            const Expanded(
+                              child: Text(
+                                "Litsenziya muddati tugagan! O'yinlarni boshlash uchun to'lov qiling.",
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF991B1B)),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => context.push('/management/subscription'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                              ),
+                              child: const Text("To'lash"),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else if (sub.isTrialActive)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFF93C5FD)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.stars_rounded, color: Color(0xFF2563EB), size: 22),
+                            const Gap(10),
+                            Expanded(
+                              child: Text(
+                                "🎁 3 kunlik bepul sinov davri faol (${sub.daysRemaining > 0 ? '${sub.daysRemaining} kun' : '${sub.hoursRemaining} soat'} qoldi)",
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E40AF)),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/management/subscription'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF2563EB),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                              ),
+                              child: const Text("Tariflar"),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
 
                 // ── Kategoriya Chiplari (Barchasi, Futbol, Bilyard) ──
                 const SliverToBoxAdapter(

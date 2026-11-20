@@ -63,10 +63,6 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (m) async {
       await m.createAll();
       // Yangi ochilgan barcha biznes hisoblar mutlaqo toza (0 ta stol, 0 ta tovar, 0 ta qarz) bo'ladi
-      final isDemoAccount = accountId == 'samar-arena' || accountId == 'default';
-      if (isDemoAccount) {
-        await seedInitialData(includeDemoSession: false);
-      }
     },
     onUpgrade: (m, from, to) async {
       // Keyingi versiyalar uchun

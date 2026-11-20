@@ -5,9 +5,11 @@
 
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../constants/app_constants.dart';
 import '../../utils/security_helper.dart';
 import '../models/business_account.dart';
 
@@ -151,6 +153,54 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     return false;
   }
 
+  /// Supabase bulutli bazasidan telefon orqali akkauntni qidirish
+  static Future<Map<String, dynamic>?> _fetchCloudAccount(String phone) async {
+    final cleanPhone = phone.trim();
+    final digitsOnly = cleanPhone.replaceAll(RegExp(r'\D'), '');
+
+    final headers = {
+      'apikey': AppConstants.supabaseAnonKey,
+      'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+      'Content-Type': 'application/json',
+    };
+
+    final phoneVariants = <String>{
+      cleanPhone,
+      if (digitsOnly.isNotEmpty) digitsOnly,
+      if (digitsOnly.startsWith('998')) digitsOnly.substring(3),
+      if (!cleanPhone.startsWith('+') && digitsOnly.length == 9) '+998$digitsOnly',
+      if (cleanPhone.startsWith('+998')) cleanPhone.substring(4).replaceAll(' ', ''),
+    };
+
+    for (final variant in phoneVariants) {
+      try {
+        final encoded = Uri.encodeComponent(variant);
+        final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=eq.$encoded&limit=1');
+        final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
+          if (list.isNotEmpty) return list.first;
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final url = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?select=*&limit=50');
+      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
+        for (final row in list) {
+          final p = row['phone']?.toString() ?? '';
+          if (matchPhone(p, cleanPhone)) {
+            return row;
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   Future<bool> registerAccount({
     required String venueName,
     required String ownerName,
@@ -166,10 +216,18 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
 
     final currentAccounts = List<BusinessAccount>.from(state.accounts);
 
-    // Telefon raqami band emasligini tekshirish
+    // 1. Mahalliy ro'yxatda bor-yo'qligini tekshirish
     if (currentAccounts.any((a) => matchPhone(a.phone, cleanPhone))) {
       return false; // Telefon raqami allaqachon mavjud
     }
+
+    // 2. Bulutli bazada (Supabase Cloud) bor-yo'qligini tekshirish
+    try {
+      final cloudMatch = await _fetchCloudAccount(cleanPhone);
+      if (cloudMatch != null) {
+        return false; // Bulutda bu telefon raqam allaqachon mavjud!
+      }
+    } catch (_) {}
 
     final newAcc = BusinessAccount(
       id: const Uuid().v4(),
@@ -182,12 +240,47 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       createdAt: DateTime.now(),
     );
 
+    // 3. Bulutli bazaga (Supabase) darhol saqlash
+    try {
+      final headers = {
+        'apikey': AppConstants.supabaseAnonKey,
+        'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=representation',
+      };
+      final cloudUrl = Uri.parse('${AppConstants.supabaseUrl}/rest/v1/cloud_accounts');
+      await http.post(
+        cloudUrl,
+        headers: headers,
+        body: jsonEncode({
+          'phone': cleanPhone,
+          'pin_hash': SecurityHelper.hashPassword(cleanPass),
+          'business_id': newAcc.id,
+          'business_name': cleanVenue,
+          'license_until': DateTime.now().add(const Duration(days: 3)).toUtc().toIso8601String(),
+          'is_blocked': false,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        }),
+      ).timeout(const Duration(seconds: 6));
+    } catch (_) {}
+
     final updated = [...currentAccounts, newAcc];
     await _saveAccounts(updated);
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_activeAccountIdPrefKey, newAcc.id);
     await prefs.setBool(_isLoggedOutPrefKey, false);
+
+    // Yangi hisob uchun 3 kunlik bepul sinov litsenziyasini saqlash
+    final trialSub = jsonEncode({
+      'venueId': newAcc.id,
+      'planName': '3 Kunlik Bepul Sinov',
+      'expiryDate': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
+      'pricePerTablePerMonth': 100000,
+      'licensedTablesCount': 10,
+      'isTrial': true,
+    });
+    await prefs.setString('arena_subscription_${newAcc.id}', trialSub);
 
     state = state.copyWith(
       accounts: updated,
@@ -204,6 +297,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     final cleanPhone = phone.trim();
     final cleanPass = password.trim();
 
+    // 1. Mahalliy SharedPreferences'dan qidirish
     try {
       final match = state.accounts.firstWhere(
         (a) =>
@@ -222,8 +316,75 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
       );
       return true;
     } catch (_) {
-      return false;
+      // Mahalliy hisoblarda topilmadi — Bulutdan qidiramiz!
     }
+
+    // 2. Bulutli bazadan (Supabase Cloud) qidirish (Boshqa telefondan kirilganda)
+    try {
+      final cloudAccount = await _fetchCloudAccount(cleanPhone);
+      if (cloudAccount != null) {
+        final pinHash = cloudAccount['pin_hash']?.toString() ?? '';
+        final isBlocked = cloudAccount['is_blocked'] as bool? ?? false;
+
+        if (isBlocked) {
+          return false;
+        }
+
+        // Parolni tekshirish (tuzlangan yoki oddiy xesh)
+        if (pinHash.isEmpty || SecurityHelper.verifyPassword(cleanPass, pinHash)) {
+          final venueName = cloudAccount['business_name']?.toString() ?? 'Arena Sport';
+          final busId = cloudAccount['business_id']?.toString() ?? const Uuid().v4();
+          final licenseUntilStr = cloudAccount['license_until']?.toString();
+
+          final importedAcc = BusinessAccount(
+            id: busId,
+            venueName: venueName,
+            ownerName: 'Boshliq',
+            phone: cleanPhone,
+            password: SecurityHelper.hashPassword(cleanPass),
+            ownerPin: cleanPass.length == 4 ? cleanPass : '0000',
+            licenseType: 'PREMIUM VIP',
+            createdAt: DateTime.now(),
+          );
+
+          final updated = [...state.accounts.where((a) => a.id != importedAcc.id), importedAcc];
+          await _saveAccounts(updated);
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_activeAccountIdPrefKey, importedAcc.id);
+          await prefs.setBool(_isLoggedOutPrefKey, false);
+
+          // Bulutdagi litsenziyani yuklash
+          DateTime expiry = DateTime.now().add(const Duration(days: 3));
+          bool isTrial = true;
+          if (licenseUntilStr != null) {
+            final parsed = DateTime.tryParse(licenseUntilStr);
+            if (parsed != null) {
+              expiry = parsed;
+              isTrial = false;
+            }
+          }
+          final subJson = jsonEncode({
+            'venueId': importedAcc.id,
+            'planName': isTrial ? '3 Kunlik Bepul Sinov' : 'Arena Standart',
+            'expiryDate': expiry.toIso8601String(),
+            'pricePerTablePerMonth': 100000,
+            'licensedTablesCount': 10,
+            'isTrial': isTrial,
+          });
+          await prefs.setString('arena_subscription_${importedAcc.id}', subJson);
+
+          state = state.copyWith(
+            accounts: updated,
+            activeAccount: importedAcc,
+            isLoggedOut: false,
+          );
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    return false;
   }
 
   Future<void> switchAccount(String accountId) async {

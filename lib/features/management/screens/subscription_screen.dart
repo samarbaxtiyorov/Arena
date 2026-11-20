@@ -254,14 +254,20 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 decoration: BoxDecoration(
                   color: isExpired
                       ? const Color(0xFFEF4444)
-                      : const Color(0xFF10B981).withOpacity(0.25),
+                      : (sub.isTrial
+                          ? const Color(0xFFF59E0B).withOpacity(0.35)
+                          : const Color(0xFF10B981).withOpacity(0.25)),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isExpired ? Colors.white70 : const Color(0xFF34D399),
+                    color: isExpired
+                        ? Colors.white70
+                        : (sub.isTrial ? const Color(0xFFFBBF24) : const Color(0xFF34D399)),
                   ),
                 ),
                 child: Text(
-                  isExpired ? "MUDDATI O'TGAN" : "FAOL",
+                  isExpired
+                      ? "MUDDATI O'TGAN"
+                      : (sub.isTrial ? "3 KUNLIK SINOV" : "FAOL"),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -273,7 +279,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
           const Gap(18),
           Text(
-            isExpired ? "Litsenziya muddati tugagan" : "$days kun qoldi",
+            isExpired
+                ? "Litsenziya muddati tugagan"
+                : (sub.isTrial
+                    ? "Sinov: $days kun qoldi"
+                    : "$days kun qoldi"),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -777,23 +787,38 @@ class _TezCheckPaymentModalState extends ConsumerState<_TezCheckPaymentModal> {
     debugPrint("🌐 [TezCheck] Ochilayotgan havola: $rawUrl");
     final uri = Uri.parse(rawUrl);
 
+    bool opened = false;
     try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        opened = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+      if (!opened) {
+        opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       }
     } catch (e) {
       debugPrint("❌ [TezCheck] Brauzer xatosi: $e");
-      // Agar brauzer ochilmasa, havolani darhol clipboardga nusxalab beramiz va xabar qilamiz
-      Clipboard.setData(ClipboardData(text: rawUrl));
-      if (mounted) {
+    }
+
+    // Har doim havolani clipboardga ham nusxalab qo'yamiz
+    await Clipboard.setData(ClipboardData(text: rawUrl));
+
+    if (mounted) {
+      if (opened) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("To'lov havolasi nusxalandi! Iltimos, brauzerda oching."),
+            content: Text("TezCheck to'lov sahifasi ochilmoqda... To'lovdan so'ng ilovaga qayting."),
             backgroundColor: Color(0xFF10B981),
+            duration: Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("To'lov havolasi nusxalandi! Iltimos, telefoningizdagi brauzerda oching."),
+            backgroundColor: Color(0xFF2563EB),
+            duration: Duration(seconds: 5),
             behavior: SnackBarBehavior.floating,
           ),
         );

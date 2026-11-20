@@ -14,10 +14,13 @@ class SubscriptionNotifier extends Notifier<SubscriptionModel> {
   SubscriptionModel build() {
     _loadFromPrefs();
     final activeVenue = ref.read(businessAccountProvider).activeAccount;
-    // Standart: 2026-yil 31-dekabrgacha yoki 30 kunlik faol obuna
+    // Yangi hisob uchun 3 kunlik bepul sinov (Trial Bonus) litsenziyasi beriladi
     return SubscriptionModel(
       venueId: activeVenue?.id ?? 'default',
-      expiryDate: DateTime(2026, 12, 31, 23, 59, 59),
+      planName: '3 Kunlik Bepul Sinov',
+      expiryDate: DateTime.now().add(const Duration(days: 3)),
+      isTrial: true,
+      licensedTablesCount: 10,
     );
   }
 
@@ -56,6 +59,8 @@ class SubscriptionNotifier extends Notifier<SubscriptionModel> {
     final newExpiry = baseDate.add(Duration(days: months * 30));
 
     final updated = state.copyWith(
+      planName: 'Arena Standart',
+      isTrial: false,
       expiryDate: newExpiry,
       licensedTablesCount: licensedTablesCount ?? state.licensedTablesCount,
       lastPaymentDate: now,

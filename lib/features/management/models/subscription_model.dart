@@ -6,6 +6,7 @@ class SubscriptionModel {
   final DateTime expiryDate;
   final int pricePerTablePerMonth;
   final int licensedTablesCount; // Litsenziya bo'yicha ruxsat berilgan stollar soni
+  final bool isTrial; // 3 kunlik bepul sinov litsenziyasi
   final DateTime? lastPaymentDate;
   final int? lastPaymentAmount;
   final String? lastPaymentReference;
@@ -16,19 +17,30 @@ class SubscriptionModel {
     required this.expiryDate,
     this.pricePerTablePerMonth = 100000,
     this.licensedTablesCount = 5,
+    this.isTrial = false,
     this.lastPaymentDate,
     this.lastPaymentAmount,
     this.lastPaymentReference,
   });
 
   bool get isExpired => DateTime.now().isAfter(expiryDate);
+  bool get isTrialActive => isTrial && !isExpired;
 
   int get daysRemaining {
     final diff = expiryDate.difference(DateTime.now()).inDays;
     return diff > 0 ? diff : 0;
   }
 
-  String get statusBadge => isExpired ? "MUDDATI O'TGAN" : "FAOL";
+  int get hoursRemaining {
+    final diff = expiryDate.difference(DateTime.now()).inHours;
+    return diff > 0 ? diff : 0;
+  }
+
+  String get statusBadge {
+    if (isExpired) return "MUDDATI O'TGAN";
+    if (isTrial) return "SINOV DAVRI";
+    return "FAOL";
+  }
 
   SubscriptionModel copyWith({
     String? venueId,
@@ -36,6 +48,7 @@ class SubscriptionModel {
     DateTime? expiryDate,
     int? pricePerTablePerMonth,
     int? licensedTablesCount,
+    bool? isTrial,
     DateTime? lastPaymentDate,
     int? lastPaymentAmount,
     String? lastPaymentReference,
@@ -46,6 +59,7 @@ class SubscriptionModel {
       expiryDate: expiryDate ?? this.expiryDate,
       pricePerTablePerMonth: pricePerTablePerMonth ?? this.pricePerTablePerMonth,
       licensedTablesCount: licensedTablesCount ?? this.licensedTablesCount,
+      isTrial: isTrial ?? this.isTrial,
       lastPaymentDate: lastPaymentDate ?? this.lastPaymentDate,
       lastPaymentAmount: lastPaymentAmount ?? this.lastPaymentAmount,
       lastPaymentReference: lastPaymentReference ?? this.lastPaymentReference,
@@ -59,6 +73,7 @@ class SubscriptionModel {
       'expiryDate': expiryDate.toIso8601String(),
       'pricePerTablePerMonth': pricePerTablePerMonth,
       'licensedTablesCount': licensedTablesCount,
+      'isTrial': isTrial,
       'lastPaymentDate': lastPaymentDate?.toIso8601String(),
       'lastPaymentAmount': lastPaymentAmount,
       'lastPaymentReference': lastPaymentReference,
@@ -71,10 +86,11 @@ class SubscriptionModel {
       planName: map['planName'] as String? ?? 'Arena Professional',
       expiryDate: map['expiryDate'] != null
           ? DateTime.tryParse(map['expiryDate'] as String) ??
-              DateTime.now().add(const Duration(days: 30))
-          : DateTime.now().add(const Duration(days: 30)),
+              DateTime.now().add(const Duration(days: 3))
+          : DateTime.now().add(const Duration(days: 3)),
       pricePerTablePerMonth: (map['pricePerTablePerMonth'] as num?)?.toInt() ?? 100000,
       licensedTablesCount: (map['licensedTablesCount'] as num?)?.toInt() ?? 5,
+      isTrial: map['isTrial'] as bool? ?? false,
       lastPaymentDate: map['lastPaymentDate'] != null
           ? DateTime.tryParse(map['lastPaymentDate'] as String)
           : null,

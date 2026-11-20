@@ -93,17 +93,31 @@ class _AddTableDialogState extends ConsumerState<AddTableDialog> {
       return;
     }
 
+    final sub = ref.read(subscriptionProvider);
+    if (sub.isExpired) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "⚠️ Litsenziya muddati tugagan!\nYangi maydon yoki stol qo'shish uchun TezCheck orqali to'lov qiling.",
+          ),
+          backgroundColor: Color(0xFFEF4444),
+          duration: Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (!_isEditing) {
       final currentTables = ref.read(tablesStreamProvider).value ?? [];
-      final sub = ref.read(subscriptionProvider);
       if (currentTables.length >= sub.licensedTablesCount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "⚠️ Litsenziya cheklovi!\nSizning tarifingiz ${sub.licensedTablesCount} ta stol uchun to'langan. Yangi stol qo'shish uchun 'Obuna va Litsenziya' bo'limidan litsenziyangizni yangilang!",
+              "⚠️ Litsenziya cheklovi!\nSizning amaldagi tarifingiz ${sub.licensedTablesCount} ta stol uchun to'langan. Yangi stol qo'shish uchun 'Obuna va Litsenziya' bo'limidan litsenziyangizni kengaytiring!",
             ),
             backgroundColor: const Color(0xFFEF4444),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
             behavior: SnackBarBehavior.floating,
           ),
         );

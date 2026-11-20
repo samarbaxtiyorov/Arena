@@ -35,7 +35,14 @@ class SecurityHelper {
       return true;
     }
 
-    // 2. Eskiroq hisoblar uchun ochiq matnli parolni tekshirish (Backward-compatibility)
+    // 2. Oddiy SHA-256 xesh (tuzsiz — bulutli baza va eski tizimlar bilan moslashuvchanlik)
+    final plainBytes = utf8.encode(inputPassword.trim());
+    final plainHash = sha256.convert(plainBytes).toString();
+    if (plainHash == storedHashOrPassword) {
+      return true;
+    }
+
+    // 3. Eskiroq hisoblar uchun ochiq matnli parolni tekshirish (Backward-compatibility)
     if (inputPassword.trim() == storedHashOrPassword.trim()) {
       return true;
     }

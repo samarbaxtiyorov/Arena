@@ -8,11 +8,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_billing_helper.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/local/app_database.dart';
+import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 import 'stadium_banner.dart';
 import 'session_finish_dialog.dart';
@@ -500,36 +502,109 @@ class _TableCardState extends ConsumerState<TableCard> {
                   ),
                 ],
               )
-            else
-              // Bo'sh bo'lganda: [▶ O'yinni boshlash]
-              SizedBox(
-                width: double.infinity,
-                height: uiScale.buttonHeight,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    controller.startSession(widget.table.id);
-                  },
-                  icon: Icon(Icons.play_arrow_rounded,
-                      size: uiScale == UiScale.small ? 18 : 20),
-                  label: const Text(
-                    "O'yinni boshlash",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+            else ...[
+              // Bo'sh bo'lganda: [▶ O'yinni boshlash] yoki Litsenziya cheklovi
+              Builder(
+                builder: (context) {
+                  final sub = ref.watch(subscriptionProvider);
+                  final isBeyondLimit = widget.index > sub.licensedTablesCount;
+                  final isExpired = sub.isExpired;
+
+                  String btnText = "O'yinni boshlash";
+                  Color btnColor = const Color(0xFF2563EB);
+                  IconData btnIcon = Icons.play_arrow_rounded;
+
+                  if (isExpired) {
+                    btnText = "Litsenziya muddati o'tgan";
+                    btnColor = const Color(0xFFEF4444);
+                    btnIcon = Icons.lock_clock_rounded;
+                  } else if (isBeyondLimit) {
+                    btnText = "Litsenziyadan tashqari stol";
+                    btnColor = const Color(0xFF94A3B8);
+                    btnIcon = Icons.lock_rounded;
+                  }
+
+                  return SizedBox(
+                    width: double.infinity,
+                    height: uiScale.buttonHeight,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (isExpired) {
+                          _showLicenseAlert(
+                            context,
+                            "Litsenziya muddati tugagan! O'yinlarni boshlash uchun TezCheck orqali to'lov qilib litsenziyani faollashtiring.",
+                          );
+                          return;
+                        }
+                        if (isBeyondLimit) {
+                          _showLicenseAlert(
+                            context,
+                            "Ushbu stol/maydon uchun litsenziya olinmagan. Sizning amaldagi tarifingiz faqat ${sub.licensedTablesCount} ta stol uchun to'langan. Yangi stol qo'shish yoki ishlatish uchun 'Obuna va Litsenziya' bo'limidan stollar sonini oshiring!",
+                          );
+                          return;
+                        }
+                        controller.startSession(widget.table.id);
+                      },
+                      icon: Icon(btnIcon, size: uiScale == UiScale.small ? 18 : 20),
+                      label: Text(
+                        btnText,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: btnColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLicenseAlert(BuildContext context, String reason) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 26),
+            Gap(8),
+            Text("Litsenziya Cheklovi", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          reason,
+          style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF334155)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Yopish"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push('/management/subscription');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Obunaga o'tish"),
+          ),
+        ],
       ),
     );
   }

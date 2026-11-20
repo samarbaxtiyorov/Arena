@@ -21,6 +21,12 @@ void main() {
       // Verify backward compatibility with plain text
       expect(SecurityHelper.verifyPassword('plainPass', 'plainPass'), isTrue);
       expect(SecurityHelper.verifyPassword('wrong', 'plainPass'), isFalse);
+
+      // Verify backward compatibility with unsalted SHA-256 from legacy Neon cloud database
+      // 0679 hashes to 43e073fe6521716bbfb581165292c9547d58797dec03598ac023d4b886319bed
+      const legacyHash = '43e073fe6521716bbfb581165292c9547d58797dec03598ac023d4b886319bed';
+      expect(SecurityHelper.verifyPassword('0679', legacyHash), isTrue);
+      expect(SecurityHelper.verifyPassword('1111', legacyHash), isFalse);
     });
   });
 }
