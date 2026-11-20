@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Arena — Boshliq Jonli Dashboard</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E<text y=%2226%22 font-size=%2226%22>⚡</text></svg>">
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Supabase JS Client for Realtime WebSockets -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Confetti for big payments -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- ========================================================
+       1. ASOSIY ILOVA KONTEYNERI
+       ======================================================== -->
+  <div id="app" class="min-h-screen flex flex-col">
+    
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 sm:px-6 py-3.5">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        
+        <!-- Chap: Logo va Muassasa nomi -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+                ARENA <span class="text-blue-500 font-extrabold text-xs px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20">BOSS</span>
+              </h1>
+            </div>
+            <p id="venue-name-display" class="text-xs text-slate-400 font-medium truncate max-w-[180px] sm:max-w-xs">
+              Yuklanmoqda...
+            </p>
+          </div>
+        </div>
+
+        <!-- O'rta: Realtime holat indikatori (Pulsing badge) -->
+        <div class="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-green"></span>
+          <span id="realtime-status-text" class="text-xs font-semibold text-emerald-400">Jonli Aloqa Faol</span>
+          <span class="text-slate-600">•</span>
+          <span id="last-sync-time" class="text-[11px] text-slate-400">hozirgina</span>
+        </div>
+
+        <!-- O'ng: Boshqaruv tugmalari va Boss profili -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Ovoz (Chime) yoqish/o'chirish -->
+          <button id="btn-toggle-sound" title="Ovozli bildirishnomalar" 
+                  class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold">
+            <i data-lucide="volume-2" id="sound-icon" class="w-4 h-4 text-emerald-400"></i>
+            <span class="hidden sm:inline">Ovoz</span>
+          </button>
+
+          <!-- Yangilash tugmasi -->
+          <button id="btn-refresh" title="Ma'lumotlarni yangilash"
+                  class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-white transition">
+            <i data-lucide="rotate-cw" id="refresh-icon" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Chiqish / Profil -->
+          <button id="btn-logout" title="Chiqish"
+                  class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition flex items-center gap-1.5 text-xs font-semibold">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Chiqish</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ASOSIY SAHIFA MAZMUNI -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+      
+      <!-- 1. FILTR VA XUSH KELIBSIZ PANELI -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-white">Biznes Ko'rsatkichlari</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Majmuangizdagi daromad va harakatlarni real-vaqt rejimida kuzatib boring</p>
+        </div>
+        
+        <!-- Vaqt filtri tugmalari -->
+        <div class="inline-flex p-1 rounded-xl bg-slate-900/90 border border-slate-800 self-start sm:self-auto">
+          <button class="filter-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow" data-range="today">Bugun</button>
+          <button class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-range="yesterday">Kecha</button>
+          <button class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-range="week">Bu hafta</button>
+          <button class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-range="all">Barchasi</button>
+        </div>
+      </div>
+
+      <!-- 2. TOP KPI KARTALARI (4 ta asosiy ko'rsatkich) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        
+        <!-- Kart 1: Jami Sof Tushum -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute -right-3 -top-3 w-20 h-20 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="flex items-center justify-between text-slate-400 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider">Jami Tushum</span>
+            <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <i data-lucide="wallet" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="kpi-total-revenue" class="text-2xl sm:text-3xl font-black text-white stat-digit">0</span>
+            <span class="text-xs text-slate-400 font-semibold">so'm</span>
+          </div>
+          <p class="text-[11px] text-emerald-400 mt-2 font-medium flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+            <span id="kpi-revenue-breakdown">O'yin + Bar tushumlari</span>
+          </p>
+        </div>
+
+        <!-- Kart 2: Maydon va Stollar Tushumi -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute -right-3 -top-3 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="flex items-center justify-between text-slate-400 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider">Stol & Maydonlar</span>
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <i data-lucide="play-circle" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="kpi-table-revenue" class="text-2xl sm:text-3xl font-black text-white stat-digit">0</span>
+            <span class="text-xs text-slate-400 font-semibold">so'm</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1">
+            <span id="kpi-active-tables-count" class="text-emerald-400 font-bold">0 ta</span> maydon ayni paytda band
+          </p>
+        </div>
+
+        <!-- Kart 3: Bar & Do'kon Savdosi -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute -right-3 -top-3 w-20 h-20 bg-purple-500/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="flex items-center justify-between text-slate-400 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider">Bar & Do'kon</span>
+            <div class="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="kpi-shop-revenue" class="text-2xl sm:text-3xl font-black text-white stat-digit">0</span>
+            <span class="text-xs text-slate-400 font-semibold">so'm</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1">
+            <span id="kpi-sold-items-count" class="text-purple-400 font-bold">0 ta</span> tovar sotildi
+          </p>
+        </div>
+
+        <!-- Kart 4: Nasiya / Qarzlar Balansi -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute -right-3 -top-3 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="flex items-center justify-between text-slate-400 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider">Nasiya Qarzlar</span>
+            <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="kpi-total-debt" class="text-2xl sm:text-3xl font-black text-amber-400 stat-digit">0</span>
+            <span class="text-xs text-slate-400 font-semibold">so'm</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1">
+            <span id="kpi-debtors-count" class="text-amber-400 font-bold">0 nafar</span> qarzdor mijoz
+          </p>
+        </div>
+
+      </div>
+
+      <!-- 3. JONLI MAYDONLAR VA STOLLAR STATUSI -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-green"></div>
+            <h3 class="text-lg font-black text-white">Maydonlar va Stollar Jonli Monitoringi</h3>
+          </div>
+          <span class="text-xs text-slate-400 font-semibold" id="tables-summary-badge">0 ta faol stol</span>
+        </div>
+
+        <div id="live-tables-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- JavaScript orqali dinamik yuklanadi -->
+          <div class="col-span-full py-12 text-center text-slate-500 text-sm">
+            Maydonlar yuklanmoqda...
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. GRAFIKLAR VA ANALITIKA -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Soatbay Tushum Grafigi (2 ustun) -->
+        <div class="lg:col-span-2 glass-panel rounded-2xl p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h4 class="text-base font-bold text-white">Soatbay Tushum Dinamikasi</h4>
+              <p class="text-xs text-slate-400">Bugungi soatbay kirimlar grafigi</p>
+            </div>
+            <div class="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
+              Jonli Grafik
+            </div>
+          </div>
+          <div class="h-64 sm:h-72 w-full">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+
+        <!-- To'lov Usullari Taqsimoti (1 ustun) -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="text-base font-bold text-white">To'lov Turlari</h4>
+                <p class="text-xs text-slate-400">Naqd pul vs Karta vs Nasiya</p>
+              </div>
+            </div>
+            <div class="h-52 w-full flex items-center justify-center">
+              <canvas id="paymentMethodsChart"></canvas>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-4 border-t border-slate-800/80 text-center">
+            <div>
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Naqd</p>
+              <p id="stat-cash-percent" class="text-sm font-black text-emerald-400">0%</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Karta</p>
+              <p id="stat-card-percent" class="text-sm font-black text-blue-400">0%</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Nasiya</p>
+              <p id="stat-debt-percent" class="text-sm font-black text-amber-400">0%</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 5. JONLI HARAKATLAR LENTASI VA TOP QARZDORLAR -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Jonli Harakatlar Lentasi (Realtime Activity Feed) -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <h4 class="text-base font-bold text-white">Jonli Tranzaksiyalar Lentasi</h4>
+            </div>
+            <span class="text-[11px] text-slate-500 font-medium">Real-time</span>
+          </div>
+
+          <div id="live-activity-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Dinamik xabarlar -->
+            <div class="py-8 text-center text-slate-500 text-xs">
+              Hozircha yangi tranzaksiya mavjud emas
+            </div>
+          </div>
+        </div>
+
+        <!-- Nasiya Qarzdorlar Reytingi -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i>
+              <h4 class="text-base font-bold text-white">Asosiy Qarzdorlar</h4>
+            </div>
+            <span id="debtors-total-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
+              0 so'm
+            </span>
+          </div>
+
+          <div id="debtors-table-container" class="max-h-96 overflow-y-auto pr-1">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-800">
+                  <th class="pb-2 font-bold uppercase tracking-wider">Mijoz</th>
+                  <th class="pb-2 font-bold uppercase tracking-wider">Telefon</th>
+                  <th class="pb-2 font-bold uppercase tracking-wider text-right">Qarzi</th>
+                </tr>
+              </thead>
+              <tbody id="debtors-table-body" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="3" class="py-8 text-center text-slate-500">
+                    Qarzdorlar ro'yxati bo'sh
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="glass-panel border-t border-slate-800/80 px-4 sm:px-6 py-4 mt-8">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+        <p>© 2026 Arena POS & Management System. Samar Baxtiyorov.</p>
+        <p class="flex items-center gap-1.5">
+          <span>Supabase Realtime Cloud Aloqasi</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+        </p>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ========================================================
+       2. BOSHLIQ KIRISH MODALI (AUTH MODAL)
+       ======================================================== -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-800 shadow-2xl relative animate-enter">
+      
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-blue-500/25">
+          <i data-lucide="shield-check" class="w-7 h-7 text-white"></i>
+        </div>
+        <h3 class="text-xl font-black text-white">Boshliq Tizimiga Kirish</h3>
+        <p class="text-xs text-slate-400 mt-1">Arena hisob ma'lumotlaringizni kiritib, dashboardga kiring</p>
+      </div>
+
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">Telefon Raqam</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+              <i data-lucide="phone" class="w-4 h-4"></i>
+            </span>
+            <input type="text" id="login-phone" required placeholder="+998 90 000 00 00"
+                   class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-white placeholder-slate-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">Parol yoki Ega PIN-kodi</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </span>
+            <input type="password" id="login-password" required placeholder="••••••••"
+                   class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-white placeholder-slate-500 outline-none">
+          </div>
+        </div>
+
+        <div id="login-error" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
+          Telefon raqam yoki parol noto'g'ri!
+        </div>
+
+        <button type="submit" id="btn-submit-login"
+                class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition duration-200 flex items-center justify-center gap-2">
+          <span>Tizimga Kirish</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- TOAST BILDIRISHNOMALAR KONTEYNERI -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none p-2"></div>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
