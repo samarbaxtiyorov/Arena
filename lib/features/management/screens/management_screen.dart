@@ -197,12 +197,14 @@ class ManagementScreen extends ConsumerWidget {
               badgeTextColor: const Color(0xFF0369A1),
               subtitle: "Kunlik tushum, xarajat, savdo...",
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AnalyticsScreen(),
-                  ),
-                );
+                _checkOwnerPermission(context, ref, auth, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AnalyticsScreen(),
+                    ),
+                  );
+                });
               },
             ),
 
@@ -334,7 +336,9 @@ class ManagementScreen extends ConsumerWidget {
               title: "Xavfsizlik va Bulut Zaxirasi",
               subtitle: "Ma'lumotlar bazasi, SHA-256 va sinxronizatsiya",
               onTap: () {
-                _showSecurityDialog(context, authNotifier, auth, ref);
+                _checkOwnerPermission(context, ref, auth, () {
+                  _showSecurityDialog(context, authNotifier, auth, ref);
+                });
               },
             ),
 
@@ -349,7 +353,96 @@ class ManagementScreen extends ConsumerWidget {
               ),
               child: ListTile(
                 onTap: () {
-                  authNotifier.logout();
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (ctx) => Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const Gap(16),
+                          const Text(
+                            "Hisobdan Chiqish",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const Gap(6),
+                          const Text(
+                            "Kerakli amalni tanlang:",
+                            style: TextStyle(
+                                fontSize: 13, color: Color(0xFF64748B)),
+                          ),
+                          const Gap(20),
+                          ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.lock_outline_rounded,
+                                  color: Color(0xFF2563EB)),
+                            ),
+                            title: const Text("Ekranni Qulflash",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800, fontSize: 15)),
+                            subtitle: const Text(
+                                "Tezkor PIN-kod so'rash oynasiga o'tadi",
+                                style: TextStyle(fontSize: 12)),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              authNotifier.lock();
+                            },
+                          ),
+                          const Gap(10),
+                          ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.exit_to_app_rounded,
+                                  color: Color(0xFFEF4444)),
+                            ),
+                            title: const Text(
+                                "To'liq Chiqish (Kirish oynasiga)",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: Color(0xFFEF4444))),
+                            subtitle: const Text(
+                                "Boshqa hisob yoki boshqa kassir bilan kirish",
+                                style: TextStyle(fontSize: 12)),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              ref
+                                  .read(businessAccountProvider.notifier)
+                                  .logoutToAuthScreen();
+                            },
+                          ),
+                          const Gap(10),
+                        ],
+                      ),
+                    ),
+                  );
                 },
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 leading: Container(

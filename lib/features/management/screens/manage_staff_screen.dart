@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/providers/business_account_provider.dart';
 import '../models/staff_member.dart';
 import '../providers/staff_provider.dart';
 
@@ -1165,6 +1166,51 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
 
                   const Gap(14),
 
+                  if (selectedRole == StaffRole.cashier) ...[
+                    const Text("Kassir Logini",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: loginCtrl,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const Gap(14),
+                    const Text("Kassir Paroli",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: passCtrl,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const Gap(14),
+                  ],
+
                   // Telefon raqami
                   const Text("Telefon Raqami (Ixtiyoriy)",
                       style: TextStyle(
@@ -1429,6 +1475,21 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                   .updatePin(id: staff.id, newPin: newPin);
 
               if (success) {
+                // Agar Boshliq PIN-kodi o'zgargan bo'lsa, asosiy hisobdagi ownerPin ham yangilanadi
+                if (staff.isOwner) {
+                  final active =
+                      ref.read(businessAccountProvider).activeAccount;
+                  if (active != null) {
+                    await ref
+                        .read(businessAccountProvider.notifier)
+                        .updateAccountInfo(
+                          venueName: active.venueName,
+                          ownerName: active.ownerName,
+                          phone: active.phone,
+                          newOwnerPin: newPin,
+                        );
+                  }
+                }
                 navigator.pop();
                 messenger.showSnackBar(
                   SnackBar(
@@ -1465,6 +1526,8 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
   void _showEditStaffDialog(BuildContext context, StaffMember staff) {
     final nameCtrl = TextEditingController(text: staff.name);
     final phoneCtrl = TextEditingController(text: staff.phone);
+    final loginCtrl = TextEditingController(text: staff.login);
+    final passCtrl = TextEditingController(text: staff.password);
     final pinCtrl = TextEditingController(text: staff.pin);
     StaffRole selectedRole = staff.role;
 
@@ -1533,6 +1596,51 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                   ),
 
                   const Gap(14),
+
+                  if (selectedRole == StaffRole.cashier) ...[
+                    const Text("Kassir Logini",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: loginCtrl,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const Gap(14),
+                    const Text("Kassir Paroli",
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    const Gap(6),
+                    TextField(
+                      controller: passCtrl,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const Gap(14),
+                  ],
 
                   // Telefon
                   const Text("Telefon Raqami",
@@ -1698,9 +1806,14 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                           return;
                         }
 
+                        final login = loginCtrl.text.trim();
+                        final pass = passCtrl.text.trim();
+
                         final updatedMember = staff.copyWith(
                           name: name,
                           phone: phone,
+                          login: login.isNotEmpty ? login : staff.login,
+                          password: pass.isNotEmpty ? pass : staff.password,
                           pin: pin,
                           role: selectedRole,
                         );
@@ -1710,6 +1823,21 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                             .updateStaff(updatedMember);
 
                         if (success) {
+                          if (staff.isOwner) {
+                            final active = ref
+                                .read(businessAccountProvider)
+                                .activeAccount;
+                            if (active != null) {
+                              await ref
+                                  .read(businessAccountProvider.notifier)
+                                  .updateAccountInfo(
+                                    venueName: active.venueName,
+                                    ownerName: name,
+                                    phone: phone,
+                                    newOwnerPin: pin.isNotEmpty ? pin : null,
+                                  );
+                            }
+                          }
                           navigator.pop();
                           messenger.showSnackBar(
                             const SnackBar(
