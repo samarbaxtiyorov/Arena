@@ -47,15 +47,12 @@ jobs:
             exit $LASTEXITCODE
           }
 
-      - name: Publish Failure Log (if failed)
+      - name: Upload Build Output Log (if failed)
         if: failure()
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: build-failure
-          name: "Build Failure Log"
-          files: build_output.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: windows-build-output-log
+          path: build_output.txt
 
       - name: Package Windows Binary
         shell: pwsh
@@ -94,5 +91,6 @@ jobs:
             Windows x64:
             - `Arena-Windows-x64.zip` (ichida `Arena.exe`, `data/`, DLL fayllari)
           files: dist/Arena-Windows-x64.zip
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
