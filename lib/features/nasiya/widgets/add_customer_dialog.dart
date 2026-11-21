@@ -49,7 +49,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(nasiyaControllerProvider).addCustomer(
+      final customer = await ref.read(nasiyaControllerProvider).addCustomer(
             name: name,
             phone: _phoneController.text.trim().isEmpty
                 ? null
@@ -60,7 +60,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
             initialDebt: initialDebt,
           );
 
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(customer);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

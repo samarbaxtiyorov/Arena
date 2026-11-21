@@ -10,7 +10,7 @@ import 'package:gap/gap.dart';
 
 import '../auth_provider.dart';
 import '../providers/business_account_provider.dart';
-import '../../widgets/champion_logo.dart';
+import '../../widgets/arena_logo.dart';
 import '../../../features/management/models/staff_member.dart';
 import '../../../features/management/providers/staff_provider.dart';
 
@@ -78,7 +78,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 children: [
                   // ── Logotip va Brend Sarlavhasi ──────────────
                   // ── Champion Oltin Logotipi ─────────────────
-                  const ChampionLogo(size: 72, borderRadius: 20),
+                  const ArenaLogo(size: 72, borderRadius: 20),
 
                   const Gap(16),
 
@@ -256,7 +256,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const ChampionLogo(size: 64, borderRadius: 18),
+                    const ArenaLogo(size: 64, borderRadius: 18),
                     const Gap(20),
                     const SizedBox(
                       width: 36,

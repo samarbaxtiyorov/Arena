@@ -16,6 +16,7 @@ import '../../../data/repositories/database_providers.dart';
 import '../../kassa/widgets/receipt_preview_dialog.dart';
 import '../../management/providers/business_settings_provider.dart';
 import '../../management/widgets/customer_payment_card_view.dart';
+import '../../nasiya/widgets/add_customer_dialog.dart';
 import '../providers/tables_providers.dart';
 
 class SessionFinishDialog extends ConsumerStatefulWidget {
@@ -704,50 +705,131 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
                   stream: db.customersDao.watchAllCustomers(),
                   builder: (context, snapshot) {
                     final customers = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      value: _selectedCustomerId,
-                      decoration: InputDecoration(
-                        labelText: 'Nasiya egasi (Mijozni tanlang)',
-                        labelStyle: const TextStyle(
-                            fontSize: 13, color: Color(0xFFD97706)),
-                        prefixIcon: const Icon(Icons.person_rounded,
-                            color: Color(0xFFD97706)),
-                        filled: true,
-                        fillColor: const Color(0xFFFFFBEB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFFDE68A)),
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Nasiya egasi (Mijoz)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFD97706),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                final newCust = await showDialog<Customer>(
+                                  context: context,
+                                  builder: (_) => const AddCustomerDialog(),
+                                );
+                                if (newCust != null && mounted) {
+                                  setState(() {
+                                    _selectedCustomerId = newCust.id;
+                                    _selectedCustomerName = newCust.name;
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.person_add_rounded,
+                                  size: 16, color: Color(0xFF2563EB)),
+                              label: const Text(
+                                "+ Yangi mijoz",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF2563EB),
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFFDE68A)),
-                        ),
-                      ),
-                      dropdownColor: Colors.white,
-                      items: customers
-                          .map((c) => DropdownMenuItem(
-                                value: c.id,
-                                child: Text(
-                                  '${c.name} (${c.totalDebt > 0 ? "Qarzi: ${formatSum(c.totalDebt)}" : "Qarzi yo'q"})',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
+                        const Gap(6),
+                        if (customers.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFFDE68A)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline_rounded,
+                                    color: Color(0xFFD97706), size: 20),
+                                Gap(10),
+                                Expanded(
+                                  child: Text(
+                                    "Qarzdorlar ro'yxati bo'sh. Yuqoridagi '+ Yangi mijoz' tugmasi orqali qo'shing.",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF92400E),
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedCustomerId = val;
-                          final match = customers
-                              .where((c) => c.id == val)
-                              .firstOrNull;
-                          _selectedCustomerName = match?.name;
-                        });
-                      },
+                              ],
+                            ),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            value: customers
+                                    .any((c) => c.id == _selectedCustomerId)
+                                ? _selectedCustomerId
+                                : null,
+                            decoration: InputDecoration(
+                              hintText: 'Mijozni tanlang...',
+                              hintStyle: const TextStyle(
+                                  fontSize: 13, color: Color(0xFF94A3B8)),
+                              prefixIcon: const Icon(Icons.person_rounded,
+                                  color: Color(0xFFD97706)),
+                              filled: true,
+                              fillColor: const Color(0xFFFFFBEB),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFFDE68A)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFFDE68A)),
+                              ),
+                            ),
+                            dropdownColor: Colors.white,
+                            items: customers
+                                .map((c) => DropdownMenuItem(
+                                      value: c.id,
+                                      child: Text(
+                                        '${c.name} (${c.totalDebt > 0 ? "Qarzi: ${formatSum(c.totalDebt)}" : "Qarzi yo'q"})',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedCustomerId = val;
+                                final match = customers
+                                    .where((c) => c.id == val)
+                                    .firstOrNull;
+                                _selectedCustomerName = match?.name;
+                              });
+                            },
+                          ),
+                      ],
                     );
                   },
                 ),

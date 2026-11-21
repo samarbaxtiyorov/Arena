@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import '../../features/management/providers/staff_provider.dart';
-import '../widgets/champion_logo.dart';
+import '../widgets/arena_logo.dart';
 import 'auth_provider.dart';
 import 'providers/business_account_provider.dart';
 
@@ -292,7 +292,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const ChampionLogo(size: 44, borderRadius: 12),
+              const ArenaLogo(size: 44, borderRadius: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -455,7 +455,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const ChampionLogo(size: 44, borderRadius: 12),
+              const ArenaLogo(size: 44, borderRadius: 12),
               Container(
                 width: 40,
                 height: 40,

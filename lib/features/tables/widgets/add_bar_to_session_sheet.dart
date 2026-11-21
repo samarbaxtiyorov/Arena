@@ -195,6 +195,8 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                     itemBuilder: (context, index) {
                       final product = products[index];
                       final qty = _selectedQuantities[product.id] ?? 0;
+                      final isOutOfStock = product.stock <= 0;
+                      final canAddMore = !isOutOfStock && qty < product.stock;
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -204,12 +206,16 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
+                                color: isOutOfStock
+                                    ? const Color(0xFFFEE2E2)
+                                    : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.fastfood_outlined,
-                                color: Color(0xFF64748B),
+                                color: isOutOfStock
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFF64748B),
                                 size: 18,
                               ),
                             ),
@@ -220,30 +226,55 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                                 children: [
                                   Text(
                                     product.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF0F172A),
+                                      color: isOutOfStock
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF0F172A),
+                                      decoration: isOutOfStock
+                                          ? TextDecoration.lineThrough
+                                          : null,
                                     ),
                                   ),
                                   Row(
                                     children: [
                                       Text(
                                         formatSum(product.price),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFFD97706),
+                                          color: isOutOfStock
+                                              ? const Color(0xFF94A3B8)
+                                              : const Color(0xFFD97706),
                                         ),
                                       ),
                                       const Gap(8),
-                                      Text(
-                                        "Qoldiq: ${product.stock} dona",
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: product.stock > 5
-                                              ? const Color(0xFF64748B)
-                                              : const Color(0xFFEF4444),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isOutOfStock
+                                              ? const Color(0xFFFEF2F2)
+                                              : (product.stock <= 5
+                                                  ? const Color(0xFFFFFBEB)
+                                                  : const Color(0xFFF1F5F9)),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          isOutOfStock
+                                              ? "Tugagan (0 dona)"
+                                              : "Qoldiq: ${product.stock} dona",
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: isOutOfStock
+                                                ? const Color(0xFFEF4444)
+                                                : (product.stock <= 5
+                                                    ? const Color(0xFFD97706)
+                                                    : const Color(0xFF64748B)),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -282,13 +313,21 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.add_circle,
-                                      color: Color(0xFF2563EB), size: 22),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedQuantities[product.id] = qty + 1;
-                                    });
-                                  },
+                                  icon: Icon(
+                                    Icons.add_circle,
+                                    color: canAddMore
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFFCBD5E1),
+                                    size: 22,
+                                  ),
+                                  onPressed: canAddMore
+                                      ? () {
+                                          setState(() {
+                                            _selectedQuantities[product.id] =
+                                                qty + 1;
+                                          });
+                                        }
+                                      : null,
                                 ),
                               ],
                             ),
@@ -307,6 +346,21 @@ class _AddBarToSessionSheetState extends ConsumerState<AddBarToSessionSheet> {
             child: ElevatedButton(
               onPressed: totalBarSum > 0
                   ? () async {
+                      // Ombor tekshiruvi: zaxirada yetarli ekanligini qayta tekshirish
+                      for (final p in allProducts) {
+                        final qty = _selectedQuantities[p.id] ?? 0;
+                        if (qty > 0 && qty > p.stock) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("${p.name} dan omborda yetarli emas (mavjud: ${p.stock} dona)!"),
+                              backgroundColor: const Color(0xFFEF4444),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
                       final db = ref.read(appDatabaseProvider);
                       // String summary yasash
                       final items = <String>[];

@@ -128,9 +128,11 @@ class CartNotifier extends Notifier<CartState> {
   void addItem(Product product) => add(product);
 
   void add(Product product) {
+    if (product.stock <= 0) return;
     final current = Map<String, CartItem>.from(state.items);
     if (current.containsKey(product.id)) {
       final existing = current[product.id]!;
+      if (existing.quantity >= product.stock) return;
       current[product.id] = existing.copyWith(quantity: existing.quantity + 1);
     } else {
       current[product.id] = CartItem(product: product, quantity: 1);

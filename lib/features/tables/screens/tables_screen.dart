@@ -94,141 +94,273 @@ class TablesScreen extends ConsumerWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Row(
-                      children: [
-                        // Arena Brend Logotipi
-                        ArenaLogo(
-                          size: uiScale.headerAvatarSize,
-                          borderRadius: uiScale.headerAvatarSize / 2,
-                        ),
-                        const Gap(12),
+                    child: Builder(
+                      builder: (context) {
+                        final isCompact = MediaQuery.sizeOf(context).width < 650;
+                        final isOwner = ref.watch(authProvider).isOwner;
 
-                        // Sarlavha va band/bo'sh statusi
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Maydonlar',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  color: Color(0xFF0F172A),
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const Gap(2),
-                              Text(
-                                '$activeCount ta band • $idleCount ta bo\'sh',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        return Row(
+                          children: [
+                            // Arena Brend Logotipi
+                            ArenaLogo(
+                              size: isCompact ? 40 : uiScale.headerAvatarSize,
+                              borderRadius: isCompact ? 12 : uiScale.headerAvatarSize / 2,
+                            ),
+                            const Gap(10),
 
-                        // O'ng tomondagi 3 ta tugma: 📅, ☁️, QR
-                        IconButton(
-                          tooltip: 'Sana',
-                          icon: const Icon(
-                            Icons.calendar_month_outlined,
-                            color: Color(0xFF2563EB),
-                            size: 22,
-                          ),
-                          onPressed: () {},
-                        ),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            return IconButton(
-                              tooltip: 'Bulut sinxronizatsiyasi',
-                              icon: const Icon(
-                                Icons.cloud_done_rounded,
-                                color: Color(0xFF10B981),
-                                size: 24,
+                            // Sarlavha va band/bo'sh statusi
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Maydonlar',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: isCompact ? 19 : 22,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0F172A),
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const Gap(2),
+                                  Text(
+                                    '$activeCount ta band • $idleCount ta bo\'sh',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: isCompact ? 11.5 : 13,
+                                      color: const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () async {
-                                final sync = ref.read(syncServiceProvider);
-                                final res = await sync.syncAll();
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        res.isSuccess
-                                            ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
-                                            : (res.wasOffline
-                                                ? 'Offline rejim'
-                                                : 'Xatolik yuz berdi'),
+                            ),
+
+                            // Mobil ko'rinishda: ixcham "+ Maydon" va qo'shimcha menyu (⋮)
+                            if (isCompact) ...[
+                              if (isOwner) ...[
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => const AddTableDialog(),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded, size: 16),
+                                  label: const Text(
+                                    "Maydon",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w800, fontSize: 12),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 7),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                                const Gap(4),
+                              ],
+                              PopupMenuButton<String>(
+                                tooltip: 'Amallar menyusi',
+                                icon: const Icon(
+                                  Icons.more_vert_rounded,
+                                  color: Color(0xFF475569),
+                                  size: 22,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                onSelected: (val) async {
+                                  if (val == 'sync') {
+                                    final sync = ref.read(syncServiceProvider);
+                                    final res = await sync.syncAll();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            res.isSuccess
+                                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                                : (res.wasOffline
+                                                    ? 'Offline rejim'
+                                                    : 'Xatolik yuz berdi'),
+                                          ),
+                                          backgroundColor: res.isSuccess
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFFF59E0B),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  } else if (val == 'qr') {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Kamera orqali QR skanerlash tayyor"),
+                                        duration: Duration(seconds: 1),
                                       ),
-                                      backgroundColor: res.isSuccess
-                                          ? const Color(0xFF10B981)
-                                          : const Color(0xFFF59E0B),
-                                      duration: const Duration(seconds: 2),
+                                    );
+                                  } else if (val == 'lock') {
+                                    ref.read(authProvider.notifier).lock();
+                                  }
+                                },
+                                itemBuilder: (ctx) => [
+                                  const PopupMenuItem(
+                                    value: 'sync',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.cloud_done_rounded,
+                                            color: Color(0xFF10B981), size: 18),
+                                        Gap(10),
+                                        Text("Bulut sinxronizatsiyasi",
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'qr',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.qr_code_scanner_rounded,
+                                            color: Color(0xFF2563EB), size: 18),
+                                        Gap(10),
+                                        Text("Shtrix-kod / QR skaner",
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'lock',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.lock_outline_rounded,
+                                            color: Color(0xFF64748B), size: 18),
+                                        Gap(10),
+                                        Text("Ekranni qulflash (PIN)",
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              // Desktop / planshet ko'rinishi: barcha tugmalar ochiq
+                              IconButton(
+                                tooltip: 'Sana',
+                                icon: const Icon(
+                                  Icons.calendar_month_outlined,
+                                  color: Color(0xFF2563EB),
+                                  size: 22,
+                                ),
+                                onPressed: () {},
+                              ),
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  return IconButton(
+                                    tooltip: 'Bulut sinxronizatsiyasi',
+                                    icon: const Icon(
+                                      Icons.cloud_done_rounded,
+                                      color: Color(0xFF10B981),
+                                      size: 24,
+                                    ),
+                                    onPressed: () async {
+                                      final sync = ref.read(syncServiceProvider);
+                                      final res = await sync.syncAll();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              res.isSuccess
+                                                  ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                                  : (res.wasOffline
+                                                      ? 'Offline rejim'
+                                                      : 'Xatolik yuz berdi'),
+                                            ),
+                                            backgroundColor: res.isSuccess
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFF59E0B),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                tooltip: 'Shtrix-kod skaneri',
+                                icon: const Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  color: Color(0xFF2563EB),
+                                  size: 22,
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Kamera orqali QR skanerlash tayyor"),
+                                      duration: Duration(seconds: 1),
                                     ),
                                   );
-                                }
-                              },
-                            );
-                          },
-                        ),
-                        IconButton(
-                          tooltip: 'Shtrix-kod skaneri',
-                          icon: const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            color: Color(0xFF2563EB),
-                            size: 22,
-                          ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Kamera orqali QR skanerlash tayyor"),
-                                duration: Duration(seconds: 1),
+                                },
                               ),
-                            );
-                          },
-                        ),
-                        if (ref.watch(authProvider).isOwner) ...[
-                          const Gap(4),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (_) => const AddTableDialog(),
-                              );
-                            },
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text(
-                              "Maydon",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 13),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                              if (isOwner) ...[
+                                const Gap(4),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => const AddTableDialog(),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text(
+                                    "Maydon",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w800, fontSize: 13),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                                const Gap(4),
+                              ],
+                              IconButton(
+                                tooltip: 'Ekranni qulflash (PIN)',
+                                icon: const Icon(
+                                  Icons.lock_outline_rounded,
+                                  color: Color(0xFF64748B),
+                                  size: 22,
+                                ),
+                                onPressed: () {
+                                  ref.read(authProvider.notifier).lock();
+                                },
                               ),
-                            ),
-                          ),
-                          const Gap(4),
-                        ],
-                        IconButton(
-                          tooltip: 'Ekranni qulflash (PIN)',
-                          icon: const Icon(
-                            Icons.lock_outline_rounded,
-                            color: Color(0xFF64748B),
-                            size: 22,
-                          ),
-                          onPressed: () {
-                            ref.read(authProvider.notifier).lock();
-                          },
-                        ),
-                      ],
+                            ],
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),

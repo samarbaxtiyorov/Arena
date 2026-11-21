@@ -9,7 +9,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/providers/business_account_provider.dart';
-import '../../../core/widgets/champion_logo.dart';
+import '../../../core/widgets/arena_logo.dart';
 import '../../../data/repositories/database_providers.dart';
 import 'analytics_screen.dart';
 import 'business_settings_screen.dart';
@@ -80,7 +80,7 @@ class ManagementScreen extends ConsumerWidget {
                 children: [
                   // Champion Logotipi (Boshliq uchun) yoki Kassir avatari
                   auth.isOwner
-                      ? const ChampionLogo(size: 58, borderRadius: 16)
+                      ? const ArenaLogo(size: 58, borderRadius: 16)
                       : Container(
                           width: 58,
                           height: 58,

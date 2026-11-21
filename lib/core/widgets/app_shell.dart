@@ -12,7 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
 import '../auth/providers/business_account_provider.dart';
 import '../router/app_router.dart';
-import '../widgets/champion_logo.dart';
+import '../widgets/arena_logo.dart';
 import '../../data/repositories/database_providers.dart';
 import '../../features/tables/providers/tables_providers.dart';
 import '../../features/shop/providers/shop_providers.dart';
@@ -181,7 +181,7 @@ class AppShell extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const ChampionLogo(size: 42, borderRadius: 12),
+                const ArenaLogo(size: 42, borderRadius: 12),
                 const Gap(12),
                 Expanded(
                   child: Column(

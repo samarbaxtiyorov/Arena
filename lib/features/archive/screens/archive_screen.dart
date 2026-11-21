@@ -18,16 +18,24 @@ class ArchiveScreen extends ConsumerWidget {
   // Elektron kassa chekini generatsiya qilish
   String _generateReceiptText(ArchiveItem item) {
     final dateStr = Formatters.dateTime(item.timestamp);
+    final shortId = item.id.length > 8
+        ? item.id.substring(item.id.length - 8).toUpperCase()
+        : item.id.toUpperCase();
+
     final buffer = StringBuffer();
     buffer.writeln('================================');
     buffer.writeln('            ARENA POS           ');
     buffer.writeln('        Moliya Arxivi           ');
     buffer.writeln('================================');
+    buffer.writeln('Chek #: $shortId');
     buffer.writeln('Sana: $dateStr');
-    buffer.writeln('Amal: ${item.title}');
+    buffer.writeln('Maydon/Stol: ${item.title}');
 
     if (item.customerName != null && item.customerName!.isNotEmpty) {
       buffer.writeln('Mijoz: ${item.customerName}');
+    }
+    if (item.subtitle.isNotEmpty) {
+      buffer.writeln('Vaqt: ${item.subtitle}');
     }
 
     buffer.writeln('--------------------------------');
@@ -41,7 +49,7 @@ class ArchiveScreen extends ConsumerWidget {
       buffer.writeln('--------------------------------');
     }
 
-    buffer.writeln('JAMI SUMMA: ${formatSum(item.amount)}');
+    buffer.writeln('JAMI TO\'LOV: ${formatSum(item.amount)}');
 
     String payName = 'NAQD PUL';
     if (item.paymentType == 'card') {

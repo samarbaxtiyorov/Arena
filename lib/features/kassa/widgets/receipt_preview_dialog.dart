@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 
-import '../../../../core/widgets/champion_logo.dart';
+import '../../../../core/widgets/arena_logo.dart';
 
 class ReceiptPreviewDialog extends StatefulWidget {
   final String receiptText;
@@ -231,7 +231,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
             ),
             child: Row(
               children: [
-                const ChampionLogo(size: 44, borderRadius: 12),
+                const ArenaLogo(size: 44, borderRadius: 12),
                 const Gap(12),
                 Expanded(
                   child: Column(
@@ -770,14 +770,20 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
         dateTime = line.replaceFirst('Sana:', '').trim();
       } else if (line.startsWith('Maydon/Stol:')) {
         sectionOrTable = line.replaceFirst('Maydon/Stol:', '').trim();
+      } else if (line.startsWith('Amal:')) {
+        sectionOrTable = line.replaceFirst('Amal:', '').trim();
       } else if (line.startsWith('Mijoz:')) {
         customerName = line.replaceFirst('Mijoz:', '').trim();
       } else if (line.startsWith('Vaqt:')) {
         duration = line.replaceFirst('Vaqt:', '').trim();
-      } else if (line.startsWith('JAMI TO\'LOV:') || line.startsWith('SUMMA:')) {
+      } else if (line.toUpperCase().startsWith('JAMI TO\'LOV:') ||
+                 line.toUpperCase().startsWith('JAMI SUMMA:') ||
+                 line.toUpperCase().startsWith('JAMI:') ||
+                 line.toUpperCase().startsWith('SUMMA:') ||
+                 line.toUpperCase().startsWith('UMUMIY:') ||
+                 line.toUpperCase().startsWith('TOTAL:')) {
         totalAmount = line
-            .replaceFirst('JAMI TO\'LOV:', '')
-            .replaceFirst('SUMMA:', '')
+            .replaceFirst(RegExp(r"^(JAMI TO'LOV:|JAMI SUMMA:|JAMI:|SUMMA:|UMUMIY:|TOTAL:)", caseSensitive: false), '')
             .trim();
         if (!totalAmount.contains("so'm")) totalAmount = "$totalAmount so'm";
       } else if (line.startsWith('To\'lov turi:') || line.startsWith('Turi:')) {
