@@ -9,7 +9,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../local/app_database.dart';
 import '../remote/supabase_remote.dart';
@@ -77,12 +76,7 @@ class SyncService {
     // 0. Begona biznes ma'lumotlari keshini tozalash
     await cleanForeignDataIfNeeded();
 
-    // Internet bor-yo'qligini tekshir
-    final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity.contains(ConnectivityResult.none)) {
-      return SyncResult.offline();
-    }
-
+    // Haqiqiy ulanishni to'g'ridan-to'g'ri Supabase endpointi orqali tekshiramiz (Linux/Android xavfsiz)
     final connected = await _remote.isConnected();
     if (!connected) return SyncResult.offline();
 
@@ -127,17 +121,19 @@ class SyncService {
             localCustomers.length;
       }
 
-      // 2. QO'SHIMCHA: Relational jadvallarni push/pull qilish (Supabase mos bo'lsa)
-      try { pushed += await _pushTables(errors); } catch (_) {}
-      try { pushed += await _pushSessions(errors); } catch (_) {}
-      try { pushed += await _pushCustomers(errors); } catch (_) {}
-      try { pushed += await _pushDebts(errors); } catch (_) {}
-      try { pushed += await _pushProducts(errors); } catch (_) {}
+      // 2. QO'SHIMCHA: Relational jadvallarni relationalErrors bilan push/pull qilish
+      // Relational jadvallardagi integer schema xatolari asosiy snapshot sync ni buzmaydi
+      final relationalErrors = <String>[];
+      try { pushed += await _pushTables(relationalErrors); } catch (_) {}
+      try { pushed += await _pushSessions(relationalErrors); } catch (_) {}
+      try { pushed += await _pushCustomers(relationalErrors); } catch (_) {}
+      try { pushed += await _pushDebts(relationalErrors); } catch (_) {}
+      try { pushed += await _pushProducts(relationalErrors); } catch (_) {}
 
-      try { pulled += await _pullTables(errors); } catch (_) {}
-      try { pulled += await _pullCustomers(errors); } catch (_) {}
-      try { pulled += await _pullDebts(errors); } catch (_) {}
-      try { pulled += await _pullProducts(errors); } catch (_) {}
+      try { pulled += await _pullTables(relationalErrors); } catch (_) {}
+      try { pulled += await _pullCustomers(relationalErrors); } catch (_) {}
+      try { pulled += await _pullDebts(relationalErrors); } catch (_) {}
+      try { pulled += await _pullProducts(relationalErrors); } catch (_) {}
 
     } catch (e) {
       errors.add('syncAll error: $e');

@@ -171,8 +171,18 @@ class SupabaseRemote {
         .limit(limit);
   }
 
-  // ── Ulanish tekshiruvi ───────────────────────
+  // ── Ulanish tekshiruvi (Foolproof Multi-platform) ──
   Future<bool> isConnected() async {
+    try {
+      final url = Uri.parse(
+          '${AppConstants.supabaseUrl}/rest/v1/customers?select=id&limit=1');
+      final res = await http.get(url, headers: {
+        'apikey': AppConstants.supabaseAnonKey,
+        'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+      }).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) return true;
+    } catch (_) {}
+
     try {
       await _client.from('customers').select('id').limit(1);
       return true;
