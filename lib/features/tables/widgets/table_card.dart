@@ -14,6 +14,8 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_billing_helper.dart';
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../data/local/app_database.dart';
+import '../../../core/services/smart_light_service.dart';
+import '../../management/providers/business_settings_provider.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 import 'stadium_banner.dart';
@@ -235,6 +237,46 @@ class _TableCardState extends ConsumerState<TableCard> {
                         ),
                       ),
                     ),
+
+                    // Aqlli chiroq rele kanali nishoni (agar yoqilgan bo'lsa)
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final settings = ref.watch(businessSettingsProvider);
+                        if (!settings.smartLightsEnabled) return const SizedBox.shrink();
+                        final channel = settings.tableRelayChannels[widget.table.id] ?? 1;
+
+                        return Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isBand ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isBand ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isBand ? Icons.lightbulb_rounded : Icons.lightbulb_outline_rounded,
+                                size: 12,
+                                color: isBand ? const Color(0xFFD97706) : const Color(0xFF94A3B8),
+                              ),
+                              const Gap(3),
+                              Text(
+                                "K-$channel",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: isBand ? const Color(0xFFB45309) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
 
@@ -429,6 +471,20 @@ class _TableCardState extends ConsumerState<TableCard> {
                       controller.pauseSession(session.id);
                     } else if (val == 'resume' && session != null) {
                       controller.resumeSession(session.id);
+                    } else if (val == 'toggle_light') {
+                      final settings = ref.read(businessSettingsProvider);
+                      final channel = settings.tableRelayChannels[widget.table.id] ?? 1;
+                      ref.read(smartLightServiceProvider).setLightState(
+                        channel: channel,
+                        state: !isBand,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("💡 ${widget.table.name} chirog'iga signal yuborildi ($channel-kanal)"),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
                     }
                   },
                   itemBuilder: (ctx) => [
@@ -441,6 +497,17 @@ class _TableCardState extends ConsumerState<TableCard> {
                       const PopupMenuItem(
                         value: 'resume',
                         child: Text("Davom ettirish"),
+                      ),
+                    if (ref.watch(businessSettingsProvider).smartLightsEnabled)
+                      const PopupMenuItem(
+                        value: 'toggle_light',
+                        child: Row(
+                          children: [
+                            Icon(Icons.lightbulb_rounded, size: 16, color: Color(0xFFD97706)),
+                            Gap(8),
+                            Text("Chiroqni almashtirish"),
+                          ],
+                        ),
                       ),
                   ],
                 ),

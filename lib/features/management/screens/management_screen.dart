@@ -18,6 +18,7 @@ import 'manage_staff_screen.dart';
 import 'manage_tables_screen.dart';
 import 'subscription_screen.dart';
 import 'help_screen.dart';
+import 'smart_lights_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
   const ManagementScreen({super.key});
@@ -233,6 +234,32 @@ class ManagementScreen extends ConsumerWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const BusinessSettingsScreen(),
+                    ),
+                  );
+                });
+              },
+            ),
+
+            const Gap(10),
+
+            // ── 2.5. Aqlli Chiroqlar (Smart Switch) ───────────
+            _buildMenuCard(
+              context: context,
+              icon: Icons.lightbulb_rounded,
+              iconBg: const Color(0xFFFEF3C7),
+              iconColor: const Color(0xFFD97706),
+              title: "Aqlli Chiroqlar (Smart Switch)",
+              badge: "Avtomat",
+              badgeColor: const Color(0xFFFEF3C7),
+              badgeTextColor: const Color(0xFFB45309),
+              subtitle: "Wi-Fi releylar, ESP32, Sonoff va stollar nazorati",
+              isLocked: auth.isCashier,
+              onTap: () {
+                _checkOwnerPermission(context, ref, auth, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SmartLightsScreen(),
                     ),
                   );
                 });
