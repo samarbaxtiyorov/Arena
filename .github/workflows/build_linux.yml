@@ -1,0 +1,100 @@
+name: Build Champion Linux App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Champion Linux (.tar.gz)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Linux Desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Linux Release Executable
+        run: |
+          flutter build linux --release -v
+
+      - name: Package Linux Binary
+        run: |
+          mkdir -p dist
+          # Duplicate arena executable as Champion
+          if [ -f build/linux/x64/release/bundle/arena ]; then
+            cp build/linux/x64/release/bundle/arena build/linux/x64/release/bundle/Champion
+            chmod +x build/linux/x64/release/bundle/Champion
+          fi
+          
+          # Create Desktop entry launcher file
+          cat << 'EOF' > build/linux/x64/release/bundle/champion.desktop
+          [Desktop Entry]
+          Name=Champion POS
+          Comment=Sport maydonlari va o'yin klublari boshqaruv tizimi
+          Exec=Champion
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;
+          EOF
+          chmod +x build/linux/x64/release/bundle/champion.desktop
+
+          # Create tar.gz and zip packages
+          tar -czvf dist/Champion-Linux-x64.tar.gz -C build/linux/x64/release/bundle .
+          cd build/linux/x64/release/bundle && zip -r ../../../../../dist/Champion-Linux-x64.zip . && cd ../../../../..
+          ls -lh dist/
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Champion-Linux-x64
+          path: dist/Champion-Linux-x64.tar.gz
+          retention-days: 30
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: desktop-v2.0
+          name: "Champion POS — Desktop Versiyalari (v2.0)"
+          body: |
+            Champion POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows & Linux).
+            
+            Linux x64:
+            - `Champion-Linux-x64.tar.gz`
+            - `Champion-Linux-x64.zip`
+            - Ichida `Champion` ishga tushiruvchi binar fayli, `lib/` va `data/`.
+          files: |
+            dist/Champion-Linux-x64.tar.gz
+            dist/Champion-Linux-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
