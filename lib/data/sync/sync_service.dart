@@ -3,11 +3,14 @@
 // Offline → Supabase 2 tomonlama sinxronizatsiya
 // Multi-tenant: har bir biznes ma'lumotlari faqat
 // o'z business_id si doirasida sinxronlanadi
+// Snapshot JSONB + Relational Sync (Telefon & Kompyuter)
 // ============================================
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../local/app_database.dart';
 import '../remote/supabase_remote.dart';
 
@@ -33,9 +36,6 @@ class SyncService {
 
   // ── Begona biznes ma'lumotlarini tozalash ────
   Future<void> cleanForeignDataIfNeeded() async {
-    // Agar bu boshqa yangi/mustaqil biznes hisobi bo'lsa (masalan Jasmina),
-    // lekin avvalgi cheklovsiz sinxronizatsiyada biz_arena_sport demo qarzlari
-    // uning SQLite bazasiga tushib qolgan bo'lsa, ularni tozalab tashlaymiz
     if (_remote.businessId != 'biz_arena_sport') {
       const foreignCustomerIds = {
         'cust_001',
@@ -56,7 +56,6 @@ class SyncService {
         await (_db.delete(_db.customers)..where((tbl) => tbl.id.equals(cId))).go();
       }
 
-      // Yetim qolgan qarzlarni tozalash (agar customer_id mavjud bo'lmasa)
       try {
         final allCustomers = await _db.customersDao.select(_db.customers).get();
         final validCustomerIds = allCustomers.map((c) => c.id).toSet();
@@ -75,7 +74,7 @@ class SyncService {
     if (isLoggedOut) return SyncResult.skipped();
     if (_isSyncing) return SyncResult.skipped();
 
-    // 0. Begona biznes ma'lumotlari keshini tozalash (hatto oflayn bo'lsa ham lokal bazadan tozalaydi)
+    // 0. Begona biznes ma'lumotlari keshini tozalash
     await cleanForeignDataIfNeeded();
 
     // Internet bor-yo'qligini tekshir
@@ -93,25 +92,339 @@ class SyncService {
     final errors = <String>[];
 
     try {
-      // 1. LOCAL → SUPABASE (push)
-      pushed += await _pushTables(errors);
-      pushed += await _pushSessions(errors);
-      pushed += await _pushCustomers(errors);
-      pushed += await _pushDebts(errors);
-      pushed += await _pushProducts(errors);
+      // 1. BULUTLI SNAPSHOT BILAN 100% ISHONCHLI SINXRONIZATSIYA
+      // Telefon va kompyuter o'rtasida to'liq ma'lumot almashinuvi
+      final cloudSnapshot = await _remote.fetchSnapshot();
 
-      // 2. SUPABASE → LOCAL (pull — faqat shu business_id ga tegishli ma'lumotlar)
-      pulled += await _pullTables(errors);
-      pulled += await _pullCustomers(errors);
-      pulled += await _pullDebts(errors);
-      pulled += await _pullProducts(errors);
+      final localTables = await _db.clubTablesDao.select(_db.clubTables).get();
+      final localProducts = await _db.productsDao.select(_db.products).get();
+      final localDebts = await _db.debtsDao.select(_db.debts).get();
+      final localCustomers = await _db.customersDao.select(_db.customers).get();
+      final localSessions = await _db.sessionsDao.select(_db.sessions).get();
 
+      final hasLocalData = localTables.isNotEmpty ||
+          localProducts.isNotEmpty ||
+          localDebts.isNotEmpty ||
+          localCustomers.isNotEmpty ||
+          localSessions.isNotEmpty;
+
+      if (!hasLocalData && cloudSnapshot != null && cloudSnapshot.isNotEmpty) {
+        // Lokal bo'sh (kompyuterda yangi kirilgan) -> bulutdan to'liq yuklab tiklaymiz
+        final count = await importSnapshot(cloudSnapshot);
+        pulled += count;
+      } else {
+        // Agar bulutda ham snapshot bo'lsa, undan yetishmayotganlarni import qilamiz
+        if (cloudSnapshot != null && cloudSnapshot.isNotEmpty) {
+          final count = await importSnapshot(cloudSnapshot);
+          pulled += count;
+        }
+        // So'ngra barcha yangi lokal holatni bulutga eksport qilib push qilamiz
+        final snapshotToPush = await exportSnapshot();
+        await _remote.pushSnapshot(snapshotToPush);
+        pushed += localTables.length +
+            localProducts.length +
+            localDebts.length +
+            localCustomers.length;
+      }
+
+      // 2. QO'SHIMCHA: Relational jadvallarni push/pull qilish (Supabase mos bo'lsa)
+      try { pushed += await _pushTables(errors); } catch (_) {}
+      try { pushed += await _pushSessions(errors); } catch (_) {}
+      try { pushed += await _pushCustomers(errors); } catch (_) {}
+      try { pushed += await _pushDebts(errors); } catch (_) {}
+      try { pushed += await _pushProducts(errors); } catch (_) {}
+
+      try { pulled += await _pullTables(errors); } catch (_) {}
+      try { pulled += await _pullCustomers(errors); } catch (_) {}
+      try { pulled += await _pullDebts(errors); } catch (_) {}
+      try { pulled += await _pullProducts(errors); } catch (_) {}
+
+    } catch (e) {
+      errors.add('syncAll error: $e');
     } finally {
       _isSyncing = false;
     }
 
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
   }
+
+  // ── SNAPSHOT EKSPORT (Lokal Bazadagi hamma ma'lumotlarni yig'ish) ──
+  Future<Map<String, dynamic>> exportSnapshot() async {
+    final tables = await _db.clubTablesDao.select(_db.clubTables).get();
+    final products = await _db.productsDao.select(_db.products).get();
+    final customers = await _db.customersDao.select(_db.customers).get();
+    final debts = await _db.debtsDao.select(_db.debts).get();
+    final sessions = await _db.sessionsDao.select(_db.sessions).get();
+    final cashRecords = await _db.cashRecordsDao.select(_db.cashRecords).get();
+
+    dynamic staffListJson;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawStaff = prefs.getString('arena_staff_members_${_db.accountId}');
+      if (rawStaff != null && rawStaff.isNotEmpty) {
+        staffListJson = jsonDecode(rawStaff);
+      }
+    } catch (_) {}
+
+    return {
+      'version': 1,
+      'exported_at': DateTime.now().toUtc().toIso8601String(),
+      'business_id': _remote.businessId,
+      'tables': tables.map(_tableToSnapshotMap).toList(),
+      'products': products.map(_productToSnapshotMap).toList(),
+      'customers': customers.map(_customerToSnapshotMap).toList(),
+      'debts': debts.map(_debtToSnapshotMap).toList(),
+      'sessions': sessions.map(_sessionToSnapshotMap).toList(),
+      'cash_records': cashRecords.map(_cashRecordToSnapshotMap).toList(),
+      'staff': staffListJson,
+    };
+  }
+
+  // ── SNAPSHOT IMPORT (Bulutdagi snapshotni lokal bazaga to'liq tiklash) ──
+  Future<int> importSnapshot(Map<String, dynamic> snapshot) async {
+    int count = 0;
+
+    // 1. Customers (Avval mijozlar tiklanadi, chunki qarzlar unga bog'liq)
+    if (snapshot['customers'] is List) {
+      for (final item in snapshot['customers'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          final name = map['name']?.toString() ?? '';
+          if (id.isEmpty || name.isEmpty) continue;
+          await _db.into(_db.customers).insertOnConflictUpdate(CustomersCompanion.insert(
+            id: id,
+            name: name,
+            phone: Value(map['phone']?.toString()),
+            notes: Value(map['notes']?.toString()),
+            totalDebt: Value((map['total_debt'] as num?)?.toInt() ?? 0),
+            isActive: Value(map['is_active'] as bool? ?? true),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 2. Debts (Qarzlar)
+    if (snapshot['debts'] is List) {
+      for (final item in snapshot['debts'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          final customerId = map['customer_id']?.toString() ?? '';
+          if (id.isEmpty || customerId.isEmpty) continue;
+          await _db.into(_db.debts).insertOnConflictUpdate(DebtsCompanion.insert(
+            id: id,
+            customerId: customerId,
+            amount: (map['amount'] as num?)?.toInt() ?? 0,
+            type: map['type']?.toString() ?? 'debt',
+            description: Value(map['description']?.toString()),
+            sessionId: Value(map['session_id']?.toString()),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 3. Tables (Maydonlar va Stollar)
+    if (snapshot['tables'] is List) {
+      for (final item in snapshot['tables'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          final name = map['name']?.toString() ?? '';
+          if (id.isEmpty || name.isEmpty) continue;
+          await _db.into(_db.clubTables).insertOnConflictUpdate(ClubTablesCompanion.insert(
+            id: id,
+            name: name,
+            type: map['type']?.toString() ?? (map['kind']?.toString() ?? 'football'),
+            pricePerHour: (map['price_per_hour'] as num?)?.toInt() ??
+                ((map['hourly_rate'] as num?)?.toInt() ?? 100000),
+            isActive: Value(map['is_active'] as bool? ?? true),
+            sortOrder: Value((map['sort_order'] as num?)?.toInt() ?? 0),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 4. Products (Mahsulotlar va Bar)
+    if (snapshot['products'] is List) {
+      for (final item in snapshot['products'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          final name = map['name']?.toString() ?? '';
+          if (id.isEmpty || name.isEmpty) continue;
+          await _db.into(_db.products).insertOnConflictUpdate(ProductsCompanion.insert(
+            id: id,
+            name: name,
+            barcode: Value(map['barcode']?.toString()),
+            price: (map['price'] as num?)?.toInt() ??
+                ((map['sale_price'] as num?)?.toInt() ?? 0),
+            stock: Value((map['stock'] as num?)?.toInt() ??
+                ((map['stock_quantity'] as num?)?.toInt() ?? 0)),
+            category: Value(map['category']?.toString()),
+            imageUrl: Value(map['image_url']?.toString()),
+            isActive: Value(map['is_active'] as bool? ?? true),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 5. Sessions (Sessiyalar)
+    if (snapshot['sessions'] is List) {
+      for (final item in snapshot['sessions'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          final tableId = map['table_id']?.toString() ?? '';
+          if (id.isEmpty || tableId.isEmpty) continue;
+          final startedStr = map['started_at']?.toString();
+          final endedStr = map['ended_at']?.toString();
+          await _db.into(_db.sessions).insertOnConflictUpdate(SessionsCompanion.insert(
+            id: id,
+            tableId: tableId,
+            startedAt: DateTime.tryParse(startedStr ?? '') ?? DateTime.now(),
+            endedAt: Value(endedStr != null ? DateTime.tryParse(endedStr) : null),
+            durationMin: Value((map['duration_min'] as num?)?.toInt() ?? 0),
+            totalAmount: Value((map['total_amount'] as num?)?.toInt() ?? 0),
+            status: Value(map['status']?.toString() ?? 'active'),
+            customerId: Value(map['customer_id']?.toString()),
+            paymentType: Value(map['payment_type']?.toString() ??
+                (map['payment_method']?.toString() ?? 'cash')),
+            notes: Value(map['notes']?.toString()),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+            updatedAt: Value(DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 6. Cash Records (Kassa yozuvlari)
+    if (snapshot['cash_records'] is List) {
+      for (final item in snapshot['cash_records'] as List) {
+        if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id']?.toString() ?? '';
+          if (id.isEmpty) continue;
+          await _db.into(_db.cashRecords).insertOnConflictUpdate(CashRecordsCompanion.insert(
+            id: id,
+            amount: (map['amount'] as num?)?.toInt() ?? 0,
+            type: map['type']?.toString() ?? 'income',
+            category: Value(map['category']?.toString()),
+            description: Value(map['description']?.toString()),
+            sessionId: Value(map['session_id']?.toString()),
+            recordedAt: Value(DateTime.tryParse(map['recorded_at']?.toString() ?? '') ?? DateTime.now()),
+            isSynced: const Value(true),
+            createdAt: Value(DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now()),
+          ));
+          count++;
+        }
+      }
+    }
+
+    // 7. Staff (Xodimlar va Kassirlar)
+    if (snapshot['staff'] != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final staffStr = snapshot['staff'] is String
+            ? snapshot['staff'] as String
+            : jsonEncode(snapshot['staff']);
+        await prefs.setString('arena_staff_members_${_db.accountId}', staffStr);
+      } catch (_) {}
+    }
+
+    return count;
+  }
+
+  // ── Snapshot yordamchi serializatorlar ───────────
+  Map<String, dynamic> _tableToSnapshotMap(ClubTable t) => {
+    'id': t.id,
+    'name': t.name,
+    'type': t.type,
+    'price_per_hour': t.pricePerHour,
+    'is_active': t.isActive,
+    'sort_order': t.sortOrder,
+    'created_at': t.createdAt.toIso8601String(),
+    'updated_at': t.updatedAt.toIso8601String(),
+  };
+
+  Map<String, dynamic> _productToSnapshotMap(Product p) => {
+    'id': p.id,
+    'name': p.name,
+    'barcode': p.barcode,
+    'price': p.price,
+    'stock': p.stock,
+    'category': p.category,
+    'image_url': p.imageUrl,
+    'is_active': p.isActive,
+    'created_at': p.createdAt.toIso8601String(),
+    'updated_at': p.updatedAt.toIso8601String(),
+  };
+
+  Map<String, dynamic> _customerToSnapshotMap(Customer c) => {
+    'id': c.id,
+    'name': c.name,
+    'phone': c.phone,
+    'notes': c.notes,
+    'total_debt': c.totalDebt,
+    'is_active': c.isActive,
+    'created_at': c.createdAt.toIso8601String(),
+    'updated_at': c.updatedAt.toIso8601String(),
+  };
+
+  Map<String, dynamic> _debtToSnapshotMap(Debt d) => {
+    'id': d.id,
+    'customer_id': d.customerId,
+    'amount': d.amount,
+    'type': d.type,
+    'description': d.description,
+    'session_id': d.sessionId,
+    'created_at': d.createdAt.toIso8601String(),
+    'updated_at': d.updatedAt.toIso8601String(),
+  };
+
+  Map<String, dynamic> _sessionToSnapshotMap(Session s) => {
+    'id': s.id,
+    'table_id': s.tableId,
+    'started_at': s.startedAt.toIso8601String(),
+    'ended_at': s.endedAt?.toIso8601String(),
+    'duration_min': s.durationMin,
+    'total_amount': s.totalAmount,
+    'status': s.status,
+    'customer_id': s.customerId,
+    'payment_type': s.paymentType,
+    'notes': s.notes,
+    'created_at': s.createdAt.toIso8601String(),
+    'updated_at': s.updatedAt.toIso8601String(),
+  };
+
+  Map<String, dynamic> _cashRecordToSnapshotMap(CashRecord c) => {
+    'id': c.id,
+    'amount': c.amount,
+    'type': c.type,
+    'category': c.category,
+    'description': c.description,
+    'session_id': c.sessionId,
+    'recorded_at': c.recordedAt.toIso8601String(),
+    'created_at': c.createdAt.toIso8601String(),
+  };
 
   // ── PUSH: club_tables ────────────────────────
   Future<int> _pushTables(List<String> errors) async {

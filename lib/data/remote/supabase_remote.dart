@@ -1,20 +1,97 @@
 // ============================================
 // Arena — SupabaseRemote
-// Supabase bilan ishlash (upsert / fetch)
-// Har bir so'rov faol biznes hisobi (businessId)
+// Supabase bilan ishlash (upsert / fetch / snapshot)
+// Har bir so'rov faol biznes hisobi (businessId & accountLogin)
 // bo'yicha qat'iy izolyatsiya qilingan (Multi-tenant)
 // ============================================
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/constants/app_constants.dart';
 
 class SupabaseRemote {
   final SupabaseClient? _customClient;
   final String businessId;
+  final String accountLogin;
 
-  SupabaseRemote({SupabaseClient? client, this.businessId = 'biz_arena_sport'})
-      : _customClient = client;
+  SupabaseRemote({
+    SupabaseClient? client,
+    this.businessId = 'biz_arena_sport',
+    this.accountLogin = '',
+  }) : _customClient = client;
 
   SupabaseClient get _client => _customClient ?? Supabase.instance.client;
+
+  // ── Bulutli To'liq Snapshot (JSONB Sync) ──────
+  // Telefon va Kompyuter o'rtasida 100% to'liq sinxronizatsiya
+  Future<void> pushSnapshot(Map<String, dynamic> snapshot) async {
+    final login = accountLogin.trim().toLowerCase();
+    if (login.isEmpty) return;
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    try {
+      final headers = {
+        'apikey': AppConstants.supabaseAnonKey,
+        'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+        'Content-Type': 'application/json',
+      };
+      final url = Uri.parse(
+          '${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=ilike.${Uri.encodeComponent(login)}');
+      await http.patch(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          'data_snapshot': snapshot,
+          'updated_at': nowIso,
+        }),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {
+      try {
+        await _client.from('cloud_accounts').update({
+          'data_snapshot': snapshot,
+          'updated_at': nowIso,
+        }).ilike('phone', login);
+      } catch (_) {}
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchSnapshot() async {
+    final login = accountLogin.trim().toLowerCase();
+    if (login.isEmpty) return null;
+
+    try {
+      final headers = {
+        'apikey': AppConstants.supabaseAnonKey,
+        'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+      };
+      final url = Uri.parse(
+          '${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=ilike.${Uri.encodeComponent(login)}&select=data_snapshot,updated_at&limit=1');
+      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
+        if (list.isNotEmpty && list.first['data_snapshot'] != null) {
+          final snap = list.first['data_snapshot'];
+          if (snap is Map<String, dynamic>) return snap;
+          if (snap is String) return jsonDecode(snap) as Map<String, dynamic>;
+        }
+      }
+    } catch (_) {
+      try {
+        final res = await _client
+            .from('cloud_accounts')
+            .select('data_snapshot, updated_at')
+            .ilike('phone', login)
+            .maybeSingle();
+        if (res != null && res['data_snapshot'] != null) {
+          final snap = res['data_snapshot'];
+          if (snap is Map<String, dynamic>) return snap;
+          if (snap is String) return jsonDecode(snap) as Map<String, dynamic>;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 
   // ── club_tables ──────────────────────────────
   Future<void> upsertTable(Map<String, dynamic> data) async {

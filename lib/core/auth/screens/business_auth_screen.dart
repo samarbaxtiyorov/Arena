@@ -13,6 +13,7 @@ import '../providers/business_account_provider.dart';
 import '../../widgets/arena_logo.dart';
 import '../../../features/management/models/staff_member.dart';
 import '../../../features/management/providers/staff_provider.dart';
+import '../../../data/repositories/database_providers.dart';
 
 class BusinessAuthScreen extends ConsumerStatefulWidget {
   const BusinessAuthScreen({super.key});
@@ -975,6 +976,8 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 phone: active.phone,
               );
         }
+        // Kirishdan so'ng darhol bulut bilan to'liq sinxronizatsiya qilish
+        ref.read(syncServiceProvider).syncAll();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1330,6 +1333,8 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                 phone: active.phone,
               );
         }
+        // Kirishdan so'ng darhol bulut bilan to'liq sinxronizatsiya qilish
+        ref.read(syncServiceProvider).syncAll();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

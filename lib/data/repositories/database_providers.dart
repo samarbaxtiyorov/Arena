@@ -17,14 +17,18 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-// Supabase remote — har bir biznes hisobi uchun alohida scoped businessId
+// Supabase remote — har bir biznes hisobi uchun alohida scoped businessId va login
 final supabaseRemoteProvider = Provider<SupabaseRemote>((ref) {
   final businessState = ref.watch(businessAccountProvider);
   final activeAccount = businessState.activeAccount;
   final cloudBizId = (activeAccount == null || activeAccount.id == 'samar-arena')
       ? 'biz_arena_sport'
       : activeAccount.id;
-  return SupabaseRemote(businessId: cloudBizId);
+  final accountLogin = activeAccount?.login ?? '';
+  return SupabaseRemote(
+    businessId: cloudBizId,
+    accountLogin: accountLogin,
+  );
 });
 
 // Sync xizmati

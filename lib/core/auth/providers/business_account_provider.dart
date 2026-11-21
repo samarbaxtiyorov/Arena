@@ -12,6 +12,9 @@ import 'package:uuid/uuid.dart';
 import '../../constants/app_constants.dart';
 import '../../utils/security_helper.dart';
 import '../models/business_account.dart';
+import '../../../data/local/app_database.dart';
+import '../../../data/remote/supabase_remote.dart';
+import '../../../data/sync/sync_service.dart';
 
 const String _accountsPrefKey = 'arena_business_accounts_v4';
 const String _activeAccountIdPrefKey = 'arena_active_account_id_v4';
@@ -403,6 +406,29 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
             'isTrial': isTrial,
           });
           await prefs.setString('arena_subscription_${importedAcc.id}', subJson);
+
+          // Bulutdagi to'liq ma'lumotlar snapshotini darhol yuklab lokal bazaga tiklash
+          final rawSnapshot = cloudAccount['data_snapshot'];
+          if (rawSnapshot != null) {
+            try {
+              Map<String, dynamic>? snapMap;
+              if (rawSnapshot is Map<String, dynamic>) {
+                snapMap = rawSnapshot;
+              } else if (rawSnapshot is String && rawSnapshot.isNotEmpty) {
+                snapMap = jsonDecode(rawSnapshot) as Map<String, dynamic>;
+              }
+              if (snapMap != null && snapMap.isNotEmpty) {
+                final db = AppDatabase.forAccount(importedAcc.id);
+                final remote = SupabaseRemote(
+                  businessId: importedAcc.id,
+                  accountLogin: cleanLogin,
+                );
+                final sync = SyncService(db, remote);
+                await sync.importSnapshot(snapMap);
+                await db.close();
+              }
+            } catch (_) {}
+          }
 
           state = state.copyWith(
             accounts: updated,
