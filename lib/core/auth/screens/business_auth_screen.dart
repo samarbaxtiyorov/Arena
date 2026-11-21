@@ -271,7 +271,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                     Text(
                       _loadingMessage.isNotEmpty
                           ? _loadingMessage
-                          : "Champion tizimiga ulanmoqda...",
+                          : "Arena tizimiga ulanmoqda...",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 15,
@@ -1308,7 +1308,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
     setState(() {
       _isLoading = true;
-      _loadingMessage = "Yangi $venue hisobi yaratilmoqda...\nChampion bulutiga ulanmoqda...";
+      _loadingMessage = "Yangi $venue hisobi yaratilmoqda...\nArena bulutiga ulanmoqda...";
     });
 
     try {
