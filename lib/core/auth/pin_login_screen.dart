@@ -1,10 +1,12 @@
 // ============================================
-// Arena — PIN Login Ekrani (Skrinshot 5 bilan 1:1)
-// 4 xonali shaxsiy PIN (7777 - Ega, 1111 - Kassir)
+// Champion POS — PIN Login Ekrani
+// Desktop & Mobil uchun moslashuvchan, klaviatura qo'llab-quvvatlovchi
+// 4 xonali shaxsiy PIN (Boshliq va Kassirlar uchun)
 // ============================================
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import '../../features/management/providers/staff_provider.dart';
@@ -25,10 +27,23 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   int _failedAttempts = 0;
   int _lockoutSeconds = 0;
   Timer? _lockoutTimer;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Kompyuterda ochilganda avtomatik klaviatura fokusini olish
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
 
   @override
   void dispose() {
     _lockoutTimer?.cancel();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -126,265 +141,519 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
     }
   }
 
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Raqamlar (Asosiy klaviatura va Numpad)
+    final char = event.character;
+    if (char != null && RegExp(r'^[0-9]$').hasMatch(char)) {
+      _onDigitPress(char);
+      return KeyEventResult.handled;
+    }
+
+    // Backspace
+    if (event.logicalKey == LogicalKeyboardKey.backspace) {
+      _onBackspace();
+      return KeyEventResult.handled;
+    }
+
+    // Escape - PINni tozalash
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      _onClear();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          // Fon yumshoq doiralari (dekoratsiya)
-          Positioned(
-            top: -60,
-            left: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF3B82F6).withOpacity(0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -60,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF3B82F6).withOpacity(0.06),
-              ),
-            ),
-          ),
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = screenWidth >= 650;
 
-          SafeArea(
-            child: Column(
-              children: [
-                const Gap(16),
-                // Yuqori belgi qatori (Koptok ikonkasi va Qalqon)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const ChampionLogo(size: 44, borderRadius: 12),
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEFF6FF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          color: Color(0xFF2563EB),
-                          size: 22,
-                        ),
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: GestureDetector(
+        onTap: () => _focusNode.requestFocus(),
+        child: Scaffold(
+          backgroundColor: isDesktop ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          body: Stack(
+            children: [
+              // Fon dekoratsiyasi (Desktop va Mobile uchun chiroyli fon)
+              if (isDesktop) ...[
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment(0, -0.3),
+                        radius: 1.2,
+                        colors: [
+                          Color(0xFF1E293B),
+                          Color(0xFF0F172A),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const Gap(24),
-
-                // Sarlavhalar
-                Consumer(
-                  builder: (context, ref, _) {
-                    final venue = ref.watch(businessAccountProvider).activeAccount;
-                    return Column(
-                      children: [
-                        Text(
-                          venue?.venueName ?? 'Champion POS',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const Gap(4),
-                        Text(
-                          venue != null
-                              ? "Boshliq: ${venue.ownerName} • Kirish PIN-kodi"
-                              : "4 xonali shaxsiy PIN-kodingizni kiriting",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-
-                const Gap(36),
-
-                const Text(
-                  'Xush kelibsiz!',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const Gap(8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Tizimga kirish uchun shaxsiy PIN kodingizni kiriting',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF64748B),
-                      height: 1.4,
                     ),
                   ),
                 ),
-
-                const Gap(32),
-
-                // 4 ta PIN nuqtalari
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(4, (index) {
-                    final isFilled = index < _enteredPin.length;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isFilled
-                            ? const Color(0xFF2563EB)
-                            : Colors.white,
-                        border: Border.all(
-                          color: isFilled
-                              ? const Color(0xFF2563EB)
-                              : const Color(0xFFCBD5E1),
-                          width: 2,
-                        ),
-                        boxShadow: isFilled
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(0.4),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                )
-                              ]
-                            : null,
-                      ),
-                    );
-                  }),
+                Positioned(
+                  top: -100,
+                  left: -100,
+                  child: Container(
+                    width: 350,
+                    height: 350,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2563EB).withOpacity(0.08),
+                    ),
+                  ),
                 ),
+                Positioned(
+                  bottom: -120,
+                  right: -100,
+                  child: Container(
+                    width: 400,
+                    height: 400,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF38BDF8).withOpacity(0.05),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Positioned(
+                  top: -60,
+                  left: -60,
+                  child: Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF3B82F6).withOpacity(0.08),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: -80,
+                  left: -60,
+                  child: Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF3B82F6).withOpacity(0.06),
+                    ),
+                  ),
+                ),
+              ],
 
-                if (_errorMessage != null) ...[
-                  const Gap(14),
+              // Asosiy kontent
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      child: isDesktop ? _buildDesktopCard() : _buildMobileLayout(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // DESKTOP: Ixcham, Markazlashgan Premium Karta
+  // ============================================
+  Widget _buildDesktopCard() {
+    return Container(
+      width: 420,
+      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 40,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Logotip va Qalqon belgisi
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const ChampionLogo(size: 44, borderRadius: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_rounded, color: Color(0xFF2563EB), size: 14),
+                    Gap(4),
+                    Text(
+                      'Xavfsiz kirish',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF2563EB),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const Gap(20),
+
+          // Foydalanuvchi va Muassasa ma'lumoti
+          Consumer(
+            builder: (context, ref, _) {
+              final venue = ref.watch(businessAccountProvider).activeAccount;
+              return Column(
+                children: [
                   Text(
-                    _errorMessage!,
+                    venue?.venueName ?? 'Champion POS',
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Color(0xFFEF4444),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const Gap(6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      venue != null
+                          ? "👤 Boshliq: ${venue.ownerName}"
+                          : "Xodim shaxsiy PIN-kodi",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
+              );
+            },
+          ),
 
-                const Spacer(),
+          const Gap(20),
 
-                // Maxsus Numpad (1 - 9, Reset, 0, Backspace)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Column(
-                    children: [
-                      _buildNumRow(['1', '2', '3']),
-                      const Gap(16),
-                      _buildNumRow(['4', '5', '6']),
-                      const Gap(16),
-                      _buildNumRow(['7', '8', '9']),
-                      const Gap(16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildActionButton(
-                            icon: Icons.refresh_rounded,
-                            onTap: _onClear,
-                          ),
-                          _buildNumButton('0'),
-                          _buildActionButton(
-                            icon: Icons.backspace_outlined,
-                            onTap: _onBackspace,
-                          ),
-                        ],
-                      ),
-                    ],
+          const Text(
+            'Xush kelibsiz!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const Gap(4),
+          const Text(
+            'Tizimga kirish uchun 4 xonali PIN kodni kiriting',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF64748B),
+            ),
+          ),
+
+          const Gap(24),
+
+          // 4 ta PIN Nuqtalari
+          _buildPinDots(),
+
+          if (_errorMessage != null) ...[
+            const Gap(12),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFFEF4444),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+
+          const Gap(24),
+
+          // Ixcham Numpad (Desktop uchun eni atigi 280px)
+          SizedBox(
+            width: 280,
+            child: _buildNumpadGrid(),
+          ),
+
+          const Gap(16),
+
+          // Klaviaturadan kiritish haqida maslahat
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.keyboard_outlined, size: 14, color: Color(0xFF94A3B8)),
+                Gap(6),
+                Text(
+                  'Klaviaturadan ham terish mumkin (0-9)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-
-                const Gap(24),
-
-                // Boshqa hisobga o'tish / Yangi hisob ochish
-                TextButton.icon(
-                  onPressed: () {
-                    ref.read(authProvider.notifier).logout();
-                    ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
-                  },
-                  icon: const Icon(Icons.switch_account_rounded,
-                      size: 18, color: Color(0xFF2563EB)),
-                  label: const Text(
-                    "Boshqa hisobga o'tish / Parol bilan kirish",
-                    style: TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFF6FF),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: Color(0xFFDBEAFE)),
-                    ),
-                  ),
-                ),
-
-                const Gap(16),
               ],
             ),
           ),
+
+          const Gap(16),
+
+          // Boshqa hisobga o'tish tugmasi
+          _buildSwitchAccountButton(),
         ],
       ),
     );
   }
 
+  // ============================================
+  // MOBIL: Vertikal mutanosib tartib
+  // ============================================
+  Widget _buildMobileLayout() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Yuqori belgi qatori
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const ChampionLogo(size: 44, borderRadius: 12),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.shield_outlined,
+                  color: Color(0xFF2563EB),
+                  size: 22,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Gap(20),
+
+        // Sarlavhalar
+        Consumer(
+          builder: (context, ref, _) {
+            final venue = ref.watch(businessAccountProvider).activeAccount;
+            return Column(
+              children: [
+                Text(
+                  venue?.venueName ?? 'Champion POS',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const Gap(4),
+                Text(
+                  venue != null
+                      ? "Boshliq: ${venue.ownerName} • Kirish PIN-kodi"
+                      : "4 xonali shaxsiy PIN-kodingizni kiriting",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+
+        const Gap(28),
+
+        const Text(
+          'Xush kelibsiz!',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        const Gap(6),
+        const Text(
+          'Tizimga kirish uchun shaxsiy PIN kodingizni kiriting',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF64748B),
+          ),
+        ),
+
+        const Gap(24),
+
+        // 4 ta PIN nuqtalari
+        _buildPinDots(),
+
+        if (_errorMessage != null) ...[
+          const Gap(12),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFEF4444),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+
+        const Gap(28),
+
+        // Numpad (Mobil uchun maxWidth: 300px qilib cheklangan, hech qachon cho'zilib ketmaydi)
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: _buildNumpadGrid(),
+        ),
+
+        const Gap(24),
+
+        _buildSwitchAccountButton(),
+      ],
+    );
+  }
+
+  // 4 ta PIN indikator nuqtasi
+  Widget _buildPinDots() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (index) {
+        final isFilled = index < _enteredPin.length;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFilled ? const Color(0xFF2563EB) : Colors.transparent,
+            border: Border.all(
+              color: isFilled ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+              width: 2,
+            ),
+            boxShadow: isFilled
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF2563EB).withOpacity(0.4),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : null,
+          ),
+        );
+      }),
+    );
+  }
+
+  // Numpad tugmalari
+  Widget _buildNumpadGrid() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildNumRow(['1', '2', '3']),
+        const Gap(14),
+        _buildNumRow(['4', '5', '6']),
+        const Gap(14),
+        _buildNumRow(['7', '8', '9']),
+        const Gap(14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildActionButton(
+              icon: Icons.refresh_rounded,
+              tooltip: 'Tozalash',
+              onTap: _onClear,
+            ),
+            _buildNumButton('0'),
+            _buildActionButton(
+              icon: Icons.backspace_outlined,
+              tooltip: 'O\'chirish',
+              onTap: _onBackspace,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildNumRow(List<String> digits) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: digits.map((d) => _buildNumButton(d)).toList(),
     );
   }
 
   Widget _buildNumButton(String digit) {
     return SizedBox(
-      width: 72,
-      height: 72,
+      width: 64,
+      height: 64,
       child: Material(
-        color: Colors.transparent,
+        color: const Color(0xFFF8FAFC),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
         child: InkWell(
           onTap: () => _onDigitPress(digit),
-          borderRadius: BorderRadius.circular(36),
+          borderRadius: BorderRadius.circular(32),
           splashColor: const Color(0xFFDBEAFE),
+          hoverColor: const Color(0xFFEFF6FF),
           child: Center(
             child: Text(
               digit,
               style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w600,
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
                 color: Color(0xFF0F172A),
               ),
             ),
@@ -397,23 +666,55 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onTap,
+    String? tooltip,
   }) {
     return SizedBox(
-      width: 72,
-      height: 72,
+      width: 64,
+      height: 64,
       child: Material(
-        color: Colors.transparent,
+        color: const Color(0xFFF8FAFC),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(36),
+          borderRadius: BorderRadius.circular(32),
           splashColor: const Color(0xFFDBEAFE),
+          hoverColor: const Color(0xFFEFF6FF),
           child: Center(
             child: Icon(
               icon,
-              size: 26,
+              size: 24,
               color: const Color(0xFF475569),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchAccountButton() {
+    return TextButton.icon(
+      onPressed: () {
+        ref.read(authProvider.notifier).logout();
+        ref.read(businessAccountProvider.notifier).logoutToAuthScreen();
+      },
+      icon: const Icon(Icons.switch_account_rounded, size: 16, color: Color(0xFF2563EB)),
+      label: const Text(
+        "Boshqa hisobga o'tish / Parol bilan kirish",
+        style: TextStyle(
+          color: Color(0xFF2563EB),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        backgroundColor: const Color(0xFFEFF6FF),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFFDBEAFE)),
         ),
       ),
     );
