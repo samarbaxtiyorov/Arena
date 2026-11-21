@@ -63,13 +63,16 @@ jobs:
             $releaseDir = "build\windows\runner\Release"
           }
           Write-Host "Release directory: $releaseDir"
-          Get-ChildItem $releaseDir
 
           if (Test-Path "$releaseDir\arena.exe") {
-            Copy-Item -Force "$releaseDir\arena.exe" "$releaseDir\Arena.exe"
+            Copy-Item "$releaseDir\arena.exe" "$releaseDir\Arena.exe" -Force
           }
 
-          Compress-Archive -Force -Path "$releaseDir\*" -DestinationPath "dist\Arena-Windows-x64.zip"
+          if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+            tar.exe -a -c -f dist\Arena-Windows-x64.zip -C $releaseDir .
+          } else {
+            Compress-Archive -Path "$releaseDir\*" -DestinationPath dist\Arena-Windows-x64.zip
+          }
           Get-ChildItem dist
 
       - name: Upload Windows Artifact
