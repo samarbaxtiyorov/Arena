@@ -61,17 +61,25 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          if (Test-Path build\windows\x64\runner\Release\arena.exe) {
-            Copy-Item build\windows\x64\runner\Release\arena.exe build\windows\x64\runner\Release\Arena.exe
+          $releaseDir = "build\windows\x64\runner\Release"
+          if (-not (Test-Path $releaseDir)) {
+            $releaseDir = "build\windows\runner\Release"
           }
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Arena-Windows-x64.zip
-          Get-ChildItem -Path dist
+          Write-Host "Release directory: $releaseDir"
+          Get-ChildItem $releaseDir
+
+          if (Test-Path "$releaseDir\arena.exe") {
+            Copy-Item -Force "$releaseDir\arena.exe" "$releaseDir\Arena.exe"
+          }
+
+          Compress-Archive -Force -Path "$releaseDir\*" -DestinationPath "dist\Arena-Windows-x64.zip"
+          Get-ChildItem dist
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Arena-Windows-x64
-          path: dist\Arena-Windows-x64.zip
+          path: dist/Arena-Windows-x64.zip
           retention-days: 30
 
       - name: Publish to GitHub Releases
@@ -85,6 +93,6 @@ jobs:
             
             Windows x64:
             - `Arena-Windows-x64.zip` (ichida `Arena.exe`, `data/`, DLL fayllari)
-          files: dist\Arena-Windows-x64.zip
+          files: dist/Arena-Windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
