@@ -328,7 +328,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
               return Column(
                 children: [
                   Text(
-                    venue?.venueName ?? 'Champion POS',
+                    venue?.venueName ?? 'Arena POS',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 22,
@@ -482,7 +482,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             return Column(
               children: [
                 Text(
-                  venue?.venueName ?? 'Champion POS',
+                  venue?.venueName ?? 'Arena POS',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 24,

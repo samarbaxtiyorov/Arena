@@ -96,7 +96,7 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
     final uiScale = ref.watch(uiScaleProvider);
 
     return MaterialApp.router(
-      title: 'Champion POS',
+      title: 'Arena POS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,

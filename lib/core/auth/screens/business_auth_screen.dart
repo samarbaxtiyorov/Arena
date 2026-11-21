@@ -83,7 +83,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
                   const Gap(16),
 
                   const Text(
-                    'Champion POS',
+                    'Arena POS',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -221,7 +221,7 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
                   // Pastki ma'lumot
                   const Text(
-                    'Champion POS • Versiya 2.0 • O\'zbekiston',
+                    'Arena POS • Versiya 2.0 • O\'zbekiston',
                     style: TextStyle(
                       fontSize: 11,
                       color: Color(0xFF94A3B8),

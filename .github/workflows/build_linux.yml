@@ -50,34 +50,34 @@ jobs:
       - name: Package Linux Binary
         run: |
           mkdir -p dist
-          # Duplicate arena executable as Champion
+          # Duplicate arena executable as Arena
           if [ -f build/linux/x64/release/bundle/arena ]; then
-            cp build/linux/x64/release/bundle/arena build/linux/x64/release/bundle/Champion
-            chmod +x build/linux/x64/release/bundle/Champion
+            cp build/linux/x64/release/bundle/arena build/linux/x64/release/bundle/Arena
+            chmod +x build/linux/x64/release/bundle/Arena build/linux/x64/release/bundle/arena
           fi
           
           # Create Desktop entry launcher file
-          cat << 'EOF' > build/linux/x64/release/bundle/champion.desktop
+          cat << 'EOF' > build/linux/x64/release/bundle/arena.desktop
           [Desktop Entry]
-          Name=Champion POS
+          Name=Arena POS
           Comment=Sport maydonlari va o'yin klublari boshqaruv tizimi
-          Exec=Champion
+          Exec=Arena
           Terminal=false
           Type=Application
           Categories=Utility;Office;
           EOF
-          chmod +x build/linux/x64/release/bundle/champion.desktop
+          chmod +x build/linux/x64/release/bundle/arena.desktop
 
           # Create tar.gz and zip packages
-          tar -czvf dist/Champion-Linux-x64.tar.gz -C build/linux/x64/release/bundle .
-          cd build/linux/x64/release/bundle && zip -r ../../../../../dist/Champion-Linux-x64.zip . && cd ../../../../..
+          tar -czvf dist/Arena-Linux-x64.tar.gz -C build/linux/x64/release/bundle .
+          cd build/linux/x64/release/bundle && zip -r ../../../../../dist/Arena-Linux-x64.zip . && cd ../../../../..
           ls -lh dist/
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Champion-Linux-x64
-          path: dist/Champion-Linux-x64.tar.gz
+          name: Arena-Linux-x64
+          path: dist/Arena-Linux-x64.tar.gz
           retention-days: 30
 
       - name: Publish to GitHub Releases
@@ -85,16 +85,16 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           tag_name: desktop-v2.0
-          name: "Champion POS — Desktop Versiyalari (v2.0)"
+          name: "Arena POS — Desktop Versiyalari (v2.0)"
           body: |
-            Champion POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows & Linux).
+            Arena POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows & Linux).
             
             Linux x64:
-            - `Champion-Linux-x64.tar.gz`
-            - `Champion-Linux-x64.zip`
-            - Ichida `Champion` ishga tushiruvchi binar fayli, `lib/` va `data/`.
+            - `Arena-Linux-x64.tar.gz`
+            - `Arena-Linux-x64.zip`
+            - Ichida `Arena` ishga tushiruvchi binar fayli, `lib/` va `data/`.
           files: |
-            dist/Champion-Linux-x64.tar.gz
-            dist/Champion-Linux-x64.zip
+            dist/Arena-Linux-x64.tar.gz
+            dist/Arena-Linux-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

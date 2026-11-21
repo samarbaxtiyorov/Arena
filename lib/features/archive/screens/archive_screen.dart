@@ -20,7 +20,7 @@ class ArchiveScreen extends ConsumerWidget {
     final dateStr = Formatters.dateTime(item.timestamp);
     final buffer = StringBuffer();
     buffer.writeln('================================');
-    buffer.writeln('          CHAMPION POS          ');
+    buffer.writeln('            ARENA POS           ');
     buffer.writeln('        Moliya Arxivi           ');
     buffer.writeln('================================');
     buffer.writeln('Sana: $dateStr');

@@ -17,6 +17,7 @@ import 'manage_products_screen.dart';
 import 'manage_staff_screen.dart';
 import 'manage_tables_screen.dart';
 import 'subscription_screen.dart';
+import 'help_screen.dart';
 
 class ManagementScreen extends ConsumerWidget {
   const ManagementScreen({super.key});
@@ -158,7 +159,7 @@ class ManagementScreen extends ConsumerWidget {
                             ),
                             const Gap(6),
                             const Text(
-                              'Champion POS • Barcha modullar faol',
+                              'Arena POS • Barcha modullar faol',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF10B981),
@@ -349,6 +350,30 @@ class ManagementScreen extends ConsumerWidget {
                 _checkOwnerPermission(context, ref, auth, () {
                   _showSecurityDialog(context, authNotifier, auth, ref);
                 });
+              },
+            ),
+
+            const Gap(10),
+
+            // ── 8. Yordam va Qo'llanma ────────────────────────
+            _buildMenuCard(
+              context: context,
+              icon: Icons.help_outline_rounded,
+              iconBg: const Color(0xFFEFF6FF),
+              iconColor: const Color(0xFF2563EB),
+              title: "Yordam va Qo'llanma",
+              badge: "Samar Baxtiyorov",
+              badgeColor: const Color(0xFFDBEAFE),
+              badgeTextColor: const Color(0xFF1D4ED8),
+              subtitle: "Dastur qo'llanmasi, muallif bilan aloqa va FAQ",
+              isLocked: false,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HelpScreen(),
+                  ),
+                );
               },
             ),
 

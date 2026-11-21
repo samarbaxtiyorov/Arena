@@ -62,16 +62,16 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist
           if (Test-Path build\windows\x64\runner\Release\arena.exe) {
-            Copy-Item build\windows\x64\runner\Release\arena.exe build\windows\x64\runner\Release\Champion.exe
+            Copy-Item build\windows\x64\runner\Release\arena.exe build\windows\x64\runner\Release\Arena.exe
           }
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Champion-Windows-x64.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Arena-Windows-x64.zip
           Get-ChildItem -Path dist
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Champion-Windows-x64
-          path: dist\Champion-Windows-x64.zip
+          name: Arena-Windows-x64
+          path: dist\Arena-Windows-x64.zip
           retention-days: 30
 
       - name: Publish to GitHub Releases
@@ -79,13 +79,12 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           tag_name: desktop-v2.0
-          name: "Champion POS — Windows Desktop Versiyasi (v2.0)"
+          name: "Arena POS — Desktop Versiyalari (v2.0)"
           body: |
-            Champion POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows x64).
+            Arena POS — Sport maydonlari va o'yin klublari boshqaruv tizimi (Windows & Linux).
             
-            Arxiv ichida:
-            - `Champion.exe`
-            - `data/` va barcha zaruriy tizim DLL kutubxonalari.
-          files: dist\Champion-Windows-x64.zip
+            Windows x64:
+            - `Arena-Windows-x64.zip` (ichida `Arena.exe`, `data/`, DLL fayllari)
+          files: dist\Arena-Windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

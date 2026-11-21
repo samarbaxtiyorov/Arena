@@ -241,7 +241,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'CHAMPION POS',
+                            'ARENA POS',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -620,7 +620,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                       ),
                       const Gap(4),
                       const Text(
-                        'Champion POS • Chempionlar tanlovi!',
+                        'Arena POS • Ishonchli boshqaruv!',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

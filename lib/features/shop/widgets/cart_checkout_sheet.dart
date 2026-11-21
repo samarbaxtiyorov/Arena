@@ -57,7 +57,7 @@ class _CartCheckoutSheetState extends ConsumerState<CartCheckoutSheet> {
         totalAmount: totalAmount,
         paymentType: _paymentType,
         customerName: _selectedCustomerName,
-        headerTitle: 'CHAMPION POS',
+        headerTitle: 'ARENA POS',
         footerMessage: 'Xaridingiz uchun rahmat! Yana kutamiz!',
       );
 

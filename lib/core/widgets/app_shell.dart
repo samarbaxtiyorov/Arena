@@ -188,11 +188,11 @@ class AppShell extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'CHAMPION',
+                        'ARENA',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFFFACC15), // Gold
+                          color: Color(0xFF38BDF8),
                           letterSpacing: 0.5,
                         ),
                       ),
