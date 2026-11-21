@@ -523,6 +523,31 @@ class TablesScreen extends ConsumerWidget {
                                   foregroundColor: Colors.white,
                                 ),
                               ),
+                              const Gap(8),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final sync = ref.read(syncServiceProvider);
+                                  final res = await sync.syncAll();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(res.isSuccess
+                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi)'
+                                            : 'Sinxronizatsiyada xatolik yuz berdi'),
+                                        backgroundColor: res.isSuccess
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFF59E0B),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.cloud_sync_rounded, size: 18),
+                                label: const Text("Bulutdan yangilash (Sinxronlash)"),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2563EB),
+                                ),
+                              ),
                             ],
                           ),
                         ),

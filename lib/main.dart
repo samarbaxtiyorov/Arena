@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/auth/providers/business_account_provider.dart';
@@ -19,6 +20,10 @@ Future<void> main() async {
     url:            AppConstants.supabaseUrl,
     publishableKey: AppConstants.supabaseAnonKey,
   );
+
+  // SharedPreferences'ni dastur startida darhol yuklash (0-ms holat)
+  final prefs = await SharedPreferences.getInstance();
+  BusinessAccountNotifier.initialPrefs = prefs;
 
   runApp(
     const ProviderScope(

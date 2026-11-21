@@ -213,24 +213,49 @@ class ShopScreen extends ConsumerWidget {
 
                 // ── 4. 2-Ustunli Mahsulotlar To'ri (Grid) ─────────────
                 filteredProducts.isEmpty
-                    ? const SliverFillRemaining(
+                    ? SliverFillRemaining(
                         hasScrollBody: false,
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.storefront_outlined,
                                 size: 44,
                                 color: Color(0xFF94A3B8),
                               ),
-                              Gap(12),
-                              Text(
+                              const Gap(12),
+                              const Text(
                                 "Mahsulot topilmadi",
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF475569),
+                                ),
+                              ),
+                              const Gap(12),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final sync = ref.read(syncServiceProvider);
+                                  final res = await sync.syncAll();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(res.isSuccess
+                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi)'
+                                            : 'Sinxronizatsiyada xatolik yuz berdi'),
+                                        backgroundColor: res.isSuccess
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFF59E0B),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.cloud_sync_rounded, size: 18),
+                                label: const Text("Bulutdan yangilash (Sinxronlash)"),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2563EB),
                                 ),
                               ),
                             ],

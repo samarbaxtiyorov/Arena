@@ -934,25 +934,21 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
     final login = _loginUsernameCtrl.text.trim();
     final pass = _loginPassCtrl.text.trim();
 
-    // 1. Login validatsiyasi
-    final loginErr = BusinessAccountNotifier.validateLogin(login);
-    if (loginErr != null) {
+    if (login.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loginErr),
-          backgroundColor: const Color(0xFFEF4444),
+        const SnackBar(
+          content: Text("Iltimos, login yoki telefon raqamingizni kiriting!"),
+          backgroundColor: Color(0xFFEF4444),
         ),
       );
       return;
     }
 
-    // 2. Parol validatsiyasi (kamida 8 ta belgi)
-    final passErr = BusinessAccountNotifier.validatePassword(pass);
-    if (passErr != null) {
+    if (pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(passErr),
-          backgroundColor: const Color(0xFFEF4444),
+        const SnackBar(
+          content: Text("Iltimos, akkaunt paroli yoki PIN-kodini kiriting!"),
+          backgroundColor: Color(0xFFEF4444),
         ),
       );
       return;
@@ -977,7 +973,9 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
               );
         }
         // Kirishdan so'ng darhol bulut bilan to'liq sinxronizatsiya qilish
-        ref.read(syncServiceProvider).syncAll();
+        Future.microtask(() {
+          ref.read(syncServiceProvider).syncAll();
+        });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

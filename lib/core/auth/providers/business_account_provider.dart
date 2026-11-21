@@ -54,10 +54,61 @@ class BusinessAccountState {
 }
 
 class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
+  static SharedPreferences? initialPrefs;
+
   @override
   BusinessAccountState build() {
+    if (initialPrefs != null) {
+      return _parseFromPrefs(initialPrefs!);
+    }
     _loadFromPrefs();
     return const BusinessAccountState(isLoading: true);
+  }
+
+  static BusinessAccountState _parseFromPrefs(SharedPreferences prefs) {
+    String? rawAccounts = prefs.getString(_accountsPrefKey);
+    if (rawAccounts == null || rawAccounts.trim().isEmpty) {
+      final legacyAccounts = prefs.getString('arena_business_accounts_v3');
+      if (legacyAccounts != null && legacyAccounts.trim().isNotEmpty) {
+        rawAccounts = legacyAccounts;
+      }
+    }
+
+    final isLoggedOut = prefs.getBool(_isLoggedOutPrefKey) ?? false;
+    final activeId = prefs.getString(_activeAccountIdPrefKey);
+
+    List<BusinessAccount> list = [];
+    if (rawAccounts != null && rawAccounts.trim().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawAccounts) as List<dynamic>;
+        list = decoded
+            .map((item) =>
+                BusinessAccount.fromJson(item as Map<String, dynamic>))
+            .toList();
+      } catch (_) {
+        list = defaultInitialAccounts;
+      }
+    } else {
+      list = defaultInitialAccounts;
+    }
+
+    BusinessAccount? active;
+    if (activeId != null) {
+      try {
+        active = list.firstWhere((a) => a.id == activeId);
+      } catch (_) {
+        active = list.isNotEmpty ? list.first : null;
+      }
+    } else {
+      active = list.isNotEmpty ? list.first : null;
+    }
+
+    return BusinessAccountState(
+      accounts: list,
+      activeAccount: active,
+      isLoggedOut: isLoggedOut,
+      isLoading: false,
+    );
   }
 
   // ── 1. Validatsiya Qoidalari ──────────────────────────────
@@ -207,7 +258,7 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
         for (final row in list) {
           final p = row['phone']?.toString().trim().toLowerCase() ?? '';
-          if (p == cleanLogin) {
+          if (p == cleanLogin || matchPhone(p, cleanLogin)) {
             return row;
           }
         }
@@ -334,7 +385,10 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     try {
       final match = state.accounts.firstWhere(
         (a) =>
-            a.login.trim().toLowerCase() == cleanLogin &&
+            (a.login.trim().toLowerCase() == cleanLogin ||
+             a.phone.trim().toLowerCase() == cleanLogin ||
+             matchPhone(a.phone, cleanLogin) ||
+             matchPhone(a.login, cleanLogin)) &&
             (SecurityHelper.verifyPassword(cleanPass, a.password) ||
                 (a.ownerPin.isNotEmpty && cleanPass == a.ownerPin)),
       );
@@ -347,6 +401,10 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
         activeAccount: match,
         isLoggedOut: false,
       );
+
+      // Mahalliy topilgan bo'lsa ham, bulutdan eng so'nggi ma'lumotlarni darhol yuklab sinxronlaymiz
+      _syncFromCloudSnapshot(match.id, match.login);
+
       return true;
     } catch (_) {
       // Mahalliy hisoblarda topilmadi — Bulutdan qidiramiz!
@@ -363,8 +421,29 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
           return false;
         }
 
-        // Parolni tekshirish (tuzlangan yoki oddiy SHA-256 xesh)
-        if (pinHash.isEmpty || SecurityHelper.verifyPassword(cleanPass, pinHash)) {
+        // Parolni tekshirish (tuzlangan yoki oddiy SHA-256 xesh yoki PIN)
+        bool passMatches = pinHash.isEmpty || SecurityHelper.verifyPassword(cleanPass, pinHash);
+        final rawSnapshot = cloudAccount['data_snapshot'];
+        Map<String, dynamic>? snapMap;
+        if (rawSnapshot != null) {
+          if (rawSnapshot is Map<String, dynamic>) {
+            snapMap = rawSnapshot;
+          } else if (rawSnapshot is String && rawSnapshot.isNotEmpty) {
+            try {
+              snapMap = jsonDecode(rawSnapshot) as Map<String, dynamic>;
+            } catch (_) {}
+          }
+        }
+        if (!passMatches && snapMap != null && snapMap['staff'] is List) {
+          for (final s in snapMap['staff']) {
+            if (s is Map && s['role'] == 'owner' && s['pin']?.toString() == cleanPass) {
+              passMatches = true;
+              break;
+            }
+          }
+        }
+
+        if (passMatches) {
           final venueName = cloudAccount['business_name']?.toString() ?? 'Arena Sport';
           final busId = cloudAccount['business_id']?.toString() ?? const Uuid().v4();
           final licenseUntilStr = cloudAccount['license_until']?.toString();
@@ -408,25 +487,16 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
           await prefs.setString('arena_subscription_${importedAcc.id}', subJson);
 
           // Bulutdagi to'liq ma'lumotlar snapshotini darhol yuklab lokal bazaga tiklash
-          final rawSnapshot = cloudAccount['data_snapshot'];
-          if (rawSnapshot != null) {
+          if (snapMap != null && snapMap.isNotEmpty) {
             try {
-              Map<String, dynamic>? snapMap;
-              if (rawSnapshot is Map<String, dynamic>) {
-                snapMap = rawSnapshot;
-              } else if (rawSnapshot is String && rawSnapshot.isNotEmpty) {
-                snapMap = jsonDecode(rawSnapshot) as Map<String, dynamic>;
-              }
-              if (snapMap != null && snapMap.isNotEmpty) {
-                final db = AppDatabase.forAccount(importedAcc.id);
-                final remote = SupabaseRemote(
-                  businessId: importedAcc.id,
-                  accountLogin: cleanLogin,
-                );
-                final sync = SyncService(db, remote);
-                await sync.importSnapshot(snapMap);
-                await db.close();
-              }
+              final db = AppDatabase.forAccount(importedAcc.id);
+              final remote = SupabaseRemote(
+                businessId: importedAcc.id,
+                accountLogin: cleanLogin,
+              );
+              final sync = SyncService(db, remote);
+              await sync.importSnapshot(snapMap);
+              await db.close();
             } catch (_) {}
           }
 
@@ -441,6 +511,31 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     } catch (_) {}
 
     return false;
+  }
+
+  Future<void> _syncFromCloudSnapshot(String accountId, String login) async {
+    try {
+      final cloudAccount = await _fetchCloudAccount(login);
+      if (cloudAccount != null && cloudAccount['data_snapshot'] != null) {
+        final rawSnapshot = cloudAccount['data_snapshot'];
+        Map<String, dynamic>? snapMap;
+        if (rawSnapshot is Map<String, dynamic>) {
+          snapMap = rawSnapshot;
+        } else if (rawSnapshot is String && rawSnapshot.isNotEmpty) {
+          snapMap = jsonDecode(rawSnapshot) as Map<String, dynamic>;
+        }
+        if (snapMap != null && snapMap.isNotEmpty) {
+          final db = AppDatabase.forAccount(accountId);
+          final remote = SupabaseRemote(
+            businessId: accountId,
+            accountLogin: login,
+          );
+          final sync = SyncService(db, remote);
+          await sync.importSnapshot(snapMap);
+          await db.close();
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> switchAccount(String accountId) async {

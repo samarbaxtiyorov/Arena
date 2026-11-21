@@ -39,6 +39,9 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   final isLoggedOut = businessState.isLoggedOut;
 
   final service = SyncService(db, remote, isLoggedOut: isLoggedOut);
+  if (!isLoggedOut && businessState.hasActiveAccount) {
+    service.startPeriodicSync();
+  }
   ref.onDispose(service.stopSync);
   return service;
 });
