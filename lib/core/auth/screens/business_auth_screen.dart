@@ -1202,7 +1202,11 @@ class _BusinessAuthScreenState extends ConsumerState<BusinessAuthScreen> {
 
                     await ref
                         .read(staffListProvider.notifier)
-                        .setCashierPin(staffId: cashier.id, newPin: p1);
+                        .setCashierPin(
+                          accountId: cashier.accountId,
+                          staffId: cashier.id,
+                          newPin: p1,
+                        );
 
                     final updatedCashier = cashier.copyWith(pin: p1);
 

@@ -1,4 +1,4 @@
-name: Build Champion Windows App
+name: Build Arena Windows App
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Build Champion Windows (.exe)
+    name: Build Arena Windows (.exe)
     runs-on: windows-latest
 
     steps:

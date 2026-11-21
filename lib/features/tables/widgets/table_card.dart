@@ -116,6 +116,29 @@ class _TableCardState extends ConsumerState<TableCard> {
     _totalAmount = _gameAmount + _barAmount;
   }
 
+  String _getTypeLabel(String type) {
+    switch (type.toLowerCase()) {
+      case 'football':
+        return '⚽ Futbol';
+      case 'billiard':
+        return '🎱 Bilyard';
+      case 'ps':
+      case 'playstation':
+        return '🎮 PS';
+      case 'tennis':
+      case 'table_tennis':
+        return '🎾 Tennis';
+      case 'bowling':
+        return '🎳 Bouling';
+      case 'karaoke':
+        return '🎤 Karaoke';
+      case 'cinema':
+        return '🎬 Cinema';
+      default:
+        return '🏟 Maydon';
+    }
+  }
+
   String _formatTimer() {
     final hours = _currentElapsed.inHours.toString().padLeft(2, '0');
     final minutes = (_currentElapsed.inMinutes % 60).toString().padLeft(2, '0');
@@ -156,28 +179,63 @@ class _TableCardState extends ConsumerState<TableCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 1. Yuqori qator: Raqam nishoni va Holat ─────────
+            // ── 1. Yuqori qator: Raqam nishoni, Kategoriya va Holat ─────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Dumaloq raqam (1, 2, ...)
-                Container(
-                  width: uiScale == UiScale.small ? 30 : 34,
-                  height: uiScale == UiScale.small ? 30 : 34,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2563EB),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${widget.index}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: uiScale == UiScale.small ? 13 : 15,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Gradient dumaloq raqam (1, 2, ...)
+                    Container(
+                      width: uiScale == UiScale.small ? 30 : 34,
+                      height: uiScale == UiScale.small ? 30 : 34,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x332563EB),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${widget.index}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: uiScale == UiScale.small ? 13 : 15,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const Gap(8),
+                    // Kategoriya nishoni
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        _getTypeLabel(widget.table.type),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 // Holat belgisi (Band / Bo'sh)
@@ -189,6 +247,12 @@ class _TableCardState extends ConsumerState<TableCard> {
                         ? const Color(0xFFFEE2E2)
                         : const Color(0xFFD1FAE5),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isBand
+                          ? const Color(0xFFFCA5A5)
+                          : const Color(0xFFA7F3D0),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -205,13 +269,13 @@ class _TableCardState extends ConsumerState<TableCard> {
                       ),
                       const Gap(6),
                       Text(
-                        isBand ? 'Band' : "Bo'sh",
+                        isBand ? 'Jonli o\'yin' : "Bo'sh",
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w800,
                           color: isBand
                               ? const Color(0xFFEF4444)
-                              : const Color(0xFF10B981),
+                              : const Color(0xFF059669),
                         ),
                       ),
                     ],

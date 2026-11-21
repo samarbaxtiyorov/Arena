@@ -1,4 +1,4 @@
-name: Build Champion Linux App
+name: Build Arena Linux App
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-linux:
-    name: Build Champion Linux (.tar.gz)
+    name: Build Arena Linux (.tar.gz)
     runs-on: ubuntu-latest
 
     steps:

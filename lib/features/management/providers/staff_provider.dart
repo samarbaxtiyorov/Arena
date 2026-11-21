@@ -111,17 +111,27 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
     required String login,
     required String password,
     String? phone,
+    String? pin,
   }) async {
     final currentList = state.value ?? [];
     final cleanLogin = login.trim().toLowerCase();
     final cleanPass = password.trim();
+    final cleanPin = pin?.trim() ?? '';
 
     if (cleanLogin.isEmpty || cleanPass.isEmpty || name.trim().isEmpty) {
       return false;
     }
 
+    if (cleanPin.isNotEmpty && cleanPin.length != 4) {
+      return false;
+    }
+
     if (currentList.any((s) => s.login.toLowerCase() == cleanLogin)) {
       return false; // Ushbu login allaqachon mavjud
+    }
+
+    if (cleanPin.isNotEmpty && currentList.any((s) => s.pin == cleanPin)) {
+      return false; // Ushbu PIN allaqachon mavjud
     }
 
     final activeAccount = ref.read(businessAccountProvider).activeAccount;
@@ -135,7 +145,7 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
       password: cleanPass,
       phone: phone?.trim() ?? '',
       role: StaffRole.cashier,
-      pin: '', // Kassir o'zi birinchi kirishda PIN o'rnatadi
+      pin: cleanPin, // Agar boshliq kiritgan bo'lsa darhol faol, aks holda bo'sh
       isActive: true,
       createdAt: DateTime.now(),
     );
@@ -147,22 +157,47 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
   }
 
   Future<bool> setCashierPin({
+    String? accountId,
     required String staffId,
     required String newPin,
   }) async {
     final cleanPin = newPin.trim();
     if (cleanPin.length != 4) return false;
 
-    final currentList = state.value ?? [];
-    final updated = currentList.map((s) {
+    final prefs = await SharedPreferences.getInstance();
+    final targetAccountId = accountId ??
+        ref.read(businessAccountProvider).activeAccount?.id ??
+        'samar-arena';
+    final key = 'arena_staff_members_$targetAccountId';
+
+    List<StaffMember> list = [];
+    final raw = prefs.getString(key);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(raw);
+        list = decoded
+            .map((j) => StaffMember.fromJson(j as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    } else if (targetAccountId == 'samar-arena') {
+      list = List.from(defaultStaffList);
+    }
+
+    final updated = list.map((s) {
       if (s.id == staffId) {
         return s.copyWith(pin: cleanPin);
       }
       return s;
     }).toList();
 
-    state = AsyncData(updated);
-    await _saveList(updated);
+    final jsonStr = jsonEncode(updated.map((e) => e.toJson()).toList());
+    await prefs.setString(key, jsonStr);
+
+    final currentActiveId =
+        ref.read(businessAccountProvider).activeAccount?.id ?? 'samar-arena';
+    if (targetAccountId == currentActiveId) {
+      state = AsyncData(updated);
+    }
     return true;
   }
 
@@ -274,23 +309,41 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
 
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Barcha biznes akkauntlar ro'yxatini olamiz
-    final rawAccounts = prefs.getString('arena_business_accounts_v2');
-    List<String> accountIds = ['samar-arena', 'default'];
-    if (rawAccounts != null && rawAccounts.isNotEmpty) {
-      try {
-        final List<dynamic> decoded = jsonDecode(rawAccounts);
-        for (final a in decoded) {
-          if (a is Map && a['id'] != null) {
-            accountIds.add(a['id'].toString());
-          }
-        }
-      } catch (_) {}
+    final Set<String> targetKeys = {};
+
+    // 1. SharedPreferences ichidagi barcha arena_staff_members_ kalitlarini olamiz
+    for (final k in prefs.getKeys()) {
+      if (k.startsWith('arena_staff_members_')) {
+        targetKeys.add(k);
+      }
     }
 
-    // 2. Har bir muassasaning xodimlar ro'yxatidan kassirni qidiramiz
-    for (final accId in accountIds.toSet()) {
-      final rawStaff = prefs.getString('arena_staff_members_$accId');
+    // 2. Barcha ma'lumotlar bazasi versiyalaridagi (v4, v3, v2) hisob ID larini qo'shamiz
+    for (final accKey in [
+      'arena_business_accounts_v4',
+      'arena_business_accounts_v3',
+      'arena_business_accounts_v2'
+    ]) {
+      final rawAccounts = prefs.getString(accKey);
+      if (rawAccounts != null && rawAccounts.isNotEmpty) {
+        try {
+          final List<dynamic> decoded = jsonDecode(rawAccounts);
+          for (final a in decoded) {
+            if (a is Map && a['id'] != null) {
+              targetKeys.add('arena_staff_members_${a['id']}');
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    targetKeys.add('arena_staff_members_samar-arena');
+    targetKeys.add('arena_staff_members_default');
+
+    // 3. Har bir muassasaning xodimlar ro'yxatidan kassirni qidiramiz
+    for (final staffKey in targetKeys) {
+      final accId = staffKey.replaceFirst('arena_staff_members_', '');
+      final rawStaff = prefs.getString(staffKey);
       List<StaffMember> list = [];
       if (rawStaff != null && rawStaff.isNotEmpty) {
         try {
@@ -305,10 +358,12 @@ class StaffListNotifier extends AsyncNotifier<List<StaffMember>> {
 
       for (final staff in list) {
         if (staff.isCashier &&
-            staff.login.trim().toLowerCase() == cleanLogin &&
-            (staff.password == cleanPass ||
-                SecurityHelper.verifyPassword(cleanPass, staff.password))) {
-          return staff.copyWith(accountId: accId);
+            staff.login.trim().toLowerCase() == cleanLogin) {
+          final passMatches = staff.password.trim() == cleanPass ||
+              SecurityHelper.verifyPassword(cleanPass, staff.password);
+          if (passMatches) {
+            return staff.copyWith(accountId: accId);
+          }
         }
       }
     }

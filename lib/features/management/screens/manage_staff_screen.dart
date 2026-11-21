@@ -1070,7 +1070,7 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                     const Gap(14),
 
                     // Kassir Paroli
-                    const Text("Dastlabki Parol *",
+                    const Text("Kassir Paroli *",
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1084,6 +1084,50 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                             size: 20, color: Color(0xFF9333EA)),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+
+                    const Gap(14),
+
+                    // Kassir PIN-kodi (Ixtiyoriy)
+                    const Row(
+                      children: [
+                        Text("Kassir PIN-kodi (4 ta raqam - Ixtiyoriy)",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF334155))),
+                        Gap(6),
+                        Text("(Tezkor kirish)",
+                            style: TextStyle(
+                                fontSize: 11, color: Color(0xFF94A3B8))),
+                      ],
+                    ),
+                    const Gap(6),
+                    TextField(
+                      controller: pinCtrl,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 4,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "4 xonali PIN (ixtiyoriy)",
+                        prefixIcon: const Icon(Icons.lock_outline_rounded,
+                            size: 20, color: Color(0xFF9333EA)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        counterText: '',
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
@@ -1110,7 +1154,7 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                           Gap(10),
                           Expanded(
                             child: Text(
-                              "Kassir o'z telefonida ushbu login va parol bilan kirgach, o'ziga 4 xonali PIN-kod o'rnatib oladi.",
+                              "Kassir login va parol bilan yoki agar 4 xonali PIN kiritilsa, qulflangan ekrandan to'g'ridan-to'g'ri PIN bilan kira oladi.",
                               style: TextStyle(
                                   fontSize: 11.5,
                                   color: Color(0xFF6B21A8),
@@ -1162,53 +1206,6 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                         ),
                       ),
                     ),
-                  ],
-
-                  const Gap(14),
-
-                  if (selectedRole == StaffRole.cashier) ...[
-                    const Text("Kassir Logini",
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF334155))),
-                    const Gap(6),
-                    TextField(
-                      controller: loginCtrl,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                      ),
-                    ),
-                    const Gap(14),
-                    const Text("Kassir Paroli",
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF334155))),
-                    const Gap(6),
-                    TextField(
-                      controller: passCtrl,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                      ),
-                    ),
-                    const Gap(14),
                   ],
 
                   // Telefon raqami
@@ -1274,6 +1271,17 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                             return;
                           }
 
+                          if (pin.isNotEmpty && pin.length != 4) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "Kassir PIN-kodi kiritilsa, roppa-rosa 4 ta raqam bo'lishi kerak!"),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                            return;
+                          }
+
                           final success = await ref
                               .read(staffListProvider.notifier)
                               .addCashier(
@@ -1281,14 +1289,16 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                                 login: login,
                                 password: pass,
                                 phone: phone,
+                                pin: pin.isNotEmpty ? pin : null,
                               );
 
                           if (success) {
                             navigator.pop();
+                            final pinInfo = pin.isNotEmpty ? " | PIN: $pin" : "";
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Text(
-                                    "Kassir $name muvaffaqiyatli qo'shildi!\nLogin: $login | Parol: $pass"),
+                                    "Kassir $name muvaffaqiyatli qo'shildi!\nLogin: $login | Parol: $pass$pinInfo"),
                                 backgroundColor: const Color(0xFF10B981),
                                 duration: const Duration(seconds: 4),
                               ),
@@ -1297,7 +1307,7 @@ class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
                             messenger.showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    "Ushbu login band! Boshqa login tanlang."),
+                                    "Ushbu login yoki PIN band! Boshqa login/PIN tanlang."),
                                 backgroundColor: Color(0xFFEF4444),
                               ),
                             );

@@ -11,7 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/auth/auth_provider.dart';
-import '../../../core/widgets/champion_logo.dart';
+import '../../../core/widgets/arena_logo.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
@@ -96,8 +96,8 @@ class TablesScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     child: Row(
                       children: [
-                        // Champion Oltin Logotipi
-                        ChampionLogo(
+                        // Arena Brend Logotipi
+                        ArenaLogo(
                           size: uiScale.headerAvatarSize,
                           borderRadius: uiScale.headerAvatarSize / 2,
                         ),
@@ -189,6 +189,34 @@ class TablesScreen extends ConsumerWidget {
                             );
                           },
                         ),
+                        if (ref.watch(authProvider).isOwner) ...[
+                          const Gap(4),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => const AddTableDialog(),
+                              );
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text(
+                              "Maydon",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 13),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const Gap(4),
+                        ],
                         IconButton(
                           tooltip: 'Ekranni qulflash (PIN)',
                           icon: const Icon(
