@@ -58,22 +58,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          $releaseDir = "build\windows\x64\runner\Release"
-          if (-not (Test-Path $releaseDir)) {
-            $releaseDir = "build\windows\runner\Release"
-          }
-          Write-Host "Release directory: $releaseDir"
-
-          if (Test-Path "$releaseDir\arena.exe") {
-            Copy-Item "$releaseDir\arena.exe" "$releaseDir\Arena.exe" -Force
-          }
-
-          if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
-            tar.exe -a -c -f dist\Arena-Windows-x64.zip -C $releaseDir .
-          } else {
-            Compress-Archive -Path "$releaseDir\*" -DestinationPath dist\Arena-Windows-x64.zip
-          }
-          Get-ChildItem dist
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Arena-Windows-x64.zip
+          Get-ChildItem -Path dist
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
