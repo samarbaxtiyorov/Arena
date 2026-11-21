@@ -15,7 +15,8 @@ import '../widgets/add_income_dialog.dart';
 import '../widgets/transaction_tile.dart';
 
 class KassaScreen extends ConsumerWidget {
-  const KassaScreen({super.key});
+  final bool showAppBar;
+  const KassaScreen({super.key, this.showAppBar = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,52 +26,54 @@ class KassaScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: const Row(
-          children: [
-            Icon(Icons.point_of_sale_outlined,
-                color: AppColors.info, size: 24),
-            Gap(10),
-            Text(
-              'Kassa & Hisobot',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Sinxronizatsiya qilish',
-            icon: const Icon(Icons.sync, color: AppColors.textSecondary),
-            onPressed: () async {
-              final sync = ref.read(syncServiceProvider);
-              final res = await sync.syncAll();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      res.isSuccess
-                          ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
-                          : (res.wasOffline
-                              ? 'Offline rejim'
-                              : 'Xatolik yuz berdi'),
+      appBar: showAppBar
+          ? AppBar(
+              titleSpacing: 16,
+              title: const Row(
+                children: [
+                  Icon(Icons.point_of_sale_outlined,
+                      color: AppColors.info, size: 24),
+                  Gap(10),
+                  Text(
+                    'Kassa & Hisobot',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppColors.textPrimary,
                     ),
-                    backgroundColor: res.isSuccess
-                        ? AppColors.success
-                        : AppColors.warning,
-                    duration: const Duration(seconds: 2),
                   ),
-                );
-              }
-            },
-          ),
-          const Gap(8),
-        ],
-      ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Sinxronizatsiya qilish',
+                  icon: const Icon(Icons.sync, color: AppColors.textSecondary),
+                  onPressed: () async {
+                    final sync = ref.read(syncServiceProvider);
+                    final res = await sync.syncAll();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            res.isSuccess
+                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                : (res.wasOffline
+                                    ? 'Offline rejim'
+                                    : 'Xatolik yuz berdi'),
+                          ),
+                          backgroundColor: res.isSuccess
+                              ? AppColors.success
+                              : AppColors.warning,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const Gap(8),
+              ],
+            )
+          : null,
       body: Column(
         children: [
           // 1. Davr filtrlari

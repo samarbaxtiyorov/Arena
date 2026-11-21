@@ -10,6 +10,8 @@ import 'package:gap/gap.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../kassa/widgets/receipt_preview_dialog.dart';
+import '../../kassa/screens/kassa_screen.dart';
+import '../../../data/repositories/database_providers.dart';
 import '../providers/archive_providers.dart';
 
 class ArchiveScreen extends ConsumerWidget {
@@ -88,10 +90,80 @@ class ArchiveScreen extends ConsumerWidget {
     final filterNotifier = ref.read(archiveFilterProvider.notifier);
     final itemsAsync = ref.watch(archiveItemsProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: CustomScrollView(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          titleSpacing: 16,
+          title: const Row(
+            children: [
+              Icon(Icons.receipt_long_rounded,
+                  color: Color(0xFF2563EB), size: 22),
+              Gap(10),
+              Text(
+                'Kassa va Moliya Arxivi',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Bulut bilan sinxronizatsiya',
+              icon: const Icon(Icons.sync_rounded, color: Color(0xFF2563EB)),
+              onPressed: () async {
+                final sync = ref.read(syncServiceProvider);
+                final res = await sync.syncAll();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res.isSuccess
+                          ? "Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)"
+                          : (res.wasOffline ? "Oflayn rejim" : "Xatolik yuz berdi")),
+                      backgroundColor: res.isSuccess
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFF59E0B),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            const Gap(8),
+          ],
+          bottom: const TabBar(
+            labelColor: Color(0xFF2563EB),
+            unselectedLabelColor: Color(0xFF64748B),
+            labelStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            unselectedLabelStyle:
+                TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            indicatorColor: Color(0xFF2563EB),
+            indicatorWeight: 3,
+            tabs: [
+              Tab(
+                icon: Icon(Icons.receipt_long_rounded, size: 18),
+                text: "Savdo Cheklari",
+              ),
+              Tab(
+                icon: Icon(Icons.point_of_sale_rounded, size: 18),
+                text: "Kassa & Kirim-Chiqim",
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // ── 1. Savdo Cheklari (Arxiv) ──────────────────────────
+            SafeArea(
+              child: CustomScrollView(
           slivers: [
             // ── 1. Sarlavha Paneli ──────────────────────────────
             SliverToBoxAdapter(
@@ -588,8 +660,14 @@ class ArchiveScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+
+      // ── 2. Kassa & Kirim-Chiqim Jurnali ──────────────────────
+      const KassaScreen(showAppBar: false),
+    ],
+  ),
+),
+);
+}
 
   // ── Ro'yxat Kartochkasi (Toza, Katta, Ravshan) ──────────
   Widget _buildArchiveItemCard(BuildContext context, ArchiveItem item) {
