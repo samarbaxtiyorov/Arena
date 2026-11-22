@@ -13,7 +13,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/providers/business_account_provider.dart';
 import '../../../core/services/lan_boss_client.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../data/repositories/database_providers.dart';
+import '../../tables/providers/tables_providers.dart';
 
 class BossRadarScreen extends ConsumerStatefulWidget {
   const BossRadarScreen({super.key});

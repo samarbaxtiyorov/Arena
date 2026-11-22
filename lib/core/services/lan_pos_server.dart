@@ -12,7 +12,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/database_providers.dart';
 import '../auth/providers/business_account_provider.dart';
-import '../config/app_mode.dart';
 import 'smart_light_service.dart';
 
 class LanServerState {
@@ -151,7 +150,7 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
 
         int todayGameTotal = 0;
         for (final s in todaySessions) {
-          todayGameTotal += s.totalAmount ?? 0;
+          todayGameTotal += s.totalAmount;
         }
 
         _respondJson(request, {
