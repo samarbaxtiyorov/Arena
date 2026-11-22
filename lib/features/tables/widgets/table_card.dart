@@ -104,12 +104,14 @@ class _TableCardState extends ConsumerState<TableCard> {
     final now = DateTime.now();
     _currentElapsed = now.difference(session.startedAt);
 
-    // O'yin summasi (boshlang'ich kamida 1 000 so'm)
-    _gameAmount = SessionBillingHelper.calculateGameAmount(
+    // O'yin summasi (kamida 1 000 so'm, lekin bo'lingan partiyalar summasidan kam emas)
+    final calcGame = SessionBillingHelper.calculateGameAmount(
       startedAt: session.startedAt,
       endedAt: now,
       pricePerHour: widget.table.pricePerHour,
     );
+    final splitsTotal = SessionBillingHelper.getTotalSplitAmount(session.notes);
+    _gameAmount = calcGame >= splitsTotal ? calcGame : splitsTotal;
 
     // Bar summasi: sessiya buyurtmalaridan 100% aniq olish
     _barAmount = SessionBillingHelper.getBarTotal(session.notes);
@@ -409,6 +411,45 @@ class _TableCardState extends ConsumerState<TableCard> {
                 ],
               ),
               const Gap(10),
+
+              // Bo'lingan partiyalar (agar bor bo'lsa)
+              if (session != null) ...[
+                () {
+                  final splits = SessionBillingHelper.getSplits(session.notes);
+                  final splitsTotal = SessionBillingHelper.getTotalSplitAmount(session.notes);
+                  if (splits.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.call_split_rounded, size: 13, color: Color(0xFFD97706)),
+                            const Gap(4),
+                            Text(
+                              "Bo'lingan (${splits.length}):",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFD97706),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          formatSum(splitsTotal),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }(),
+              ],
 
               // Jami hisob qatori
               Row(

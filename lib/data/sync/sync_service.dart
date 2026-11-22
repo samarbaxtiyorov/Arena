@@ -54,17 +54,6 @@ class SyncService {
         await (_db.delete(_db.debts)..where((tbl) => tbl.customerId.equals(cId))).go();
         await (_db.delete(_db.customers)..where((tbl) => tbl.id.equals(cId))).go();
       }
-
-      try {
-        final allCustomers = await _db.customersDao.select(_db.customers).get();
-        final validCustomerIds = allCustomers.map((c) => c.id).toSet();
-        final allDebts = await _db.debtsDao.select(_db.debts).get();
-        for (final d in allDebts) {
-          if (!validCustomerIds.contains(d.customerId)) {
-            await (_db.delete(_db.debts)..where((tbl) => tbl.id.equals(d.id))).go();
-          }
-        }
-      } catch (_) {}
     }
   }
 
@@ -76,10 +65,6 @@ class SyncService {
     // 0. Begona biznes ma'lumotlari keshini tozalash
     await cleanForeignDataIfNeeded();
 
-    // Haqiqiy ulanishni to'g'ridan-to'g'ri Supabase endpointi orqali tekshiramiz (Linux/Android xavfsiz)
-    final connected = await _remote.isConnected();
-    if (!connected) return SyncResult.offline();
-
     _isSyncing = true;
     int pushed = 0;
     int pulled = 0;
@@ -88,7 +73,14 @@ class SyncService {
     try {
       // 1. BULUTLI SNAPSHOT BILAN 100% ISHONCHLI SINXRONIZATSIYA
       // Telefon va kompyuter o'rtasida to'liq ma'lumot almashinuvi
-      final cloudSnapshot = await _remote.fetchSnapshot();
+      Map<String, dynamic>? cloudSnapshot;
+      try {
+        cloudSnapshot = await _remote.fetchSnapshot();
+      } catch (e) {
+        final conn = await _remote.isConnected();
+        if (!conn) return SyncResult.offline();
+        errors.add('fetchSnapshot: $e');
+      }
 
       final localTables = await _db.clubTablesDao.select(_db.clubTables).get();
       final localProducts = await _db.productsDao.select(_db.products).get();
@@ -102,23 +94,25 @@ class SyncService {
           localCustomers.isNotEmpty ||
           localSessions.isNotEmpty;
 
-      if (!hasLocalData && cloudSnapshot != null && cloudSnapshot.isNotEmpty) {
-        // Lokal bo'sh (kompyuterda yangi kirilgan) -> bulutdan to'liq yuklab tiklaymiz
+      if (cloudSnapshot != null && cloudSnapshot.isNotEmpty) {
         final count = await importSnapshot(cloudSnapshot);
         pulled += count;
-      } else {
-        // Agar bulutda ham snapshot bo'lsa, undan yetishmayotganlarni import qilamiz
-        if (cloudSnapshot != null && cloudSnapshot.isNotEmpty) {
-          final count = await importSnapshot(cloudSnapshot);
-          pulled += count;
+      }
+
+      // Lokal ma'lumotlar bor bo'lsa yoki bulutdan yangilangan bo'lsa,
+      // eng so'nggi holatni bulutga eksport qilib push qilamiz
+      final updatedTables = await _db.clubTablesDao.select(_db.clubTables).get();
+      if (updatedTables.isNotEmpty || hasLocalData) {
+        try {
+          final snapshotToPush = await exportSnapshot();
+          await _remote.pushSnapshot(snapshotToPush);
+          pushed += updatedTables.length +
+              localProducts.length +
+              localDebts.length +
+              localCustomers.length;
+        } catch (e) {
+          errors.add('pushSnapshot: $e');
         }
-        // So'ngra barcha yangi lokal holatni bulutga eksport qilib push qilamiz
-        final snapshotToPush = await exportSnapshot();
-        await _remote.pushSnapshot(snapshotToPush);
-        pushed += localTables.length +
-            localProducts.length +
-            localDebts.length +
-            localCustomers.length;
       }
 
       // 2. QO'SHIMCHA: Relational jadvallarni relationalErrors bilan push/pull qilish

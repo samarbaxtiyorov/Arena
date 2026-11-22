@@ -386,12 +386,14 @@ class AppShell extends ConsumerWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(res.isSuccess
-                                    ? "Sinxronlandi! (${res.pushed} push, ${res.pulled} pull)"
-                                    : "Offline rejim"),
+                                    ? "Sinxronlandi! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)"
+                                    : (res.wasOffline
+                                        ? "Internet aloqasi yo'q (Oflayn rejim)"
+                                        : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
                                 backgroundColor: res.isSuccess
                                     ? const Color(0xFF10B981)
                                     : const Color(0xFFF59E0B),
-                                duration: const Duration(seconds: 1),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           }

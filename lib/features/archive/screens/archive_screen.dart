@@ -126,8 +126,8 @@ class ArchiveScreen extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(res.isSuccess
-                          ? "Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)"
-                          : (res.wasOffline ? "Oflayn rejim" : "Xatolik yuz berdi")),
+                          ? "Sinxronizatsiya muvaffaqiyatli! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)"
+                          : (res.wasOffline ? "Internet aloqasi yo'q (Oflayn rejim)" : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
                       backgroundColor: res.isSuccess
                           ? const Color(0xFF10B981)
                           : const Color(0xFFF59E0B),

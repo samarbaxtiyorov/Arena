@@ -45,7 +45,7 @@ class SupabaseRemote {
           'data_snapshot': snapshot,
           'updated_at': nowIso,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 25));
     } catch (_) {
       try {
         await _client.from('cloud_accounts').update({
@@ -67,7 +67,7 @@ class SupabaseRemote {
       };
       final url = Uri.parse(
           '${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=ilike.${Uri.encodeComponent(login)}&select=data_snapshot,updated_at&limit=1');
-      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 25));
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
         if (list.isNotEmpty && list.first['data_snapshot'] != null) {
@@ -173,19 +173,21 @@ class SupabaseRemote {
 
   // ── Ulanish tekshiruvi (Foolproof Multi-platform) ──
   Future<bool> isConnected() async {
+    final login = accountLogin.trim().toLowerCase();
+    final urlStr = login.isNotEmpty
+        ? '${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?phone=ilike.${Uri.encodeComponent(login)}&select=id&limit=1'
+        : '${AppConstants.supabaseUrl}/rest/v1/cloud_accounts?select=id&limit=1';
     try {
-      final url = Uri.parse(
-          '${AppConstants.supabaseUrl}/rest/v1/customers?select=id&limit=1');
-      final res = await http.get(url, headers: {
+      final res = await http.get(Uri.parse(urlStr), headers: {
         'apikey': AppConstants.supabaseAnonKey,
         'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
-      }).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) return true;
+      }).timeout(const Duration(seconds: 15));
+      if (res.statusCode >= 200 && res.statusCode < 300) return true;
     } catch (_) {}
 
     try {
-      await _client.from('customers').select('id').limit(1);
-      return true;
+      final res = await _client.from('cloud_accounts').select('id').limit(1);
+      return res != null;
     } catch (_) {
       return false;
     }

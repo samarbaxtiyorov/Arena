@@ -89,12 +89,14 @@ class ShopScreen extends ConsumerWidget {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(res.isSuccess
-                                      ? "Sinxronizatsiya muvaffaqiyatli!"
-                                      : "Offline rejim"),
+                                      ? "Sinxronizatsiya muvaffaqiyatli! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)"
+                                      : (res.wasOffline
+                                          ? "Internet aloqasi yo'q (Oflayn rejim)"
+                                          : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
                                   backgroundColor: res.isSuccess
                                       ? const Color(0xFF10B981)
                                       : const Color(0xFFF59E0B),
-                                  duration: const Duration(seconds: 1),
+                                  duration: const Duration(seconds: 2),
                                 ),
                               );
                             }
@@ -242,8 +244,10 @@ class ShopScreen extends ConsumerWidget {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(res.isSuccess
-                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi)'
-                                            : 'Sinxronizatsiyada xatolik yuz berdi'),
+                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)'
+                                            : (res.wasOffline
+                                                ? "Internet aloqasi yo'q (Oflayn rejim)"
+                                                : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
                                         backgroundColor: res.isSuccess
                                             ? const Color(0xFF10B981)
                                             : const Color(0xFFF59E0B),

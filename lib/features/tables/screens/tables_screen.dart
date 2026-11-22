@@ -17,7 +17,7 @@ import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
 import '../widgets/table_category_chips.dart';
-import '../widgets/add_table_dialog.dart';
+import '../../management/screens/manage_tables_screen.dart';
 
 class TablesScreen extends ConsumerWidget {
   const TablesScreen({super.key});
@@ -140,37 +140,8 @@ class TablesScreen extends ConsumerWidget {
                               ),
                             ),
 
-                            // Mobil ko'rinishda: ixcham "+ Maydon" va qo'shimcha menyu (⋮)
+                            // Mobil ko'rinishda: qo'shimcha menyu (⋮)
                             if (isCompact) ...[
-                              if (isOwner) ...[
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (_) => const AddTableDialog(),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.add_rounded, size: 16),
-                                  label: const Text(
-                                    "Maydon",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w800, fontSize: 12),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2563EB),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 7),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-                                const Gap(4),
-                              ],
                               PopupMenuButton<String>(
                                 tooltip: 'Amallar menyusi',
                                 icon: const Icon(
@@ -190,10 +161,10 @@ class TablesScreen extends ConsumerWidget {
                                         SnackBar(
                                           content: Text(
                                             res.isSuccess
-                                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)'
                                                 : (res.wasOffline
-                                                    ? 'Offline rejim'
-                                                    : 'Xatolik yuz berdi'),
+                                                    ? 'Internet aloqasi yo\'q (Oflayn rejim)'
+                                                    : 'Sinxronizatsiyada xatolik: ${res.errors.join(", ")}'),
                                           ),
                                           backgroundColor: res.isSuccess
                                               ? const Color(0xFF10B981)
@@ -202,13 +173,6 @@ class TablesScreen extends ConsumerWidget {
                                         ),
                                       );
                                     }
-                                  } else if (val == 'qr') {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Kamera orqali QR skanerlash tayyor"),
-                                        duration: Duration(seconds: 1),
-                                      ),
-                                    );
                                   } else if (val == 'lock') {
                                     ref.read(authProvider.notifier).lock();
                                   }
@@ -222,20 +186,6 @@ class TablesScreen extends ConsumerWidget {
                                             color: Color(0xFF10B981), size: 18),
                                         Gap(10),
                                         Text("Bulut sinxronizatsiyasi",
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600)),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'qr',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.qr_code_scanner_rounded,
-                                            color: Color(0xFF2563EB), size: 18),
-                                        Gap(10),
-                                        Text("Shtrix-kod / QR skaner",
                                             style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600)),
@@ -286,10 +236,10 @@ class TablesScreen extends ConsumerWidget {
                                           SnackBar(
                                             content: Text(
                                               res.isSuccess
-                                                  ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                                  ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)'
                                                   : (res.wasOffline
-                                                      ? 'Offline rejim'
-                                                      : 'Xatolik yuz berdi'),
+                                                      ? 'Internet aloqasi yo\'q (Oflayn rejim)'
+                                                      : 'Sinxronizatsiyada xatolik: ${res.errors.join(", ")}'),
                                             ),
                                             backgroundColor: res.isSuccess
                                                 ? const Color(0xFF10B981)
@@ -302,50 +252,6 @@ class TablesScreen extends ConsumerWidget {
                                   );
                                 },
                               ),
-                              IconButton(
-                                tooltip: 'Shtrix-kod skaneri',
-                                icon: const Icon(
-                                  Icons.qr_code_scanner_rounded,
-                                  color: Color(0xFF2563EB),
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Kamera orqali QR skanerlash tayyor"),
-                                      duration: Duration(seconds: 1),
-                                    ),
-                                  );
-                                },
-                              ),
-                              if (isOwner) ...[
-                                const Gap(4),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (_) => const AddTableDialog(),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.add_rounded, size: 18),
-                                  label: const Text(
-                                    "Maydon",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w800, fontSize: 13),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2563EB),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-                                const Gap(4),
-                              ],
                               IconButton(
                                 tooltip: 'Ekranni qulflash (PIN)',
                                 icon: const Icon(
@@ -511,13 +417,15 @@ class TablesScreen extends ConsumerWidget {
                                     );
                                     return;
                                   }
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => const AddTableDialog(),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ManageTablesScreen()),
                                   );
                                 },
-                                icon: const Icon(Icons.add),
-                                label: const Text("Yangi maydon qo'shish"),
+                                icon: const Icon(Icons.settings_outlined),
+                                label: const Text("Boshqaruv markazidan maydon qo'shish"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF2563EB),
                                   foregroundColor: Colors.white,
@@ -532,8 +440,10 @@ class TablesScreen extends ConsumerWidget {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(res.isSuccess
-                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi)'
-                                            : 'Sinxronizatsiyada xatolik yuz berdi'),
+                                            ? 'Bulut bilan muvaffaqiyatli sinxronlandi! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)'
+                                            : (res.wasOffline
+                                                ? 'Internet aloqasi yo\'q (Oflayn rejim)'
+                                                : 'Sinxronizatsiyada xatolik: ${res.errors.join(", ")}')),
                                         backgroundColor: res.isSuccess
                                             ? const Color(0xFF10B981)
                                             : const Color(0xFFF59E0B),

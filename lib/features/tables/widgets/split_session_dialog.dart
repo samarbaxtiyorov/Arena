@@ -32,20 +32,24 @@ class SplitSessionDialog extends ConsumerStatefulWidget {
 class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
   late final TextEditingController _amountController;
   final _nameController = TextEditingController();
+  late String? _currentNotes;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    _currentNotes = widget.session.notes;
+
     // Oldingi partiyalardan qolgan joriy oraliq summasi
     final prevSplitTotal =
-        SessionBillingHelper.getTotalSplitAmount(widget.session.notes);
+        SessionBillingHelper.getTotalSplitAmount(_currentNotes);
     final remainingAmount = widget.currentGameAmount > prevSplitTotal
         ? widget.currentGameAmount - prevSplitTotal
-        : widget.currentGameAmount;
+        : 0;
 
-    final initialAmount = remainingAmount > 0 ? remainingAmount : 5000;
-    _amountController = TextEditingController(text: initialAmount.toString());
+    _amountController = TextEditingController(
+      text: remainingAmount > 0 ? remainingAmount.toString() : '',
+    );
   }
 
   @override
@@ -86,7 +90,7 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
     try {
       final db = ref.read(appDatabaseProvider);
       final newNotes = SessionBillingHelper.addSplit(
-        currentNotes: widget.session.notes,
+        currentNotes: _currentNotes,
         name: name,
         amount: amount,
       );
@@ -98,6 +102,8 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
         updatedAt: Value(DateTime.now()),
         isSynced: const Value(false),
       ));
+
+      _currentNotes = newNotes;
 
       if (mounted) {
         Navigator.pop(context);
@@ -138,7 +144,7 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
     try {
       final db = ref.read(appDatabaseProvider);
       final newNotes = SessionBillingHelper.deleteSplit(
-        currentNotes: widget.session.notes,
+        currentNotes: _currentNotes,
         index: index,
       );
 
@@ -150,15 +156,17 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
         isSynced: const Value(false),
       ));
 
-      setState(() {});
+      setState(() {
+        _currentNotes = newNotes;
+      });
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     // Joriy sessiyadagi barcha saqlangan bo'lishlar
-    final splits = SessionBillingHelper.getSplits(widget.session.notes);
-    final totalSplits = SessionBillingHelper.getTotalSplitAmount(widget.session.notes);
+    final splits = SessionBillingHelper.getSplits(_currentNotes);
+    final totalSplits = SessionBillingHelper.getTotalSplitAmount(_currentNotes);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -240,6 +248,9 @@ class _SplitSessionDialogState extends ConsumerState<SplitSessionDialog> {
                   color: Color(0xFF2563EB),
                 ),
                 decoration: InputDecoration(
+                  hintText: "Summani kiriting (masalan: 10000)",
+                  hintStyle:
+                      const TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
                   prefixIcon: const Icon(Icons.payments_outlined,
                       color: Color(0xFF2563EB), size: 22),
                   suffixText: "so'm",

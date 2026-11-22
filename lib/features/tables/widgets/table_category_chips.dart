@@ -18,13 +18,64 @@ class TableCategoryChips extends ConsumerWidget {
     final tablesAsync = ref.watch(tablesStreamProvider);
     final tables = tablesAsync.value ?? [];
 
-    final categories = [
-      {'key': 'all', 'label': 'Barchasi', 'icon': ''},
+    final existingTypes = tables.map((t) => t.type.toLowerCase()).toSet();
+
+    const knownIcons = {
+      'football': '⚽',
+      'billiard': '🎱',
+      'ps': '🎮',
+      'playstation': '🎮',
+      'tennis': '🎾',
+      'table_tennis': '🏓',
+      'bowling': '🎳',
+      'karaoke': '🎤',
+    };
+    const knownLabels = {
+      'football': 'Futbol',
+      'billiard': 'Bilyard',
+      'ps': 'PlayStation',
+      'playstation': 'PlayStation',
+      'tennis': 'Tennis',
+      'table_tennis': 'Stol tennisi',
+      'bowling': 'Bouling',
+      'karaoke': 'Karaoke',
+    };
+
+    final allPresets = [
       {'key': 'football', 'label': 'Futbol', 'icon': '⚽'},
       {'key': 'billiard', 'label': 'Bilyard', 'icon': '🎱'},
       {'key': 'ps', 'label': 'PlayStation', 'icon': '🎮'},
       {'key': 'tennis', 'label': 'Tennis', 'icon': '🎾'},
     ];
+
+    // Faqat klubda mavjud bo'lgan toifalarni ko'rsatamiz (mavjud bo'lmaganlari chiqmaydi)
+    final categories = <Map<String, String>>[
+      {'key': 'all', 'label': 'Barchasi', 'icon': ''},
+    ];
+
+    for (final preset in allPresets) {
+      if (existingTypes.contains(preset['key'])) {
+        categories.add(preset);
+      }
+    }
+    for (final type in existingTypes) {
+      if (!categories.any((c) => c['key'] == type)) {
+        categories.add({
+          'key': type,
+          'label': knownLabels[type] ??
+              (type.isNotEmpty
+                  ? type[0].toUpperCase() + type.substring(1)
+                  : type),
+          'icon': knownIcons[type] ?? '🏟',
+        });
+      }
+    }
+
+    if (categories.isNotEmpty && !categories.any((c) => c['key'] == selectedCategory)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(tableCategoryProvider.notifier).select('all');
+      });
+    }
 
     int getCount(String key) {
       if (key == 'all') return tables.length;

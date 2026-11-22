@@ -53,12 +53,14 @@ class _SessionFinishDialogState extends ConsumerState<SessionFinishDialog> {
     final now = DateTime.now();
     _duration = now.difference(widget.session.startedAt);
 
-    // 1. O'yin summasini hisoblash (boshlang'ich kamida 1 000 so'm)
-    _gameAmount = SessionBillingHelper.calculateGameAmount(
+    // 1. O'yin summasini hisoblash (boshlang'ich kamida 1 000 so'm, partiyalar summasidan kam emas)
+    final calcGame = SessionBillingHelper.calculateGameAmount(
       startedAt: widget.session.startedAt,
       endedAt: now,
       pricePerHour: widget.table.pricePerHour,
     );
+    final splitsTotal = SessionBillingHelper.getTotalSplitAmount(widget.session.notes);
+    _gameAmount = calcGame >= splitsTotal ? calcGame : splitsTotal;
 
     // 2. Bar buyurtmalarini hisoblash
     _barAmount = SessionBillingHelper.getBarTotal(widget.session.notes);

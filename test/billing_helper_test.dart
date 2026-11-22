@@ -122,5 +122,27 @@ void main() {
       expect(splits[0].name, 'Bobur');
       expect(SessionBillingHelper.getTotalSplitAmount(noteDeleted), 18000);
     });
+
+    test('Splits amount ensures effective game amount is not 0 when splits exist', () {
+      final now = DateTime.now();
+      // 0 duration game
+      final rawGameAmount = SessionBillingHelper.calculateGameAmount(
+        startedAt: now,
+        endedAt: now,
+        pricePerHour: 100000,
+      );
+      expect(rawGameAmount, 0);
+
+      final notesWithSplit = SessionBillingHelper.addSplit(
+        currentNotes: null,
+        name: 'Samar',
+        amount: 25000,
+      );
+      final splitsTotal = SessionBillingHelper.getTotalSplitAmount(notesWithSplit);
+      expect(splitsTotal, 25000);
+
+      final effectiveGameAmount = rawGameAmount >= splitsTotal ? rawGameAmount : splitsTotal;
+      expect(effectiveGameAmount, 25000);
+    });
   });
 }

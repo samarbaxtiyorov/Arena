@@ -56,10 +56,10 @@ class KassaScreen extends ConsumerWidget {
                         SnackBar(
                           content: Text(
                             res.isSuccess
-                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pushed} push, ${res.pulled} pull)'
+                                ? 'Sinxronizatsiya muvaffaqiyatli! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)'
                                 : (res.wasOffline
-                                    ? 'Offline rejim'
-                                    : 'Xatolik yuz berdi'),
+                                    ? "Internet aloqasi yo'q (Oflayn rejim)"
+                                    : 'Sinxronizatsiyada xatolik: ${res.errors.join(", ")}'),
                           ),
                           backgroundColor: res.isSuccess
                               ? AppColors.success
