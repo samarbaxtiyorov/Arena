@@ -17,6 +17,7 @@ import '../auth/auth_provider.dart';
 import '../auth/pin_login_screen.dart';
 import '../auth/providers/business_account_provider.dart';
 import '../auth/screens/business_auth_screen.dart';
+import '../config/app_mode.dart';
 
 class AppRoutes {
   static const String tables     = '/tables';
@@ -29,9 +30,17 @@ class AppRoutes {
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
   final businessState = ref.watch(businessAccountProvider);
+  final appMode = ref.watch(appModeProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.tables,
+    redirect: (context, state) {
+      // Arena POS (kassa) rejimida Boshqaruv Markaziga kirish qat'iyan man etiladi
+      if (appMode == AppMode.pos && state.matchedLocation.startsWith(AppRoutes.management)) {
+        return AppRoutes.tables;
+      }
+      return null;
+    },
     routes: [
       ShellRoute(
         builder: (context, state, child) {

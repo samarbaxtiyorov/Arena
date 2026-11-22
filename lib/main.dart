@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/auth/providers/business_account_provider.dart';
+import 'core/config/app_mode.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/ui_scale_provider.dart';
@@ -33,7 +34,8 @@ Future<void> main() async {
 }
 
 class ArenaApp extends ConsumerStatefulWidget {
-  const ArenaApp({super.key});
+  final AppMode initialMode;
+  const ArenaApp({super.key, this.initialMode = AppMode.pos});
 
   @override
   ConsumerState<ArenaApp> createState() => _ArenaAppState();
@@ -49,8 +51,9 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
     WidgetsBinding.instance.addObserver(this);
     _resetInactivityTimer();
 
-    // Ilovani ochganda davriy sinxronizatsiyani ishga tushirish
+    // Dastur rejimini (POS yoki BOSS) initsializatsiya qilish
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      ref.read(appModeProvider.notifier).setMode(widget.initialMode);
       final syncService = ref.read(syncServiceProvider);
       syncService.startPeriodicSync();
     });
@@ -99,9 +102,10 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
 
     final router = ref.watch(appRouterProvider);
     final uiScale = ref.watch(uiScaleProvider);
+    final appMode = ref.watch(appModeProvider);
 
     return MaterialApp.router(
-      title: 'Arena POS',
+      title: appMode == AppMode.pos ? 'Arena POS — Kassa Tizimi' : 'Arena Boss — Boshqaruv Markazi',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,

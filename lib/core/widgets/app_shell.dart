@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/providers/business_account_provider.dart';
+import '../config/app_mode.dart';
 import '../router/app_router.dart';
 import '../widgets/arena_logo.dart';
 import '../../data/repositories/database_providers.dart';
@@ -21,15 +22,15 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
-  int _locationToIndex(String location) {
+  int _locationToIndex(String location, bool isPos) {
     if (location.startsWith(AppRoutes.shop)) return 1;
     if (location.startsWith(AppRoutes.archive)) return 2;
     if (location.startsWith(AppRoutes.debts)) return 3;
-    if (location.startsWith(AppRoutes.management)) return 4;
+    if (!isPos && location.startsWith(AppRoutes.management)) return 4;
     return 0; // AppRoutes.tables
   }
 
-  void _onNavigate(BuildContext context, int index) {
+  void _onNavigate(BuildContext context, int index, bool isPos) {
     switch (index) {
       case 0:
         context.go(AppRoutes.tables);
@@ -44,7 +45,11 @@ class AppShell extends ConsumerWidget {
         context.go(AppRoutes.debts);
         break;
       case 4:
-        context.go(AppRoutes.management);
+        if (!isPos) {
+          context.go(AppRoutes.management);
+        } else {
+          context.go(AppRoutes.tables);
+        }
         break;
     }
   }
@@ -52,7 +57,9 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final currentIndex = _locationToIndex(location);
+    final appMode = ref.watch(appModeProvider);
+    final isPos = appMode == AppMode.pos;
+    final currentIndex = _locationToIndex(location, isPos);
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 850;
 
@@ -62,7 +69,7 @@ class AppShell extends ConsumerWidget {
         body: Row(
           children: [
             // ── Kompyuter uchun Professional Chap Panel (Sidebar) ──
-            _buildDesktopSidebar(context, ref, currentIndex),
+            _buildDesktopSidebar(context, ref, currentIndex, isPos),
 
             // ── Asosiy O'nggi Sahifa Maydoni ────────────────────────
             Expanded(
@@ -112,34 +119,35 @@ class AppShell extends ConsumerWidget {
             }),
           ),
           child: NavigationBar(
-            selectedIndex: currentIndex,
-            onDestinationSelected: (index) => _onNavigate(context, index),
-            destinations: const [
-              NavigationDestination(
+            selectedIndex: currentIndex > (isPos ? 3 : 4) ? 0 : currentIndex,
+            onDestinationSelected: (index) => _onNavigate(context, index, isPos),
+            destinations: [
+              const NavigationDestination(
                 icon: Icon(Icons.grid_view_outlined),
                 selectedIcon: Icon(Icons.grid_view_rounded),
                 label: 'Maydonlar',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.storefront_outlined),
                 selectedIcon: Icon(Icons.storefront_rounded),
                 label: "Do'kon",
               ),
               NavigationDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2_rounded),
-                label: 'Arxiv',
+                icon: Icon(isPos ? Icons.point_of_sale_outlined : Icons.inventory_2_outlined),
+                selectedIcon: Icon(isPos ? Icons.point_of_sale_rounded : Icons.inventory_2_rounded),
+                label: isPos ? 'Kassa' : 'Arxiv',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.menu_book_outlined),
                 selectedIcon: Icon(Icons.menu_book_rounded),
                 label: 'Qarzlar',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.admin_panel_settings_outlined),
-                selectedIcon: Icon(Icons.admin_panel_settings_rounded),
-                label: 'Boshqaruv',
-              ),
+              if (!isPos)
+                const NavigationDestination(
+                  icon: Icon(Icons.admin_panel_settings_outlined),
+                  selectedIcon: Icon(Icons.admin_panel_settings_rounded),
+                  label: 'Boshqaruv',
+                ),
             ],
           ),
         ),
@@ -148,7 +156,7 @@ class AppShell extends ConsumerWidget {
   }
 
   Widget _buildDesktopSidebar(
-      BuildContext context, WidgetRef ref, int currentIndex) {
+      BuildContext context, WidgetRef ref, int currentIndex, bool isPos) {
     final businessState = ref.watch(businessAccountProvider);
     final activeVenue = businessState.activeAccount;
     final authState = ref.watch(authProvider);
@@ -187,17 +195,17 @@ class AppShell extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ARENA',
+                      Text(
+                        isPos ? 'ARENA POS' : 'ARENA BOSS',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF38BDF8),
+                          color: isPos ? const Color(0xFF34D399) : const Color(0xFF38BDF8),
                           letterSpacing: 0.5,
                         ),
                       ),
                       Text(
-                        activeVenue?.venueName ?? 'Boshqaruv Tizimi',
+                        activeVenue?.venueName ?? (isPos ? 'Bilyard Kassa' : 'Boshqaruv Tizimi'),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -211,15 +219,20 @@ class AppShell extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
+                          color: isPos
+                              ? const Color(0xFF065F46).withOpacity(0.6)
+                              : const Color(0xFF1E293B),
                           borderRadius: BorderRadius.circular(4),
+                          border: isPos
+                              ? Border.all(color: const Color(0xFF059669), width: 0.8)
+                              : null,
                         ),
-                        child: const Text(
-                          'DESKTOP POS',
+                        child: Text(
+                          isPos ? 'KASSA ISH O\'RNI' : 'BOSHQARUV MARKAZI',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF94A3B8),
+                            color: isPos ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -246,7 +259,7 @@ class AppShell extends ConsumerWidget {
                   icon: Icons.grid_view_rounded,
                   badge: activeCount > 0 ? '$activeCount band' : null,
                   badgeColor: const Color(0xFF10B981),
-                  onTap: () => _onNavigate(context, 0),
+                  onTap: () => _onNavigate(context, 0, isPos),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
@@ -257,16 +270,16 @@ class AppShell extends ConsumerWidget {
                   icon: Icons.storefront_rounded,
                   badge: cartItemsCount > 0 ? '$cartItemsCount ta' : null,
                   badgeColor: const Color(0xFF3B82F6),
-                  onTap: () => _onNavigate(context, 1),
+                  onTap: () => _onNavigate(context, 1, isPos),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
                   context: context,
                   index: 2,
                   currentIndex: currentIndex,
-                  title: 'Kassa & Arxiv',
-                  icon: Icons.receipt_long_rounded,
-                  onTap: () => _onNavigate(context, 2),
+                  title: isPos ? 'Kassa & Cheklar' : 'Kassa & Arxiv',
+                  icon: isPos ? Icons.point_of_sale_rounded : Icons.receipt_long_rounded,
+                  onTap: () => _onNavigate(context, 2, isPos),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
@@ -275,17 +288,19 @@ class AppShell extends ConsumerWidget {
                   currentIndex: currentIndex,
                   title: 'Nasiya Daftari',
                   icon: Icons.menu_book_rounded,
-                  onTap: () => _onNavigate(context, 3),
+                  onTap: () => _onNavigate(context, 3, isPos),
                 ),
-                const Gap(6),
-                _buildSidebarNavItem(
-                  context: context,
-                  index: 4,
-                  currentIndex: currentIndex,
-                  title: 'Boshqaruv Markazi',
-                  icon: Icons.admin_panel_settings_rounded,
-                  onTap: () => _onNavigate(context, 4),
-                ),
+                if (!isPos) ...[
+                  const Gap(6),
+                  _buildSidebarNavItem(
+                    context: context,
+                    index: 4,
+                    currentIndex: currentIndex,
+                    title: 'Boshqaruv Markazi',
+                    icon: Icons.admin_panel_settings_rounded,
+                    onTap: () => _onNavigate(context, 4, isPos),
+                  ),
+                ],
               ],
             ),
           ),
