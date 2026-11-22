@@ -2,6 +2,7 @@
 // Arena POS — Lokal Tarmoq Serveri (LAN Master Server)
 // dart:io HttpServer orqali ishlaydi (Hech qanday internet shart emas!)
 // Arena Boss bilan bitta Wi-Fi tarmog'ida jonli ma'lumot almashadi
+// UDP Beacon va HTTP REST API (port 8080)
 // ============================================
 
 import 'dart:async';
@@ -48,6 +49,8 @@ class LanServerState {
 
 class LanPosServerNotifier extends Notifier<LanServerState> {
   HttpServer? _server;
+  RawDatagramSocket? _udpSocket;
+  Timer? _beaconTimer;
 
   @override
   LanServerState build() {
@@ -57,13 +60,42 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
     return const LanServerState();
   }
 
-  /// Lokal Wi-Fi IP manzilini aniqlash (Masalan: 192.168.1.150)
+  /// Haqiqiy Wi-Fi / Ethernet lokal IP manzilini aniqlash (Masalan: 192.168.1.135)
   Future<String?> getLocalIp() async {
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
         includeLinkLocal: false,
       );
+
+      // 1-bosqich: Virtual interfeyslarni (docker, veth, virbr, vmnet, tun) chetlab o'tish
+      for (final iface in interfaces) {
+        final name = iface.name.toLowerCase();
+        if (name.contains('docker') ||
+            name.contains('veth') ||
+            name.contains('virbr') ||
+            name.contains('vmnet') ||
+            name.contains('tun') ||
+            name.contains('tap')) {
+          continue;
+        }
+
+        for (final addr in iface.addresses) {
+          if (!addr.isLoopback &&
+              (addr.address.startsWith('192.168.') ||
+               addr.address.startsWith('10.') ||
+               addr.address.startsWith('172.16.') ||
+               addr.address.startsWith('172.17.') ||
+               addr.address.startsWith('172.18.') ||
+               addr.address.startsWith('172.19.') ||
+               addr.address.startsWith('172.20.') ||
+               addr.address.startsWith('172.31.'))) {
+            return addr.address;
+          }
+        }
+      }
+
+      // 2-bosqich: Har qanday loopback bo'lmagan IPv4 manzil
       for (final iface in interfaces) {
         for (final addr in iface.addresses) {
           if (!addr.isLoopback && !addr.address.startsWith('127.')) {
@@ -77,7 +109,7 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
     return null;
   }
 
-  /// Serverni ishga tushirish (Port 8080)
+  /// Serverni ishga tushirish (Port 8080) va UDP Beacon yoqish
   Future<void> startServer({int port = 8080}) async {
     if (_server != null) return;
 
@@ -97,14 +129,71 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
       _server!.listen((HttpRequest request) async {
         _handleRequest(request);
       });
+
+      // UDP Beacon va Discovery (port 8888)
+      if (ip != null) {
+        _startUdpBeacon(ip, port);
+      }
     } catch (e) {
       debugPrint("❌ [LanPosServer] Serverni yoqishda xatolik: $e");
       state = state.copyWith(isRunning: false);
     }
   }
 
+  /// UDP orqali Wi-Fi tarmog'idagi telefonlarga signal berish
+  void _startUdpBeacon(String ip, int httpPort) async {
+    try {
+      _udpSocket?.close();
+      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 8888, reuseAddress: true, reusePort: true);
+      _udpSocket!.broadcastEnabled = true;
+
+      // Kelgan qidiruv xabarlariga (ARENA_DISCOVER) javob berish
+      _udpSocket!.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          final dg = _udpSocket?.receive();
+          if (dg != null) {
+            try {
+              final msg = utf8.decode(dg.data).trim();
+              if (msg.contains('ARENA_DISCOVER')) {
+                final replyData = jsonEncode({
+                  'app': 'Arena POS',
+                  'ip': ip,
+                  'port': httpPort,
+                  'venue': ref.read(businessAccountProvider).activeAccount?.venueName ?? 'Bilyard Arena',
+                });
+                _udpSocket?.send(utf8.encode(replyData), dg.address, dg.port);
+              }
+            } catch (_) {}
+          }
+        }
+      });
+
+      // Har 2 soniyada butun Wi-Fi tarmog'iga bildirishnoma tarqatish
+      _beaconTimer?.cancel();
+      _beaconTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        if (_udpSocket != null) {
+          final payload = utf8.encode(jsonEncode({
+            'app': 'Arena POS',
+            'ip': ip,
+            'port': httpPort,
+            'venue': ref.read(businessAccountProvider).activeAccount?.venueName ?? 'Bilyard Arena',
+          }));
+          try {
+            _udpSocket?.send(payload, InternetAddress('255.255.255.255'), 8888);
+          } catch (_) {}
+        }
+      });
+    } catch (e) {
+      debugPrint("⚠️ [LanPosServer] UDP Beacon xatosi: $e");
+    }
+  }
+
   /// Serverni to'xtatish
   Future<void> stopServer() async {
+    _beaconTimer?.cancel();
+    _beaconTimer = null;
+    _udpSocket?.close();
+    _udpSocket = null;
     await _server?.close(force: true);
     _server = null;
     state = const LanServerState();
@@ -116,7 +205,7 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
     // CORS sarlavhalari (Boss ilovasi istalgan qurilmadan kirishi uchun)
     request.response.headers.add('Access-Control-Allow-Origin', '*');
     request.response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    request.response.headers.add('Access-Control-Allow-Headers', 'Content-Type');
+    request.response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     request.response.headers.contentType = ContentType.json;
 
     if (request.method == 'OPTIONS') {
@@ -134,6 +223,7 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
           'app': 'Arena POS',
           'mode': 'pos',
           'ip': state.localIp,
+          'venueName': ref.read(businessAccountProvider).activeAccount?.venueName ?? 'Bilyard Arena',
           'timestamp': DateTime.now().toIso8601String(),
         });
         return;

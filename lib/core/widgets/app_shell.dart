@@ -13,6 +13,7 @@ import '../auth/auth_provider.dart';
 import '../auth/providers/business_account_provider.dart';
 import '../config/app_mode.dart';
 import '../router/app_router.dart';
+import '../services/lan_pos_server.dart';
 import '../widgets/arena_logo.dart';
 import '../../data/repositories/database_providers.dart';
 import '../../features/tables/providers/tables_providers.dart';
@@ -244,7 +245,61 @@ class AppShell extends ConsumerWidget {
             ),
           ),
 
-          const Gap(14),
+          if (isPos) ...[
+            Consumer(
+              builder: (context, ref, _) {
+                final lanServer = ref.watch(lanPosServerProvider);
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF064E3B).withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF059669), width: 0.8),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: lanServer.isRunning ? const Color(0xFF34D399) : const Color(0xFFEF4444),
+                        ),
+                      ),
+                      const Gap(8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Wi-Fi Kassa IP:',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                            Text(
+                              lanServer.localIp != null ? "${lanServer.localIp}:${lanServer.port}" : "Aniqlanmoqda...",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF6EE7B7),
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+
+          const Gap(6),
 
           // ── 2. Navigatsiya Menyu Tugmalari ───────────────────────
           Expanded(

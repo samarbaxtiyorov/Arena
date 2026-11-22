@@ -24,7 +24,7 @@ class BossRadarScreen extends ConsumerStatefulWidget {
 
 class _BossRadarScreenState extends ConsumerState<BossRadarScreen> {
   Timer? _tickerTimer;
-  final TextEditingController _ipController = TextEditingController(text: '192.168.0.');
+  final TextEditingController _ipController = TextEditingController(text: '192.168.1.');
   bool _isAutoConnecting = false;
 
   @override
@@ -36,10 +36,16 @@ class _BossRadarScreenState extends ConsumerState<BossRadarScreen> {
     });
 
     // Boshlang'ichda avtomatik kassa bilan bog'lanishni tekshirish
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final client = ref.read(lanBossClientProvider);
       if (!client.isConnected) {
-        _autoScan();
+        final savedIp = await ref.read(lanBossClientProvider.notifier).getSavedCashierIp();
+        if (savedIp != null && savedIp.isNotEmpty) {
+          _ipController.text = savedIp;
+          _connect(savedIp);
+        } else {
+          _autoScan();
+        }
       }
     });
   }
@@ -199,97 +205,7 @@ class _BossRadarScreenState extends ConsumerState<BossRadarScreen> {
 
             // ── 2. Jonli Kassa Ulanish Holati (LAN Banner) ──────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isLanLive ? const Color(0xFF064E3B).withOpacity(0.6) : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isLanLive ? const Color(0xFF10B981) : const Color(0xFF334155),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isLanLive ? const Color(0xFF34D399) : const Color(0xFFF59E0B),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isLanLive ? const Color(0xFF34D399) : const Color(0xFFF59E0B)).withOpacity(0.5),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Gap(10),
-                      Expanded(
-                        child: Text(
-                          isLanLive
-                              ? "🟢 Kassa bilan jonli aloqa faol (${lanState.cashierIp}:${lanState.port}) • Har 3 sek yangilanmoqda"
-                              : "🟡 Kassa bilan Wi-Fi aloqasi yo'q. Ulanish uchun IP kiriting yoki avto qidiring.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isLanLive ? const Color(0xFF6EE7B7) : const Color(0xFFFDE68A),
-                          ),
-                        ),
-                      ),
-                      if (!isLanLive) ...[
-                        SizedBox(
-                          width: 150,
-                          height: 32,
-                          child: TextField(
-                            controller: _ipController,
-                            style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700),
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                              filled: true,
-                              fillColor: const Color(0xFF0F172A),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: "Kassa IP",
-                              hintStyle: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                            ),
-                          ),
-                        ),
-                        const Gap(8),
-                        ElevatedButton(
-                          onPressed: _isAutoConnecting ? null : () => _connect(_ipController.text.trim()),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2563EB),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-                          ),
-                          child: _isAutoConnecting
-                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white))
-                              : const Text("Ulanish"),
-                        ),
-                        const Gap(6),
-                        IconButton(
-                          tooltip: "Avto qidirish",
-                          icon: const Icon(Icons.radar_rounded, color: Color(0xFF38BDF8), size: 18),
-                          onPressed: _isAutoConnecting ? null : _autoScan,
-                        ),
-                      ] else ...[
-                        IconButton(
-                          tooltip: "Yangilash",
-                          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF34D399), size: 20),
-                          onPressed: () => ref.read(lanBossClientProvider.notifier).refreshLiveStatus(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+              child: _buildLanBanner(context, isLanLive, lanState),
             ),
 
             const SliverToBoxAdapter(child: Gap(16)),
@@ -713,6 +629,130 @@ class _BossRadarScreenState extends ConsumerState<BossRadarScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildLanBanner(BuildContext context, bool isLanLive, LanBossState lanState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isLanLive ? const Color(0xFF064E3B).withOpacity(0.6) : const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isLanLive ? const Color(0xFF10B981) : const Color(0xFF334155),
+            width: 1.2,
+          ),
+        ),
+        child: isLanLive
+            ? Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF34D399),
+                      boxShadow: [
+                        BoxShadow(color: Color(0xFF34D399), blurRadius: 6),
+                      ],
+                    ),
+                  ),
+                  const Gap(10),
+                  Expanded(
+                    child: Text(
+                      "🟢 Kassa bilan jonli aloqa faol (${lanState.cashierIp}:${lanState.port}) • Har 3 sek yangilanmoqda",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6EE7B7),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: "Yangilash",
+                    icon: const Icon(Icons.refresh_rounded, color: Color(0xFF34D399), size: 20),
+                    onPressed: () => ref.read(lanBossClientProvider.notifier).refreshLiveStatus(),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.wifi_off_rounded, color: Color(0xFFF59E0B), size: 16),
+                      Gap(8),
+                      Expanded(
+                        child: Text(
+                          "Kassa (Notebook) bilan Wi-Fi aloqasi yo'q",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFFDE68A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(6),
+                  const Text(
+                    "Notebookdagi Arena POS'da ko'rsatilgan IP manzilni kiriting:",
+                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  ),
+                  const Gap(10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: TextField(
+                            controller: _ipController,
+                            style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w700),
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                              filled: true,
+                              fillColor: const Color(0xFF0F172A),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Color(0xFF334155)),
+                              ),
+                              hintText: "Masalan: 192.168.1.135",
+                              hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Gap(8),
+                      ElevatedButton(
+                        onPressed: _isAutoConnecting ? null : () => _connect(_ipController.text.trim()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                        child: _isAutoConnecting
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text("Ulanish"),
+                      ),
+                      const Gap(6),
+                      IconButton.filledTonal(
+                        tooltip: "Avtomatik topish",
+                        icon: const Icon(Icons.radar_rounded, color: Color(0xFF38BDF8), size: 20),
+                        onPressed: _isAutoConnecting ? null : _autoScan,
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF0284C7).withOpacity(0.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
       ),
     );
   }

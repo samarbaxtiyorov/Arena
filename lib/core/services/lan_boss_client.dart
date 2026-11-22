@@ -2,6 +2,7 @@
 // Arena Boss — Lokal Tarmoq Klienti (LAN Boss Client)
 // Uy Wi-Fi yoki klub tarmog'ida Arena POS bilan to'g'ridan-to'g'ri bog'lanadi
 // Internetsiz kassa va bilyard stollarini jonli kuzatish
+// UDP Discovery va Tezkor Parallel Subnet Scanner
 // ============================================
 
 import 'dart:async';
@@ -10,6 +11,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LanBossState {
   final bool isConnected;
@@ -72,6 +74,7 @@ class LanBossState {
 }
 
 class LanBossClientNotifier extends Notifier<LanBossState> {
+  static const String _prefCashierIpKey = 'lan_last_cashier_ip';
   Timer? _pollTimer;
 
   @override
@@ -82,6 +85,16 @@ class LanBossClientNotifier extends Notifier<LanBossState> {
     return const LanBossState();
   }
 
+  /// Avval saqlangan kassa IP manzilini olish
+  Future<String?> getSavedCashierIp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_prefCashierIpKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Kassa kompyuteriga to'g'ridan-to'g'ri ulanish
   Future<bool> connectToCashier(String ip, {int port = 8080}) async {
     final cleanIp = ip.trim().replaceAll('http://', '').replaceAll('/', '');
@@ -89,15 +102,22 @@ class LanBossClientNotifier extends Notifier<LanBossState> {
 
     try {
       final pingUrl = Uri.parse('http://$cleanIp:$port/api/ping');
-      final res = await http.get(pingUrl).timeout(const Duration(seconds: 3));
+      final res = await http.get(pingUrl).timeout(const Duration(seconds: 4));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['app'] == 'Arena POS') {
+          // IP manzilni saqlab qo'yish
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_prefCashierIpKey, cleanIp);
+          } catch (_) {}
+
           state = state.copyWith(
             isConnected: true,
             cashierIp: cleanIp,
             port: port,
+            venueName: data['venueName'] as String?,
             errorMessage: null,
           );
 
@@ -156,53 +176,140 @@ class LanBossClientNotifier extends Notifier<LanBossState> {
     }
   }
 
-  /// Wi-Fi tarmog'idagi Arena POS ni avtomatik qidirish (Auto-Discovery)
+  /// Wi-Fi tarmog'idagi Arena POS ni avtomatik qidirish (UDP Beacon + Parallel Subnet Scan)
   Future<String?> autoDiscoverCashier({int port = 8080}) async {
     state = state.copyWith(isScanning: true, errorMessage: null);
 
+    // 1-QADAM: Avval saqlangan oxirgi IP ni sinab ko'rish (0 soniya)
+    final savedIp = await getSavedCashierIp();
+    if (savedIp != null && savedIp.isNotEmpty) {
+      try {
+        final testUrl = Uri.parse('http://$savedIp:$port/api/ping');
+        final res = await http.get(testUrl).timeout(const Duration(milliseconds: 600));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          if (data['app'] == 'Arena POS') {
+            state = state.copyWith(isScanning: false);
+            await connectToCashier(savedIp, port: port);
+            return savedIp;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2-QADAM: UDP Discovery orqali qidirish (Port 8888) — 1 soniya
+    try {
+      final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      udpSocket.broadcastEnabled = true;
+
+      final completer = Completer<String?>();
+
+      udpSocket.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          final dg = udpSocket.receive();
+          if (dg != null) {
+            try {
+              final text = utf8.decode(dg.data).trim();
+              final data = jsonDecode(text);
+              if (data['app'] == 'Arena POS' && data['ip'] != null) {
+                if (!completer.isCompleted) {
+                  completer.complete(data['ip'] as String);
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      });
+
+      // Broadcast xabari yuborish
+      final pingBytes = utf8.encode('ARENA_DISCOVER');
+      udpSocket.send(pingBytes, InternetAddress('255.255.255.255'), 8888);
+
+      // 1.2 soniya kutish
+      final discoveredIp = await completer.future.timeout(
+        const Duration(milliseconds: 1200),
+        onTimeout: () => null,
+      );
+      udpSocket.close();
+
+      if (discoveredIp != null) {
+        state = state.copyWith(isScanning: false);
+        await connectToCashier(discoveredIp, port: port);
+        return discoveredIp;
+      }
+    } catch (e) {
+      debugPrint("⚠️ [LanBossClient] UDP qidiruv xatosi: $e");
+    }
+
+    // 3-QADAM: Parallel tezkor Subnet Scan (Guruhma-guruh 30 tadan parallel)
+    try {
+      final subnet = await _detectLocalSubnet();
+      if (subnet != null) {
+        // 1..254 IP manzillarini 30 tadan guruhlarga bo'lib parallel tekshirish
+        final allIps = List.generate(254, (i) => '$subnet.${i + 1}');
+        const batchSize = 30;
+
+        for (int i = 0; i < allIps.length; i += batchSize) {
+          final chunk = allIps.sublist(i, (i + batchSize > allIps.length) ? allIps.length : i + batchSize);
+
+          final results = await Future.wait(
+            chunk.map((ip) => _pingCandidate(ip, port)),
+          );
+
+          for (final found in results) {
+            if (found != null) {
+              state = state.copyWith(isScanning: false);
+              await connectToCashier(found, port: port);
+              return found;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ [LanBossClient] Subnet skanerlash xatosi: $e");
+    }
+
+    state = state.copyWith(
+      isScanning: false,
+      errorMessage: "Wi-Fi tarmog'ida Arena POS topilmadi. Notebookdagi IP manzilni qo'lda kiriting.",
+    );
+    return null;
+  }
+
+  Future<String?> _pingCandidate(String ip, int port) async {
+    try {
+      final uri = Uri.parse('http://$ip:$port/api/ping');
+      final res = await http.get(uri).timeout(const Duration(milliseconds: 350));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['app'] == 'Arena POS') {
+          return ip;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<String?> _detectLocalSubnet() async {
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
         includeLinkLocal: false,
       );
-
-      String? mySubnet;
       for (final iface in interfaces) {
+        final name = iface.name.toLowerCase();
+        if (name.contains('docker') || name.contains('veth') || name.contains('tun')) continue;
+
         for (final addr in iface.addresses) {
-          if (!addr.isLoopback && !addr.address.startsWith('127.')) {
+          if (!addr.isLoopback && (addr.address.startsWith('192.168.') || addr.address.startsWith('10.'))) {
             final parts = addr.address.split('.');
             if (parts.length == 4) {
-              mySubnet = '${parts[0]}.${parts[1]}.${parts[2]}';
-              break;
+              return '${parts[0]}.${parts[1]}.${parts[2]}';
             }
           }
         }
-        if (mySubnet != null) break;
       }
-
-      if (mySubnet != null) {
-        // Mahalliy subnetdagi asosiy IP larni tezkor tekshirish
-        for (int i = 1; i <= 254; i++) {
-          final targetIp = '$mySubnet.$i';
-          try {
-            final testUrl = Uri.parse('http://$targetIp:$port/api/ping');
-            final res = await http.get(testUrl).timeout(const Duration(milliseconds: 150));
-            if (res.statusCode == 200) {
-              final data = jsonDecode(res.body);
-              if (data['app'] == 'Arena POS') {
-                state = state.copyWith(isScanning: false);
-                await connectToCashier(targetIp, port: port);
-                return targetIp;
-              }
-            }
-          } catch (_) {}
-        }
-      }
-    } catch (e) {
-      debugPrint("⚠️ [LanBossClient] Skanerlashda xatolik: $e");
-    }
-
-    state = state.copyWith(isScanning: false);
+    } catch (_) {}
     return null;
   }
 

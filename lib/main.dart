@@ -125,6 +125,15 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
       next.startPeriodicSync();
     });
 
+    // Rejim (POS yoki BOSS) almashganda kassa LAN serverini boshqarish
+    ref.listen<AppMode>(appModeProvider, (previous, next) {
+      if (next == AppMode.pos) {
+        ref.read(lanPosServerProvider.notifier).startServer();
+      } else {
+        ref.read(lanPosServerProvider.notifier).stopServer();
+      }
+    });
+
     final router = ref.watch(appRouterProvider);
     final uiScale = ref.watch(uiScaleProvider);
     final appMode = ref.watch(appModeProvider);
