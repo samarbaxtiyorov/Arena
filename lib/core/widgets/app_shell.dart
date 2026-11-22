@@ -440,6 +440,38 @@ class AppShell extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (authState.isOwner) ...[
+                  const Gap(8),
+                  InkWell(
+                    onTap: () {
+                      ref.read(appModeProvider.notifier).setMode(AppMode.boss);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF78350F).withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD97706), width: 1),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shield_rounded, size: 14, color: Color(0xFFFACC15)),
+                          Gap(6),
+                          Text(
+                            "👑 Arena Boss (Boshqaruv)ga O'tish",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFFACC15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/providers/business_account_provider.dart';
+import '../config/app_mode.dart';
 import '../services/lan_boss_client.dart';
 import '../widgets/arena_logo.dart';
 
@@ -314,42 +315,72 @@ class BossShell extends ConsumerWidget {
               color: Color(0xFF060913),
               border: Border(top: BorderSide(color: Color(0xFF1E293B))),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAB308).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFEAB308), width: 1.5),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.shield_rounded, color: Color(0xFFFACC15), size: 20),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAB308).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFEAB308), width: 1.5),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.shield_rounded, color: Color(0xFFFACC15), size: 20),
+                      ),
+                    ),
+                    const Gap(10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            auth.userName.isNotEmpty ? auth.userName : 'Boshliq',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Text(
+                            '👑 Klub Egasi',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFACC15)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'PIN bilan qulflash',
+                      icon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 20),
+                      onPressed: () => ref.read(authProvider.notifier).lock(),
+                    ),
+                  ],
                 ),
                 const Gap(10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        auth.userName.isNotEmpty ? auth.userName : 'Boshliq',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Text(
-                        '👑 Klub Egasi',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFACC15)),
-                      ),
-                    ],
+                InkWell(
+                  onTap: () {
+                    ref.read(appModeProvider.notifier).setMode(AppMode.pos);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF334155)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.point_of_sale_rounded, size: 14, color: Color(0xFF34D399)),
+                        Gap(6),
+                        Text(
+                          "🖥️ Kassa Rejimiga O'tish",
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF34D399)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'PIN bilan qulflash',
-                  icon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 20),
-                  onPressed: () => ref.read(authProvider.notifier).lock(),
                 ),
               ],
             ),

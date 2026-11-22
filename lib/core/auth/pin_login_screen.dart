@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import '../../features/management/providers/staff_provider.dart';
+import '../config/app_mode.dart';
 import '../widgets/arena_logo.dart';
 import 'auth_provider.dart';
 import 'providers/business_account_provider.dart';
@@ -112,6 +113,8 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
     final businessState = ref.read(businessAccountProvider);
     final activeVenue = businessState.activeAccount;
     final staffList = ref.read(staffListProvider).value;
+    final appMode = ref.read(appModeProvider);
+    final isBoss = appMode == AppMode.boss;
 
     // 1. Agar Boshliqning shaxsiy PIN-kodi kiritilgan bo'lsa
     if (activeVenue != null && _enteredPin == activeVenue.ownerPin) {
@@ -123,7 +126,19 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
       return;
     }
 
-    // 2. Agar kassirlardan birortasining PIN-kodi kiritilgan bo'lsa
+    // 2. Agar Arena Boss rejimida bo'lsa va kassir PIN kiritilsa:
+    // Kassirlar Arena Boss tizimiga kira olmaydi! Faqat Ega uchun.
+    if (isBoss) {
+      _failedAttempts++;
+      final remaining = 5 - _failedAttempts;
+      setState(() {
+        _errorMessage = "Bu PIN-kod kassirga tegishli! Arena Boss faqat Klub Egasi (Boshliq) uchun.";
+        _enteredPin = '';
+      });
+      return;
+    }
+
+    // 3. Agar kassirlardan birortasining PIN-kodi kiritilgan bo'lsa (Arena POS kassa rejimi)
     final success = ref.read(authProvider.notifier).verifyPin(_enteredPin, staffList: staffList);
     if (success) {
       _failedAttempts = 0;
@@ -270,13 +285,19 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   // DESKTOP: Ixcham, Markazlashgan Premium Karta
   // ============================================
   Widget _buildDesktopCard() {
+    final appMode = ref.watch(appModeProvider);
+    final isBoss = appMode == AppMode.boss;
+
     return Container(
-      width: 420,
-      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+      width: 440,
+      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 30),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isBoss ? const Color(0xFFFACC15).withOpacity(0.5) : const Color(0xFFE2E8F0),
+          width: isBoss ? 1.5 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.25),
@@ -288,7 +309,12 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logotip va Qalqon belgisi
+          // ── Rejimni Tanlash: Arena POS vs Arena Boss ──
+          _buildModeSelector(isBoss),
+
+          const Gap(18),
+
+          // Logotip va Rejim Belgisi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -296,20 +322,26 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: isBoss ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                  border: Border.all(
+                    color: isBoss ? const Color(0xFFFDE68A) : const Color(0xFFA7F3D0),
+                  ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.shield_rounded, color: Color(0xFF2563EB), size: 14),
-                    Gap(4),
+                    Icon(
+                      isBoss ? Icons.shield_rounded : Icons.point_of_sale_rounded,
+                      color: isBoss ? const Color(0xFFB45309) : const Color(0xFF059669),
+                      size: 14,
+                    ),
+                    const Gap(4),
                     Text(
-                      'Xavfsiz kirish',
+                      isBoss ? '👑 Ega Markazi' : '🖥️ Kassir Ish O\'rni',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF2563EB),
+                        color: isBoss ? const Color(0xFFB45309) : const Color(0xFF059669),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -319,7 +351,7 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             ],
           ),
 
-          const Gap(20),
+          const Gap(16),
 
           // Foydalanuvchi va Muassasa ma'lumoti
           Consumer(
@@ -328,12 +360,12 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
               return Column(
                 children: [
                   Text(
-                    venue?.venueName ?? 'Arena POS',
+                    isBoss ? 'ARENA BOSS' : (venue?.venueName ?? 'ARENA POS'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
+                      color: isBoss ? const Color(0xFF92400E) : const Color(0xFF0F172A),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -341,18 +373,21 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: isBoss ? const Color(0xFFFFFBEB) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isBoss ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     child: Text(
-                      venue != null
-                          ? "👤 Boshliq: ${venue.ownerName}"
-                          : "Xodim shaxsiy PIN-kodi",
+                      isBoss
+                          ? "👑 Faqat Klub Rahbari (Boshliq: ${venue?.ownerName ?? 'Ega'})"
+                          : (venue != null ? "👤 Kassir / Marker stoli" : "Xodim PIN-kodi"),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF475569),
-                        fontWeight: FontWeight.w600,
+                        color: isBoss ? const Color(0xFFB45309) : const Color(0xFF475569),
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -361,21 +396,23 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             },
           ),
 
-          const Gap(20),
+          const Gap(16),
 
-          const Text(
-            'Xush kelibsiz!',
-            style: TextStyle(
-              fontSize: 24,
+          Text(
+            isBoss ? 'Boshqaruv Tizimi' : 'Xush kelibsiz!',
+            style: const TextStyle(
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               color: Color(0xFF0F172A),
             ),
           ),
           const Gap(4),
-          const Text(
-            'Tizimga kirish uchun 4 xonali PIN kodni kiriting',
+          Text(
+            isBoss
+                ? 'Boshqaruv markaziga kirish uchun Boshliq PIN kodini kiriting'
+                : 'Kassaga kirish uchun 4 xonali PIN kodni kiriting',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF64748B),
             ),
@@ -446,9 +483,17 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
   // MOBIL: Vertikal mutanosib tartib
   // ============================================
   Widget _buildMobileLayout() {
+    final appMode = ref.watch(appModeProvider);
+    final isBoss = appMode == AppMode.boss;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Rejimni Tanlash: Arena POS vs Arena Boss
+        _buildModeSelector(isBoss),
+
+        const Gap(16),
+
         // Yuqori belgi qatori
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -457,23 +502,39 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             children: [
               const ArenaLogo(size: 44, borderRadius: 12),
               Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEFF6FF),
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isBoss ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isBoss ? const Color(0xFFFDE68A) : const Color(0xFFA7F3D0),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.shield_outlined,
-                  color: Color(0xFF2563EB),
-                  size: 22,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isBoss ? Icons.shield_rounded : Icons.point_of_sale_rounded,
+                      color: isBoss ? const Color(0xFFB45309) : const Color(0xFF059669),
+                      size: 14,
+                    ),
+                    const Gap(4),
+                    Text(
+                      isBoss ? '👑 Ega Markazi' : '🖥️ Kassir Ish O\'rni',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isBoss ? const Color(0xFFB45309) : const Color(0xFF059669),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
 
-        const Gap(20),
+        const Gap(16),
 
         // Sarlavhalar
         Consumer(
@@ -482,25 +543,27 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             return Column(
               children: [
                 Text(
-                  venue?.venueName ?? 'Arena POS',
+                  isBoss ? 'ARENA BOSS' : (venue?.venueName ?? 'ARENA POS'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
+                    color: isBoss ? const Color(0xFF92400E) : const Color(0xFF0F172A),
                     letterSpacing: -0.5,
                   ),
                 ),
                 const Gap(4),
                 Text(
-                  venue != null
-                      ? "Boshliq: ${venue.ownerName} • Kirish PIN-kodi"
-                      : "4 xonali shaxsiy PIN-kodingizni kiriting",
+                  isBoss
+                      ? "👑 Klub Egasi (Boshliq: ${venue?.ownerName ?? 'Ega'})"
+                      : (venue != null
+                          ? "👤 Kassir / Marker stoli"
+                          : "4 xonali shaxsiy PIN-kodingizni kiriting"),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
+                    color: isBoss ? const Color(0xFFB45309) : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -508,9 +571,16 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
           },
         ),
 
-        const Gap(28),
+        const Gap(20),
 
-        const Text(
+        Text(
+          isBoss ? 'Boshqaruv Tizimi' : 'Xush kelibsiz!',
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
+        ),
           'Xush kelibsiz!',
           style: TextStyle(
             fontSize: 26,
@@ -690,6 +760,116 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildModeSelector(bool isBoss) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                if (isBoss) {
+                  ref.read(appModeProvider.notifier).setMode(AppMode.pos);
+                  setState(() => _errorMessage = null);
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: !isBoss ? const Color(0xFF10B981) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: !isBoss
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.point_of_sale_rounded,
+                      size: 15,
+                      color: !isBoss ? Colors.white : const Color(0xFF64748B),
+                    ),
+                    const Gap(6),
+                    Text(
+                      'Arena POS (Kassa)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: !isBoss ? Colors.white : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Gap(4),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                if (!isBoss) {
+                  ref.read(appModeProvider.notifier).setMode(AppMode.boss);
+                  setState(() => _errorMessage = null);
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isBoss ? const Color(0xFFFACC15) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: isBoss
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFFACC15).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.admin_panel_settings_rounded,
+                      size: 15,
+                      color: isBoss ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                    ),
+                    const Gap(6),
+                    Text(
+                      'Arena Boss (Ega)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: isBoss ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

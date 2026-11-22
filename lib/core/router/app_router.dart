@@ -62,9 +62,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         }
       }
 
-      // 2. Arena Boss rejimida: Agar kassa sahifalariga tasodifan kirilsa, Boss Radarga qaytarish
+      // 2. Arena Boss rejimida: Faqat /boss bilan boshlanuvchi marshrutlarga ruxsat beriladi!
+      // Agar kassa sahifalariga (tables, shop, archive, debts) kirilsa, darhol Boss Radarga yo'naltirish
       if (isBoss) {
-        if (loc == AppRoutes.tables || loc == AppRoutes.shop || loc == AppRoutes.management) {
+        if (!loc.startsWith('/boss')) {
           return AppRoutes.bossRadar;
         }
       }

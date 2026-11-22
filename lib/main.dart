@@ -26,14 +26,27 @@ Future<void> main([List<String> args = const []]) async {
   // SharedPreferences'ni dastur startida darhol yuklash (0-ms holat)
   final prefs = await SharedPreferences.getInstance();
   BusinessAccountNotifier.initialPrefs = prefs;
+  AppModeNotifier.initialPrefs = prefs;
 
-  final isBoss = args.contains('--boss') || args.contains('-b');
-  final mode = isBoss ? AppMode.boss : AppMode.pos;
+  final hasBossArg = args.contains('--boss') || args.contains('-b');
+  final hasPosArg = args.contains('--pos') || args.contains('-p');
+
+  AppMode mode;
+  if (hasBossArg) {
+    mode = AppMode.boss;
+    await prefs.setString(AppModeNotifier.prefKey, 'boss');
+  } else if (hasPosArg) {
+    mode = AppMode.pos;
+    await prefs.setString(AppModeNotifier.prefKey, 'pos');
+  } else {
+    final savedMode = prefs.getString(AppModeNotifier.prefKey);
+    mode = (savedMode == 'boss') ? AppMode.boss : AppMode.pos;
+  }
 
   runApp(
     ProviderScope(
       overrides: [
-        appModeProvider.overrideWith(isBoss ? BossModeNotifier.new : AppModeNotifier.new),
+        appModeProvider.overrideWith(() => AppModeNotifier(initialMode: mode)),
       ],
       child: ArenaApp(initialMode: mode),
     ),
