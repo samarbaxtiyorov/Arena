@@ -66,17 +66,24 @@ class SmartLightService {
     final testUrls = [
       Uri.parse('http://$cleanIp/status'),
       Uri.parse('http://$cleanIp/ping'),
+      Uri.parse('http://$cleanIp:8081/zeroconf/info'), // Sonoff DIY Mode
       Uri.parse('http://$cleanIp/relay/1/on'), // Test ulanish
     ];
 
     for (final url in testUrls) {
       try {
-        final res = await http.get(url).timeout(const Duration(milliseconds: 2000));
+        final res = await (url.port == 8081
+            ? http.post(
+                url,
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({"deviceid": "", "data": {}}),
+              )
+            : http.get(url)).timeout(const Duration(milliseconds: 2000));
         if (res.statusCode >= 200 && res.statusCode < 300) {
           return {
             'online': true,
             'ip': cleanIp,
-            'message': 'ESP32 Wi-Fi Rele aloqada! (Status: ${res.statusCode})',
+            'message': 'Smart Rele aloqada! (Status: ${res.statusCode})',
             'data': res.body,
           };
         }
@@ -103,16 +110,56 @@ class SmartLightService {
     final stateNum = state ? '1' : '0';
     final cleanIp = ip.trim().replaceAll('http://', '').replaceAll('/', '');
 
-    // Har xil mashhur Wi-Fi relay protokollari bilan moslashuvchan ulanish
+    // 1. Sonoff DIY REST API (Port 8081 - rasmiy Sonoff 4CH PRO R3 DIY rejimi)
+    final sonoffUrls = [
+      Uri.parse('http://$cleanIp:8081/zeroconf/switches'),
+      Uri.parse('http://$cleanIp:8081/zeroconf/switch'),
+    ];
+
+    for (final sUrl in sonoffUrls) {
+      try {
+        final body = sUrl.path.endsWith('/switches')
+            ? jsonEncode({
+                "deviceid": "",
+                "data": {
+                  "switches": [
+                    {"outlet": channel - 1, "switch": stateStr}
+                  ]
+                }
+              })
+            : jsonEncode({
+                "deviceid": "",
+                "data": {
+                  "switch": stateStr,
+                  "outlet": channel - 1,
+                }
+              });
+
+        final sRes = await http
+            .post(
+              sUrl,
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(milliseconds: 1500));
+
+        if (sRes.statusCode >= 200 && sRes.statusCode < 300) {
+          debugPrint("✅ [SmartLight] Sonoff DIY Rele muvaffaqiyatli ($sUrl): ${sRes.body}");
+          return true;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Tasmota, Shelly, ESP8266/ESP32 standart HTTP GET protokollari
     final urlsToTry = [
+      // Shelly protokoli (Shelly 4CH / Pro 4PM / Shelly Plus)
+      Uri.parse('http://$cleanIp/relay/${channel - 1}?turn=$stateStr'),
+      // Tasmota / Sonoff Tasmota (Power1 ON / Power1 OFF)
+      Uri.parse('http://$cleanIp/cm?cmnd=Power$channel%20${state ? "ON" : "OFF"}'),
       // Standart REST / Mini relay protokoli
       Uri.parse('http://$cleanIp/relay/$channel/$stateStr'),
-      // Tasmota / Sonoff protokoli (Power1 ON / Power1 OFF)
-      Uri.parse('http://$cleanIp/cm?cmnd=Power$channel%20${state ? "ON" : "OFF"}'),
       // ESP8266 / Arduino WebServer protokoli
       Uri.parse('http://$cleanIp/control?relay=$channel&state=$stateNum'),
-      // Shelly protokoli
-      Uri.parse('http://$cleanIp/relay/${channel - 1}?turn=$stateStr'),
     ];
 
     for (final url in urlsToTry) {
