@@ -130,7 +130,6 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
     // Kassirlar Arena Boss tizimiga kira olmaydi! Faqat Ega uchun.
     if (isBoss) {
       _failedAttempts++;
-      final remaining = 5 - _failedAttempts;
       setState(() {
         _errorMessage = "Bu PIN-kod kassirga tegishli! Arena Boss faqat Klub Egasi (Boshliq) uchun.";
         _enteredPin = '';
@@ -581,18 +580,13 @@ class _PinLoginScreenState extends ConsumerState<PinLoginScreen> {
             color: Color(0xFF0F172A),
           ),
         ),
-          'Xush kelibsiz!',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0F172A),
-          ),
-        ),
         const Gap(6),
-        const Text(
-          'Tizimga kirish uchun shaxsiy PIN kodingizni kiriting',
+        Text(
+          isBoss
+              ? 'Boshqaruv markaziga kirish uchun Boshliq PIN kodini kiriting'
+              : 'Tizimga kirish uchun shaxsiy PIN kodingizni kiriting',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
             color: Color(0xFF64748B),
           ),

@@ -23,14 +23,14 @@ enum AppMode {
 class AppModeNotifier extends Notifier<AppMode> {
   static const String prefKey = 'arena_device_mode';
   static SharedPreferences? initialPrefs;
-  final AppMode? _initialMode;
+  final AppMode? initialMode;
 
-  AppModeNotifier({AppMode? initialMode}) : _initialMode = initialMode;
+  AppModeNotifier({this.initialMode});
 
   @override
   AppMode build() {
-    if (_initialMode != null) {
-      return _initialMode!;
+    if (initialMode != null) {
+      return initialMode!;
     }
     final saved = initialPrefs?.getString(prefKey);
     if (saved == 'boss') return AppMode.boss;
