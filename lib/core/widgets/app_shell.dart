@@ -1,7 +1,8 @@
 // ============================================
-// Champion POS — Asosiy Shell
-// Mobil qurilmalarda pastki NavigationBar,
-// Kompyuter va planshetlarda professional Desktop Sidebar
+// Arena POS — Kassir Asosiy Shell
+// Faqat Kassir uchun maxsus toza kassa dasturi
+// 4 ta asosiy modul: Maydonlar, Do'kon, Kassa & Cheklar, Qarzlar
+// Ortiqcha boshqaruv va boss elementlaridan tozalangan
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -11,7 +12,6 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/providers/business_account_provider.dart';
-import '../config/app_mode.dart';
 import '../router/app_router.dart';
 import '../services/lan_pos_server.dart';
 import '../widgets/arena_logo.dart';
@@ -23,15 +23,14 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
-  int _locationToIndex(String location, bool isPos) {
+  int _locationToIndex(String location) {
     if (location.startsWith(AppRoutes.shop)) return 1;
     if (location.startsWith(AppRoutes.archive)) return 2;
     if (location.startsWith(AppRoutes.debts)) return 3;
-    if (!isPos && location.startsWith(AppRoutes.management)) return 4;
     return 0; // AppRoutes.tables
   }
 
-  void _onNavigate(BuildContext context, int index, bool isPos) {
+  void _onNavigate(BuildContext context, int index) {
     switch (index) {
       case 0:
         context.go(AppRoutes.tables);
@@ -45,22 +44,59 @@ class AppShell extends ConsumerWidget {
       case 3:
         context.go(AppRoutes.debts);
         break;
-      case 4:
-        if (!isPos) {
-          context.go(AppRoutes.management);
-        } else {
-          context.go(AppRoutes.tables);
-        }
-        break;
     }
+  }
+
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 24),
+            Gap(10),
+            Text(
+              "Tizimdan chiqish",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Haqiqatan ham kassir hisobidan chiqmoqchimisiz?",
+          style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Bekor qilish",
+                style: TextStyle(
+                    color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(authProvider.notifier).logout();
+              ref.read(businessAccountProvider.notifier).logout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Ha, chiqish",
+                style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final appMode = ref.watch(appModeProvider);
-    final isPos = appMode == AppMode.pos;
-    final currentIndex = _locationToIndex(location, isPos);
+    final currentIndex = _locationToIndex(location);
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 850;
 
@@ -70,7 +106,7 @@ class AppShell extends ConsumerWidget {
         body: Row(
           children: [
             // ── Kompyuter uchun Professional Chap Panel (Sidebar) ──
-            _buildDesktopSidebar(context, ref, currentIndex, isPos),
+            _buildDesktopSidebar(context, ref, currentIndex),
 
             // ── Asosiy O'nggi Sahifa Maydoni ────────────────────────
             Expanded(
@@ -120,35 +156,29 @@ class AppShell extends ConsumerWidget {
             }),
           ),
           child: NavigationBar(
-            selectedIndex: currentIndex > (isPos ? 3 : 4) ? 0 : currentIndex,
-            onDestinationSelected: (index) => _onNavigate(context, index, isPos),
-            destinations: [
-              const NavigationDestination(
+            selectedIndex: currentIndex > 3 ? 0 : currentIndex,
+            onDestinationSelected: (index) => _onNavigate(context, index),
+            destinations: const [
+              NavigationDestination(
                 icon: Icon(Icons.grid_view_outlined),
                 selectedIcon: Icon(Icons.grid_view_rounded),
                 label: 'Maydonlar',
               ),
-              const NavigationDestination(
+              NavigationDestination(
                 icon: Icon(Icons.storefront_outlined),
                 selectedIcon: Icon(Icons.storefront_rounded),
                 label: "Do'kon",
               ),
               NavigationDestination(
-                icon: Icon(isPos ? Icons.point_of_sale_outlined : Icons.inventory_2_outlined),
-                selectedIcon: Icon(isPos ? Icons.point_of_sale_rounded : Icons.inventory_2_rounded),
-                label: isPos ? 'Kassa' : 'Arxiv',
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long_rounded),
+                label: 'Kassa',
               ),
-              const NavigationDestination(
+              NavigationDestination(
                 icon: Icon(Icons.menu_book_outlined),
                 selectedIcon: Icon(Icons.menu_book_rounded),
                 label: 'Qarzlar',
               ),
-              if (!isPos)
-                const NavigationDestination(
-                  icon: Icon(Icons.admin_panel_settings_outlined),
-                  selectedIcon: Icon(Icons.admin_panel_settings_rounded),
-                  label: 'Boshqaruv',
-                ),
             ],
           ),
         ),
@@ -157,7 +187,7 @@ class AppShell extends ConsumerWidget {
   }
 
   Widget _buildDesktopSidebar(
-      BuildContext context, WidgetRef ref, int currentIndex, bool isPos) {
+      BuildContext context, WidgetRef ref, int currentIndex) {
     final businessState = ref.watch(businessAccountProvider);
     final activeVenue = businessState.activeAccount;
     final authState = ref.watch(authProvider);
@@ -173,7 +203,7 @@ class AppShell extends ConsumerWidget {
     return Container(
       width: 250,
       decoration: const BoxDecoration(
-        color: Color(0xFF0F172A), // Dark luxury slate
+        color: Color(0xFF0F172A), // Hashamatli qorong'i slate
         border: Border(
           right: BorderSide(color: Color(0xFF1E293B), width: 1),
         ),
@@ -196,17 +226,17 @@ class AppShell extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isPos ? 'ARENA POS' : 'ARENA BOSS',
+                      const Text(
+                        'ARENA POS',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: isPos ? const Color(0xFF34D399) : const Color(0xFF38BDF8),
+                          color: Color(0xFF34D399),
                           letterSpacing: 0.5,
                         ),
                       ),
                       Text(
-                        activeVenue?.venueName ?? (isPos ? 'Bilyard Kassa' : 'Boshqaruv Tizimi'),
+                        activeVenue?.venueName ?? 'Bilyard & Sport Kassa',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -215,25 +245,22 @@ class AppShell extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const Gap(2),
+                      const Gap(3),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
+                            horizontal: 6, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: isPos
-                              ? const Color(0xFF065F46).withOpacity(0.6)
-                              : const Color(0xFF1E293B),
+                          color: const Color(0xFF065F46).withOpacity(0.6),
                           borderRadius: BorderRadius.circular(4),
-                          border: isPos
-                              ? Border.all(color: const Color(0xFF059669), width: 0.8)
-                              : null,
+                          border: Border.all(
+                              color: const Color(0xFF059669), width: 0.8),
                         ),
-                        child: Text(
-                          isPos ? 'KASSA ISH O\'RNI' : 'BOSHQARUV MARKAZI',
+                        child: const Text(
+                          'KASSA ISH O\'RNI',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
-                            color: isPos ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
+                            color: Color(0xFF6EE7B7),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -245,63 +272,51 @@ class AppShell extends ConsumerWidget {
             ),
           ),
 
-          if (isPos) ...[
-            Consumer(
-              builder: (context, ref, _) {
-                final lanServer = ref.watch(lanPosServerProvider);
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF064E3B).withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF059669), width: 0.8),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: lanServer.isRunning ? const Color(0xFF34D399) : const Color(0xFFEF4444),
-                        ),
+          // LAN Kassa Aloqasi (Nozik va toza badge)
+          Consumer(
+            builder: (context, ref, _) {
+              final lanServer = ref.watch(lanPosServerProvider);
+              if (!lanServer.isRunning || lanServer.localIp == null) {
+                return const SizedBox(height: 6);
+              }
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF064E3B).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: const Color(0xFF059669).withOpacity(0.5), width: 0.8),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF34D399),
                       ),
-                      const Gap(8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Wi-Fi Kassa IP:',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ),
-                            Text(
-                              lanServer.localIp != null ? "${lanServer.localIp}:${lanServer.port}" : "Aniqlanmoqda...",
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF6EE7B7),
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
+                    ),
+                    const Gap(8),
+                    Text(
+                      "LAN: ${lanServer.localIp}:${lanServer.port}",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF6EE7B7),
+                        fontFamily: 'monospace',
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
 
-          const Gap(6),
+          const Gap(4),
 
-          // ── 2. Navigatsiya Menyu Tugmalari ───────────────────────
+          // ── 2. Navigatsiya Menyu Tugmalari (Faqat 4 ta kassa moduli) ──
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -314,7 +329,7 @@ class AppShell extends ConsumerWidget {
                   icon: Icons.grid_view_rounded,
                   badge: activeCount > 0 ? '$activeCount band' : null,
                   badgeColor: const Color(0xFF10B981),
-                  onTap: () => _onNavigate(context, 0, isPos),
+                  onTap: () => _onNavigate(context, 0),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
@@ -325,16 +340,16 @@ class AppShell extends ConsumerWidget {
                   icon: Icons.storefront_rounded,
                   badge: cartItemsCount > 0 ? '$cartItemsCount ta' : null,
                   badgeColor: const Color(0xFF3B82F6),
-                  onTap: () => _onNavigate(context, 1, isPos),
+                  onTap: () => _onNavigate(context, 1),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
                   context: context,
                   index: 2,
                   currentIndex: currentIndex,
-                  title: isPos ? 'Kassa & Cheklar' : 'Kassa & Arxiv',
-                  icon: isPos ? Icons.point_of_sale_rounded : Icons.receipt_long_rounded,
-                  onTap: () => _onNavigate(context, 2, isPos),
+                  title: 'Kassa & Cheklar',
+                  icon: Icons.receipt_long_rounded,
+                  onTap: () => _onNavigate(context, 2),
                 ),
                 const Gap(6),
                 _buildSidebarNavItem(
@@ -343,24 +358,13 @@ class AppShell extends ConsumerWidget {
                   currentIndex: currentIndex,
                   title: 'Nasiya Daftari',
                   icon: Icons.menu_book_rounded,
-                  onTap: () => _onNavigate(context, 3, isPos),
+                  onTap: () => _onNavigate(context, 3),
                 ),
-                if (!isPos) ...[
-                  const Gap(6),
-                  _buildSidebarNavItem(
-                    context: context,
-                    index: 4,
-                    currentIndex: currentIndex,
-                    title: 'Boshqaruv Markazi',
-                    icon: Icons.admin_panel_settings_rounded,
-                    onTap: () => _onNavigate(context, 4, isPos),
-                  ),
-                ],
               ],
             ),
           ),
 
-          // ── 3. Foydalanuvchi va Qulflash Paneli (Pastki qism) ─────
+          // ── 3. Kassir Profili va Chiqish Paneli ───────────────────
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
@@ -378,25 +382,17 @@ class AppShell extends ConsumerWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: authState.isOwner
-                            ? const Color(0xFFEAB308).withOpacity(0.2)
-                            : const Color(0xFF10B981).withOpacity(0.2),
+                        color: const Color(0xFF10B981).withOpacity(0.18),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: authState.isOwner
-                              ? const Color(0xFFEAB308)
-                              : const Color(0xFF10B981),
-                          width: 1.5,
+                          color: const Color(0xFF10B981),
+                          width: 1.2,
                         ),
                       ),
-                      child: Icon(
-                        authState.isOwner
-                            ? Icons.admin_panel_settings_rounded
-                            : Icons.badge_rounded,
+                      child: const Icon(
+                        Icons.person_rounded,
                         size: 20,
-                        color: authState.isOwner
-                            ? const Color(0xFFFACC15)
-                            : const Color(0xFF34D399),
+                        color: Color(0xFF34D399),
                       ),
                     ),
                     const Gap(10),
@@ -407,7 +403,7 @@ class AppShell extends ConsumerWidget {
                           Text(
                             authState.userName.isNotEmpty
                                 ? authState.userName
-                                : (authState.isOwner ? 'Boshliq' : 'Kassir'),
+                                : 'Kassir',
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -416,117 +412,75 @@ class AppShell extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            authState.isOwner ? '👑 Boshliq' : '👤 Kassir',
+                          const Text(
+                            'Kassir / Xodim',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: authState.isOwner
-                                  ? const Color(0xFFFACC15)
-                                  : const Color(0xFF94A3B8),
+                              color: Color(0xFF94A3B8),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Ekranni PIN bilan tezkor qulflash
+                    // Tizimdan toza chiqish tugmasi
                     IconButton(
-                      tooltip: 'PIN bilan qulflash',
+                      tooltip: 'Tizimdan chiqish',
                       icon: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: Color(0xFF94A3B8),
+                        Icons.logout_rounded,
+                        color: Color(0xFFF87171),
                         size: 20,
                       ),
-                      onPressed: () {
-                        ref.read(authProvider.notifier).lock();
-                      },
+                      onPressed: () => _confirmLogout(context, ref),
                     ),
                   ],
                 ),
                 const Gap(8),
-                // Bulut Sinxronlash va Chiqish tugmalari
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final sync = ref.read(syncServiceProvider);
-                          final res = await sync.syncAll();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(res.isSuccess
-                                    ? "Sinxronlandi! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)"
-                                    : (res.wasOffline
-                                        ? "Internet aloqasi yo'q (Oflayn rejim)"
-                                        : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
-                                backgroundColor: res.isSuccess
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFF59E0B),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.sync_rounded,
-                                  size: 14, color: Color(0xFF38BDF8)),
-                              Gap(6),
-                              Text(
-                                "Sinxronlash",
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF38BDF8)),
-                              ),
-                            ],
-                          ),
+                // Bulut Sinxronlash tugmasi
+                InkWell(
+                  onTap: () async {
+                    final sync = ref.read(syncServiceProvider);
+                    final res = await sync.syncAll();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res.isSuccess
+                              ? "Sinxronlandi! (${res.pulled} ta yuklandi, ${res.pushed} ta yuborildi)"
+                              : (res.wasOffline
+                                  ? "Internet aloqasi yo'q (Oflayn rejim)"
+                                  : "Sinxronizatsiyada xatolik: ${res.errors.join(', ')}")),
+                          backgroundColor: res.isSuccess
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF59E0B),
+                          duration: const Duration(seconds: 2),
                         ),
-                      ),
+                      );
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-                if (authState.isOwner) ...[
-                  const Gap(8),
-                  InkWell(
-                    onTap: () {
-                      ref.read(appModeProvider.notifier).setMode(AppMode.boss);
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF78350F).withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFD97706), width: 1),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.shield_rounded, size: 14, color: Color(0xFFFACC15)),
-                          Gap(6),
-                          Text(
-                            "👑 Arena Boss (Boshqaruv)ga O'tish",
-                            style: TextStyle(
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.sync_rounded,
+                            size: 14, color: Color(0xFF38BDF8)),
+                        Gap(6),
+                        Text(
+                          "Bulut bilan sinxronlash",
+                          style: TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFFACC15),
-                            ),
-                          ),
-                        ],
-                      ),
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF38BDF8)),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -557,7 +511,7 @@ class AppShell extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFF2563EB) // Brand active blue
+                ? const Color(0xFF2563EB) // Brand faol ko'k
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),

@@ -35,7 +35,7 @@ body {
 
 /* Glassmorphism Card Effect */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.7);
+  background: rgba(17, 24, 39, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -103,6 +103,14 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Number Counters Animation */
 .stat-digit {
   font-feature-settings: "tnum";
@@ -129,4 +137,20 @@ body {
 
 .toast-enter {
   animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modal animation */
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-enter {
+  animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

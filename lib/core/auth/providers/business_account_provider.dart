@@ -561,6 +561,8 @@ class BusinessAccountNotifier extends Notifier<BusinessAccountState> {
     );
   }
 
+  Future<void> logout() => logoutToAuthScreen();
+
   Future<void> updateAccountInfo({
     required String venueName,
     required String ownerName,

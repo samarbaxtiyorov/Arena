@@ -60,6 +60,13 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (details) async {
+      // Bir vaqtning o'zida bir nechta so'rovlar (masalan LAN server va sinxronizatsiya)
+      // bazani bloklab qo'ymasligi uchun WAL rejimi va 5 soniyalik kutish taymeri
+      await customStatement('PRAGMA journal_mode = WAL;');
+      await customStatement('PRAGMA busy_timeout = 5000;');
+      await customStatement('PRAGMA synchronous = NORMAL;');
+    },
     onCreate: (m) async {
       await m.createAll();
       // Yangi ochilgan barcha biznes hisoblar mutlaqo toza (0 ta stol, 0 ta tovar, 0 ta qarz) bo'ladi

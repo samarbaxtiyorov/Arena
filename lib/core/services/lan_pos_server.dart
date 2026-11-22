@@ -200,6 +200,18 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
     debugPrint("🛑 [LanPosServer] Arena POS Server to'xtatildi.");
   }
 
+  Future<T> _safeDb<T>(Future<T> Function() action) async {
+    for (int i = 0; i < 4; i++) {
+      try {
+        return await action();
+      } catch (e) {
+        if (i == 3) rethrow;
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    throw Exception("Database busy timeout");
+  }
+
   /// So'rovlarni qayta ishlash
   void _handleRequest(HttpRequest request) async {
     // CORS sarlavhalari (Boss ilovasi istalgan qurilmadan kirishi uchun)
@@ -233,24 +245,30 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
         final business = ref.read(businessAccountProvider).activeAccount;
         final db = ref.read(appDatabaseProvider);
 
-        final tables = await (db.select(db.clubTables)..where((t) => t.isActive.equals(true))).get();
-        final activeSessions = await (db.select(db.sessions)..where((s) => s.status.equals('active'))).get();
-        final todayCashTotal = await db.cashRecordsDao.getTodayTotal();
-        final todaySessions = await db.sessionsDao.getTodaySessions();
+        final data = await _safeDb(() async {
+          final tables = await (db.select(db.clubTables)..where((t) => t.isActive.equals(true))).get();
+          final activeSessions = await (db.select(db.sessions)..where((s) => s.status.equals('active'))).get();
+          final todayCashTotal = await db.cashRecordsDao.getTodayTotal();
+          final todaySessions = await db.sessionsDao.getTodaySessions();
 
-        int todayGameTotal = 0;
-        for (final s in todaySessions) {
-          todayGameTotal += s.totalAmount;
-        }
+          int todayGameTotal = 0;
+          for (final s in todaySessions) {
+            todayGameTotal += s.totalAmount;
+          }
+
+          return {
+            'totalTables': tables.length,
+            'activeTablesCount': activeSessions.length,
+            'todayRevenue': todayCashTotal + todayGameTotal,
+            'todayCash': todayCashTotal,
+            'todayGamesSum': todayGameTotal,
+          };
+        });
 
         _respondJson(request, {
           'venueName': business?.venueName ?? 'Bilyard Arena',
           'businessId': business?.id ?? '',
-          'totalTables': tables.length,
-          'activeTablesCount': activeSessions.length,
-          'todayRevenue': todayCashTotal + todayGameTotal,
-          'todayCash': todayCashTotal,
-          'todayGamesSum': todayGameTotal,
+          ...data,
           'timestamp': DateTime.now().toIso8601String(),
         });
         return;
@@ -258,29 +276,32 @@ class LanPosServerNotifier extends Notifier<LanServerState> {
 
       if (path == '/api/tables') {
         final db = ref.read(appDatabaseProvider);
-        final tables = await (db.select(db.clubTables)..where((t) => t.isActive.equals(true))).get();
-        final activeSessions = await (db.select(db.sessions)..where((s) => s.status.equals('active'))).get();
 
-        final sessionMap = {for (final s in activeSessions) s.tableId: s};
+        final result = await _safeDb(() async {
+          final tables = await (db.select(db.clubTables)..where((t) => t.isActive.equals(true))).get();
+          final activeSessions = await (db.select(db.sessions)..where((s) => s.status.equals('active'))).get();
 
-        final result = tables.map((t) {
-          final s = sessionMap[t.id];
-          return {
-            'id': t.id,
-            'name': t.name,
-            'category': t.type,
-            'hourlyRate': t.pricePerHour,
-            'isActive': s != null,
-            'session': s == null
-                ? null
-                : {
-                    'id': s.id,
-                    'startedAt': s.startedAt.toIso8601String(),
-                    'notes': s.notes,
-                    'status': s.status,
-                  },
-          };
-        }).toList();
+          final sessionMap = {for (final s in activeSessions) s.tableId: s};
+
+          return tables.map((t) {
+            final s = sessionMap[t.id];
+            return {
+              'id': t.id,
+              'name': t.name,
+              'category': t.type,
+              'hourlyRate': t.pricePerHour,
+              'isActive': s != null,
+              'session': s == null
+                  ? null
+                  : {
+                      'id': s.id,
+                      'startedAt': s.startedAt.toIso8601String(),
+                      'notes': s.notes,
+                      'status': s.status,
+                    },
+            };
+          }).toList();
+        });
 
         _respondJson(request, {'tables': result});
         return;

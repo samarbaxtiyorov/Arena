@@ -8,7 +8,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_billing_helper.dart';
@@ -413,7 +412,7 @@ class _TableCardState extends ConsumerState<TableCard> {
               const Gap(10),
 
               // Bo'lingan partiyalar (agar bor bo'lsa)
-              if (session != null) ...[
+              ...[
                 () {
                   final splits = SessionBillingHelper.getSplits(session.notes);
                   final splitsTotal = SessionBillingHelper.getTotalSplitAmount(session.notes);
@@ -882,20 +881,16 @@ class _TableCardState extends ConsumerState<TableCard> {
           style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF334155)),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Yopish"),
-          ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.push('/management/subscription');
-            },
+            onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text("Obunaga o'tish"),
+            child: const Text("Tushundim"),
           ),
         ],
       ),

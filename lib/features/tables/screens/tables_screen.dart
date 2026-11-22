@@ -7,17 +7,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/ui_scale_provider.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/providers/business_account_provider.dart';
 import '../../../core/widgets/arena_logo.dart';
 import '../../../data/repositories/database_providers.dart';
 import '../../management/providers/subscription_provider.dart';
 import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
 import '../widgets/table_category_chips.dart';
-import '../../management/screens/manage_tables_screen.dart';
 import '../../../core/services/lan_pos_server.dart';
 
 class TablesScreen extends ConsumerWidget {
@@ -98,7 +97,6 @@ class TablesScreen extends ConsumerWidget {
                     child: Builder(
                       builder: (context) {
                         final isCompact = MediaQuery.sizeOf(context).width < 650;
-                        final isOwner = ref.watch(authProvider).isOwner;
 
                         return Row(
                           children: [
@@ -193,8 +191,9 @@ class TablesScreen extends ConsumerWidget {
                                         ),
                                       );
                                     }
-                                  } else if (val == 'lock') {
-                                    ref.read(authProvider.notifier).lock();
+                                  } else if (val == 'logout') {
+                                    ref.read(authProvider.notifier).logout();
+                                    ref.read(businessAccountProvider.notifier).logout();
                                   }
                                 },
                                 itemBuilder: (ctx) => [
@@ -213,32 +212,23 @@ class TablesScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   const PopupMenuItem(
-                                    value: 'lock',
+                                    value: 'logout',
                                     child: Row(
                                       children: [
-                                        Icon(Icons.lock_outline_rounded,
-                                            color: Color(0xFF64748B), size: 18),
+                                        Icon(Icons.logout_rounded,
+                                            color: Color(0xFFEF4444), size: 18),
                                         Gap(10),
-                                        Text("Ekranni qulflash (PIN)",
+                                        Text("Tizimdan chiqish",
                                             style: TextStyle(
                                                 fontSize: 13,
-                                                fontWeight: FontWeight.w600)),
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFFEF4444))),
                                       ],
                                     ),
                                   ),
                                 ],
                               ),
                             ] else ...[
-                              // Desktop / planshet ko'rinishi: barcha tugmalar ochiq
-                              IconButton(
-                                tooltip: 'Sana',
-                                icon: const Icon(
-                                  Icons.calendar_month_outlined,
-                                  color: Color(0xFF2563EB),
-                                  size: 22,
-                                ),
-                                onPressed: () {},
-                              ),
                               Consumer(
                                 builder: (context, ref, _) {
                                   return IconButton(
@@ -273,14 +263,15 @@ class TablesScreen extends ConsumerWidget {
                                 },
                               ),
                               IconButton(
-                                tooltip: 'Ekranni qulflash (PIN)',
+                                tooltip: 'Tizimdan chiqish',
                                 icon: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  color: Color(0xFF64748B),
+                                  Icons.logout_rounded,
+                                  color: Color(0xFF94A3B8),
                                   size: 22,
                                 ),
                                 onPressed: () {
-                                  ref.read(authProvider.notifier).lock();
+                                  ref.read(authProvider.notifier).logout();
+                                  ref.read(businessAccountProvider.notifier).logout();
                                 },
                               ),
                             ],
@@ -291,7 +282,7 @@ class TablesScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // ── Litsenziya / Sinov Davri Holati Banneri ─────────
+                // ── Litsenziya Holati Banneri ─────────
                 if (sub.isExpired)
                   SliverToBoxAdapter(
                     child: Padding(
@@ -303,60 +294,15 @@ class TablesScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: const Color(0xFFF87171)),
                         ),
-                        child: Row(
+                        child: const Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
-                            const Gap(10),
-                            const Expanded(
-                              child: Text(
-                                "Litsenziya muddati tugagan! O'yinlarni boshlash uchun to'lov qiling.",
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF991B1B)),
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => context.push('/management/subscription'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFDC2626),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                              ),
-                              child: const Text("To'lash"),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                else if (sub.isTrialActive)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFF93C5FD)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.stars_rounded, color: Color(0xFF2563EB), size: 22),
-                            const Gap(10),
+                            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+                            Gap(10),
                             Expanded(
                               child: Text(
-                                "🎁 3 kunlik bepul sinov davri faol (${sub.daysRemaining > 0 ? '${sub.daysRemaining} kun' : '${sub.hoursRemaining} soat'} qoldi)",
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E40AF)),
+                                "Litsenziya muddati tugagan! O'yinlarni davom ettirish uchun klub rahbariga murojaat qiling.",
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF991B1B)),
                               ),
-                            ),
-                            TextButton(
-                              onPressed: () => context.push('/management/subscription'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF2563EB),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                              ),
-                              child: const Text("Tariflar"),
                             ),
                           ],
                         ),
@@ -423,35 +369,16 @@ class TablesScreen extends ConsumerWidget {
                                   color: Color(0xFF64748B),
                                 ),
                               ),
-                              const Gap(16),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  final auth = ref.read(authProvider);
-                                  if (auth.isCashier) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Kassirga maydon qo'shish huquqi berilmagan! Faqat Boshliq qo'sha oladi."),
-                                        backgroundColor: Color(0xFFEF4444),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ManageTablesScreen()),
-                                  );
-                                },
-                                icon: const Icon(Icons.settings_outlined),
-                                label: const Text("Boshqaruv markazidan maydon qo'shish"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
+                              const Gap(8),
+                              const Text(
+                                "Hozircha birorta ham maydon yoki stol kiritilmagan.\nBoshliq tomonidan stollar qo'shilgach, bu yerda ko'rinadi.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF94A3B8),
                                 ),
                               ),
-                              const Gap(8),
+                              const Gap(16),
                               TextButton.icon(
                                 onPressed: () async {
                                   final sync = ref.read(syncServiceProvider);

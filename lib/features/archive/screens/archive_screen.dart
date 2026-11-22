@@ -105,7 +105,7 @@ class ArchiveScreen extends ConsumerWidget {
                   color: Color(0xFF2563EB), size: 22),
               Gap(10),
               Text(
-                'Kassa va Moliya Arxivi',
+                'Kassa & Cheklar',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -116,6 +116,65 @@ class ArchiveScreen extends ConsumerWidget {
             ],
           ),
           actions: [
+            // Sana tanlash menyusi
+            PopupMenuButton<ArchiveDateFilter>(
+              initialValue: filter.dateFilter,
+              onSelected: (val) => filterNotifier.setDateFilter(val),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 13, color: Color(0xFF2563EB)),
+                    const Gap(6),
+                    Text(
+                      _getDateFilterName(filter.dateFilter),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Icon(Icons.arrow_drop_down_rounded,
+                        size: 18, color: Color(0xFF64748B)),
+                  ],
+                ),
+              ),
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: ArchiveDateFilter.today,
+                  child: Text("Bugun"),
+                ),
+                const PopupMenuItem(
+                  value: ArchiveDateFilter.yesterday,
+                  child: Text("Kecha"),
+                ),
+                const PopupMenuItem(
+                  value: ArchiveDateFilter.week,
+                  child: Text("Shu hafta"),
+                ),
+                const PopupMenuItem(
+                  value: ArchiveDateFilter.month,
+                  child: Text("Shu oy"),
+                ),
+                const PopupMenuItem(
+                  value: ArchiveDateFilter.all,
+                  child: Text("Barchasi"),
+                ),
+              ],
+            ),
+            const Gap(6),
             IconButton(
               tooltip: 'Bulut bilan sinxronizatsiya',
               icon: const Icon(Icons.sync_rounded, color: Color(0xFF2563EB)),
@@ -165,111 +224,8 @@ class ArchiveScreen extends ConsumerWidget {
             SafeArea(
               child: CustomScrollView(
           slivers: [
-            // ── 1. Sarlavha Paneli ──────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.history_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                    const Gap(12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Savdo va Kassa Arxivi",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          Text(
-                            "Maydonlar, bar va qarz to'lovlari hisob-kitobi",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Sana tanlash menyusi
-                    PopupMenuButton<ArchiveDateFilter>(
-                      initialValue: filter.dateFilter,
-                      onSelected: (val) => filterNotifier.setDateFilter(val),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFCBD5E1)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.calendar_today_rounded,
-                                size: 14, color: Color(0xFF2563EB)),
-                            const Gap(6),
-                            Text(
-                              _getDateFilterName(filter.dateFilter),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const Gap(2),
-                            const Icon(Icons.arrow_drop_down_rounded,
-                                size: 18, color: Color(0xFF64748B)),
-                          ],
-                        ),
-                      ),
-                      itemBuilder: (ctx) => [
-                        const PopupMenuItem(
-                          value: ArchiveDateFilter.today,
-                          child: Text("Bugun"),
-                        ),
-                        const PopupMenuItem(
-                          value: ArchiveDateFilter.yesterday,
-                          child: Text("Kecha"),
-                        ),
-                        const PopupMenuItem(
-                          value: ArchiveDateFilter.week,
-                          child: Text("Shu hafta"),
-                        ),
-                        const PopupMenuItem(
-                          value: ArchiveDateFilter.month,
-                          child: Text("Shu oy"),
-                        ),
-                        const PopupMenuItem(
-                          value: ArchiveDateFilter.all,
-                          child: Text("Barcha vaqt"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // ── 1. Bo'shliq ──────────────────────────────────
+            const SliverToBoxAdapter(child: Gap(12)),
 
             // ── 2. Asosiy Yagona Tushum Paneli (Sodda va Aniq) ───
             SliverToBoxAdapter(

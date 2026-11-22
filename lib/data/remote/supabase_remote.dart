@@ -187,7 +187,7 @@ class SupabaseRemote {
 
     try {
       final res = await _client.from('cloud_accounts').select('id').limit(1);
-      return res != null;
+      return res.isNotEmpty || true;
     } catch (_) {
       return false;
     }

@@ -19,7 +19,6 @@ import 'manage_tables_screen.dart';
 import 'subscription_screen.dart';
 import 'help_screen.dart';
 import 'smart_lights_screen.dart';
-import '../widgets/lan_boss_radar_card.dart';
 
 class ManagementScreen extends ConsumerWidget {
   const ManagementScreen({super.key});
@@ -178,11 +177,6 @@ class ManagementScreen extends ConsumerWidget {
             ),
 
             const Gap(16),
-
-            // ── Jonli Kassa Radari (LAN Wi-Fi orqali) ───────
-            const LanBossRadarCard(),
-
-            const Gap(20),
 
             // ── Bo'lim sarlavhasi ─────────────────────────────
             const Text(
