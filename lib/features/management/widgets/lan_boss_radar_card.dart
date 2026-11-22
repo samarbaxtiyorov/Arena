@@ -294,7 +294,7 @@ class _LanBossRadarCardState extends ConsumerState<LanBossRadarCard> {
                         const Text("BUGUNGI TUSHUM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2563EB))),
                         const Gap(2),
                         Text(
-                          formatSum(lanState.todayRevenue),
+                          formatSum(lanState.todayRevenue.toInt()),
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                         ),
                       ],
