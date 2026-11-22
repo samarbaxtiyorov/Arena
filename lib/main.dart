@@ -7,6 +7,7 @@ import 'core/auth/auth_provider.dart';
 import 'core/auth/providers/business_account_provider.dart';
 import 'core/config/app_mode.dart';
 import 'core/constants/app_constants.dart';
+import 'core/services/lan_pos_server.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/ui_scale_provider.dart';
 import 'core/router/app_router.dart';
@@ -56,6 +57,11 @@ class _ArenaAppState extends ConsumerState<ArenaApp>
       ref.read(appModeProvider.notifier).setMode(widget.initialMode);
       final syncService = ref.read(syncServiceProvider);
       syncService.startPeriodicSync();
+
+      // Agar kassa (POS) rejimida bo'lsa, lokal LAN serverni ishga tushirish (port 8080)
+      if (widget.initialMode == AppMode.pos) {
+        ref.read(lanPosServerProvider.notifier).startServer();
+      }
     });
   }
 

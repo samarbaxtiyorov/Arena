@@ -33,7 +33,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final appMode = ref.watch(appModeProvider);
 
   return GoRouter(
-    initialLocation: AppRoutes.tables,
+    initialLocation: appMode == AppMode.boss ? AppRoutes.management : AppRoutes.tables,
     redirect: (context, state) {
       // Arena POS (kassa) rejimida Boshqaruv Markaziga kirish qat'iyan man etiladi
       if (appMode == AppMode.pos && state.matchedLocation.startsWith(AppRoutes.management)) {

@@ -18,6 +18,7 @@ import '../providers/tables_providers.dart';
 import '../widgets/table_card.dart';
 import '../widgets/table_category_chips.dart';
 import '../../management/screens/manage_tables_screen.dart';
+import '../../../core/services/lan_pos_server.dart';
 
 class TablesScreen extends ConsumerWidget {
   const TablesScreen({super.key});
@@ -135,6 +136,25 @@ class TablesScreen extends ConsumerWidget {
                                       color: const Color(0xFF64748B),
                                       fontWeight: FontWeight.w600,
                                     ),
+                                  ),
+                                  Builder(
+                                    builder: (context) {
+                                      final lan = ref.watch(lanPosServerProvider);
+                                      if (!lan.isRunning || lan.localIp == null) {
+                                        return const SizedBox();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          '🟢 LAN: ${lan.localIp}:${lan.port}',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF16A34A),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
