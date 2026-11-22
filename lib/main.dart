@@ -14,7 +14,7 @@ import 'core/router/app_router.dart';
 import 'data/repositories/database_providers.dart';
 import 'data/sync/sync_service.dart';
 
-Future<void> main() async {
+Future<void> main([List<String> args = const []]) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Supabase initsializatsiyasi
@@ -27,9 +27,15 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   BusinessAccountNotifier.initialPrefs = prefs;
 
+  final isBoss = args.contains('--boss') || args.contains('-b');
+  final mode = isBoss ? AppMode.boss : AppMode.pos;
+
   runApp(
-    const ProviderScope(
-      child: ArenaApp(),
+    ProviderScope(
+      overrides: [
+        appModeProvider.overrideWith(isBoss ? BossModeNotifier.new : AppModeNotifier.new),
+      ],
+      child: ArenaApp(initialMode: mode),
     ),
   );
 }

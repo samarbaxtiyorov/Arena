@@ -29,5 +29,10 @@ class AppModeNotifier extends Notifier<AppMode> {
   bool get isBoss => state == AppMode.boss;
 }
 
+class BossModeNotifier extends AppModeNotifier {
+  @override
+  AppMode build() => AppMode.boss;
+}
+
 final appModeProvider = NotifierProvider<AppModeNotifier, AppMode>(AppModeNotifier.new);
 
